@@ -1,0 +1,4 @@
+bottle
+PyUserInput
+
+# wxPython is not available via pip
