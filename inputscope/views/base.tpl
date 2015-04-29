@@ -2,7 +2,6 @@
 Base template, with site layout and style.
 
 Template arguments:
-  apptitle   program title
   title      page title, if any
   base       main content
 
@@ -15,7 +14,7 @@ Template arguments:
 <!DOCTYPE html>
 <html>
 <head>
-  <title>{{apptitle}}{{" - " + title if get("title") else ""}}</title>
+  <title>{{conf.Title}}{{" - " + title if get("title") else ""}}</title>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <meta name="Author" content="Erki Suurjaak">
   <link rel="icon" type="image/x-icon" href="{{WEBROOT}}static/icon.ico" />
@@ -24,7 +23,7 @@ Template arguments:
 </head>
 <body>
 <div id="header">
-  <a href="{{WEBROOT}}" id="indexlink">{{apptitle}}</a>
+  <a href="{{WEBROOT}}" id="indexlink">{{conf.Title}}</a>
 </div>
 
 <div id="content">

@@ -5,7 +5,7 @@ command-line echoer otherwise. Launches the event listener and web UI server.
 
 @author      Erki Suurjaak
 @created     05.05.2015
-@modified    24.04.2015
+@modified    29.04.2015
 """
 import multiprocessing
 import multiprocessing.forking
@@ -14,12 +14,14 @@ import signal
 import sys
 import threading
 import webbrowser
-try: import Tkinter as tk   # For getting screen size if wx unavailable
-except ImportError: tk = None
 try: import win32com.client # For creating startup shortcut
 except ImportError: pass
+tk = None
 try: import wx, wx.lib.sized_controls, wx.py.shell
-except ImportError: wx = None
+except ImportError:
+    wx = None
+    try: import Tkinter as tk   # For getting screen size if wx unavailable
+    except ImportError: pass
 
 import conf
 import db
@@ -50,7 +52,6 @@ class Model(threading.Thread):
         self.webqueue      = multiprocessing.Queue() # Out-queue to webui
         self.inqueue       = multiprocessing.Queue() # In-queue from listener
 
-
     def toggle(self, input):
         if "mouse" == input:
             enabled = conf.MouseEnabled = not conf.MouseEnabled
@@ -58,6 +59,11 @@ class Model(threading.Thread):
             enabled = conf.KeyboardEnabled = not conf.KeyboardEnabled
         self.listenerqueue.put("%s_%s" % (input, "start" if enabled else "stop"))
         conf.save()
+
+    def stop(self):
+        self.running = False
+        self.listenerqueue.put("exit"), self.webqueue.put("exit")
+        self.inqueue.put(None) # Wake up thread waiting on queue
 
     def log_resolution(self, size):
         if size: db.insert("screen_sizes", x=size[0], y=size[1])
@@ -80,42 +86,24 @@ class Model(threading.Thread):
             if not data: continue
             self.messagehandler and self.messagehandler(data)
 
-    def stop(self):
-        self.running = False
-        self.listenerqueue.put("exit"), self.webqueue.put("exit")
-        self.inqueue.put(None) # Wake up thread waiting on queue
 
-
-
-class MainWindow(getattr(wx, "Frame", object)):
-    def __init__(self):
-        wx.Frame.__init__(self, parent=None,
-                          title="%s %s" % (conf.Title, conf.Version))
-
-        handler = lambda x: wx.CallAfter(lambda: log and log.SetValue(str(x)))
-        self.model = Model(handler)
+class MainApp(getattr(wx, "App", object)):
+    def OnInit(self):
+        self.model = Model()
         self.startupservice = StartupService()
 
-        self.frame_console = wx.py.shell.ShellFrame(self)
+        self.frame_console = wx.py.shell.ShellFrame(None)
         self.trayicon = wx.TaskBarIcon()
 
         if os.path.exists(conf.IconPath):
             icons = wx.IconBundle()
             icons.AddIconFromFile(conf.IconPath, wx.BITMAP_TYPE_ICO)
-            self.SetIcons(icons)
             self.frame_console.SetIcons(icons)
-            self.trayicon.SetIcon(icons.GetIconOfExactSize((16, 16)), conf.Title)
+            icon = (icons.GetIconOfExactSize((16, 16))
+                    if "win32" == sys.platform else icons.GetIcon((24, 24)))
+            self.trayicon.SetIcon(icon, conf.Title)
 
-        panel = wx.lib.sized_controls.SizedPanel(self)
-        log = self.log = wx.TextCtrl(panel, style=wx.TE_MULTILINE)
-
-        log.SetEditable(False)
-        log.BackgroundColour = wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW)
-        log.ForegroundColour = wx.SystemSettings.GetColour(wx.SYS_COLOUR_GRAYTEXT)
         self.frame_console.Title = "%s Console" % conf.Title
-
-        panel.SetSizerType("vertical")
-        log.SetSizerProps(expand=True, proportion=1)
 
         self.Bind(wx.EVT_CLOSE, self.OnClose)
         self.Bind(wx.EVT_DISPLAY_CHANGED, self.OnDisplayChanged)
@@ -123,14 +111,15 @@ class MainWindow(getattr(wx, "Frame", object)):
         self.trayicon.Bind(wx.EVT_TASKBAR_RIGHT_DOWN, self.OnOpenMenu)
         self.frame_console.Bind(wx.EVT_CLOSE, self.OnToggleConsole)
 
-        self.Show()
+        self.model.log_resolution(wx.GetDisplaySize())
         self.model.start()
+        return True
 
 
     def OnOpenMenu(self, event):
         """Creates and opens a popup menu for the tray icon."""
         menu = wx.Menu()
-        item_ui = wx.MenuItem(menu, -1, "&Open user interface")
+        item_ui = wx.MenuItem(menu, -1, "&Open statistics")
         item_startup = wx.MenuItem(menu, -1, "&Start with Windows", 
             kind=wx.ITEM_CHECK) if self.startupservice.can_start() else None
         item_mouse = wx.MenuItem(menu, -1, "Stop &mouse logging",
@@ -143,8 +132,6 @@ class MainWindow(getattr(wx, "Frame", object)):
 
         font = item_ui.Font
         font.SetWeight(wx.FONTWEIGHT_BOLD)
-        font.SetFaceName(self.Font.FaceName)
-        font.SetPointSize(self.Font.PointSize)
         item_ui.Font = font
 
         menu.AppendItem(item_ui)
@@ -261,15 +248,14 @@ def start_listener(inqueue, outqueue):
     runner.run()
 
 
-
-if "__main__" == __name__:
+def main():
+    """Entry point for stand-alone execution."""
     multiprocessing.freeze_support()
     conf.init()
     db.init(conf.DbPath, conf.DbStatements)
 
     if wx:
-        app = wx.App(redirect=True) # stdout and stderr redirected to wx popup
-        app.SetTopWindow(MainWindow()) # stdout/stderr popup closes with window
+        app = MainApp(redirect=True) # stdout and stderr redirected to wx popup
         app.MainLoop()
     else:
         model = Model(lambda x: sys.stderr.write("\r%s" % x))
@@ -283,3 +269,7 @@ if "__main__" == __name__:
             model.run()
         except KeyboardInterrupt:
             model.stop()
+
+
+if "__main__" == __name__:
+    main()

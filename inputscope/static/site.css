@@ -3,7 +3,7 @@
  *
  * @author      Erki Suurjaak
  * @created     07.04.2015
- * @modified    07.04.2015
+ * @modified    29.04.2015
  */
 * {
   font-family: Tahoma;
@@ -27,16 +27,12 @@ td {
   padding-right: 10px;
   font-size: 0.9em;
 }
-td:last-child {
-}
 th {
   text-align: left;
   text-transform: uppercase;
   font-size: 0.8em;
   min-width: 80px;
 }
-
-
 #header {
   width: 700px;
   height: 40px;
@@ -111,7 +107,7 @@ label.range_label {
 }
 input[type="range"] {
   vertical-align: middle;
-  width: 140px;
+  width: 120px;
 }
 #status {
   font-size: 0.8em;
@@ -133,6 +129,7 @@ input[type="range"] {
 table#stats {
   clear: both;
   float: right;
+  margin-right: 10px;
 }
 #tables {
   clear: both;

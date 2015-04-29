@@ -4,12 +4,13 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    24.04.2015
+@modified    29.04.2015
 """
 import collections
 import datetime
 import math
 import os
+import re
 import bottle
 from bottle import hook, request, route
 
@@ -37,50 +38,53 @@ def server_static(filepath):
 def mouse(table, day=None):
     """Handler for showing mouse statistics for specified type and day."""
     where = (("DATE(dt)", day),) if day else ()
-    events = db.fetch(table, where=where, order=("dt",))
+    events = db.fetch(table, where=where, order="dt")
     stats, positions, events = stats_mouse(events, table)
-    return bottle.template("mouse.tpl", locals(), apptitle=conf.Title)
+    return bottle.template("mouse.tpl", locals())
 
 
 @route("/keyboard/<table>")
 @route("/keyboard/<table>/<day>")
 def keyboard(table, day=None):
     """Handler for showing the keyboard statistics page."""
+    cols, group = "realkey AS key, COUNT(*) AS count", "realkey"
     where = (("DATE(dt)", day),) if day else ()
-    cols, group = "key, realkey, COUNT(*) AS total", "key, realkey"
-    counts = db.fetch(table, cols, where=where, group=group, order=(("total", "DESC"),))
-    events = db.fetch(table, where=where, order=("id",))
+    counts_display = counts = db.fetch(table, cols, where, group, "count DESC")
+    if "combos" == table:
+        counts_display = db.fetch(table, "key, COUNT(*) AS count", where,
+                                  "key", "count DESC")
+    events = db.fetch(table, where=where, order="id")
     stats, collatedevents = stats_keyboard(events, table)
-    return bottle.template("keyboard.tpl", locals(), apptitle=conf.Title)
+    return bottle.template("keyboard.tpl", locals())
 
 
 @route("/<input>")
 def inputindex(input):
     """Handler for showing keyboard or mouse page with day and total links."""
     stats = {}
-    countminmax = "COUNT(*) AS total, MIN(DATE(dt)) AS first, MAX(DATE(dt)) AS last"
-    dtcountcols, dtcountgroup, dtcountorder = "DATE(dt) AS day, COUNT(*) AS total", "day", ("day",)
+    countminmax = "COUNT(*) AS count, MIN(DATE(dt)) AS first, MAX(DATE(dt)) AS last"
+    dtcols = "DATE(dt) AS day, COUNT(*) AS count"
     tables = ("moves", "clicks", "scrolls") if "mouse" == input else ("keys", "combos")
     for table in tables:
         stats[table] = db.fetchone(table, countminmax)
-        stats[table]["days"] = db.fetch(table, dtcountcols, group=dtcountgroup, order=dtcountorder)
-    return bottle.template("input.tpl", locals(), apptitle=conf.Title)
+        stats[table]["days"] = db.fetch(table, dtcols, group="day", order="day")
+    return bottle.template("input.tpl", locals())
 
 
 @route("/")
 def index():
     """Handler for showing the GUI index page."""
-    stats = {"mouse": {"total": 0}}
-    countminmax = "COUNT(*) AS total, MIN(DATE(dt)) AS first, MAX(DATE(dt)) AS last"
-    stats["keyboard"] = db.fetchone("keys", countminmax)
-    for table in ("moves", "clicks", "scrolls"):
+    stats = {"mouse": {"count": 0}, "keyboard": {"count": 0}}
+    countminmax = "COUNT(*) AS count, MIN(DATE(dt)) AS first, MAX(DATE(dt)) AS last"
+    tables = {"keyboard": ("keys", "combos"), "mouse": ("moves", "clicks", "scrolls")}
+    for input, table in [(x, t) for x, tt in tables.items() for t in tt]:
         row = db.fetchone(table, countminmax)
-        if not row["total"]: continue # for table
-        stats["mouse"]["total"] += row["total"]
-        for func, key in ([min, "first"], [max, "last"]):
-            stats["mouse"][key] = row[key] if key not in stats["mouse"] \
-                                  else func(stats["mouse"][key], row[key])
-    return bottle.template("index.tpl", locals(), apptitle=conf.Title)
+        if not row["count"]: continue # for input, table
+        stats[input]["count"] += row["count"]
+        for func, key in [(min, "first"), (max, "last")]:
+            stats[input][key] = (row[key] if key not in stats[input]
+                                 else func(stats[input][key], row[key]))
+    return bottle.template("index.tpl", locals())
 
 
 def stats_keyboard(events, table):
@@ -93,7 +97,8 @@ def stats_keyboard(events, table):
     collated = [blank.copy()] # [{dt, keys: {key: count}}]
     for e in events:
         if prev_dt:
-            if prev_dt.second != e["dt"].second or prev_dt.minute != e["dt"].minute or prev_dt.hour != e["dt"].hour:
+            if (prev_dt.second != e["dt"].second
+            or prev_dt.minute != e["dt"].minute or prev_dt.hour != e["dt"].hour):
                 collated.append(blank.copy())
             delta = e["dt"] - prev_dt
             deltas.append(delta)
@@ -113,7 +118,7 @@ def stats_keyboard(events, table):
          sum(deltas, datetime.timedelta()) / len(deltas)),
     ] if "combos" == table else [
         ("Keys per hour",
-         int(len(events) / ((events[-1]["dt"] - events[0]["dt"]).total_seconds() / 3600))),
+         int(len(events) / (timedelta_seconds(events[-1]["dt"] - events[0]["dt"]) / 3600))),
         ("Average interval between keys",
          sum(deltas, datetime.timedelta()) / len(deltas)),
         ("Typing sessions (key interval < %ss)" % UNBROKEN_DELTA.seconds,
@@ -160,10 +165,21 @@ def stats_mouse(events, table):
 
     stats, positions = [], [dict(x=x, y=y, count=v) for (x, y), v in xymap.items()]
     if "moves" == table:
-        stats = [("Distance in pixels", "{0:,}px".format(int(math.ceil(distance)))),
+        px = re.sub("(\d)(?=(\d{3})+(?!\d))", r"\1,", "%d" % math.ceil(distance))
+        stats = [("Distance in pixels", "%spx" % px),
                  ("Distance in meters", "%.1fm (if pixel is %smm)" 
                   % (distance * conf.PixelLength, conf.PixelLength * 1000))]
     return stats, positions, events
+
+
+def timedelta_seconds(timedelta):
+    """Returns the total timedelta duration in seconds."""
+    if hasattr(timedelta, "total_seconds"):
+        result = timedelta.total_seconds()
+    else: # Python 2.6 compatibility
+        result = timedelta.days * 24 * 3600 + timedelta.seconds + \
+                 timedelta.microseconds / 1000000.
+    return result
 
 
 def init():
@@ -182,14 +198,18 @@ def init():
 def start():
     """Starts the web server."""
     global app
-    bottle.run(app, host="localhost", port=conf.WebPort,
+    bottle.run(app, host=conf.WebHost, port=conf.WebPort,
                debug=conf.WebAutoReload, reloader=conf.WebAutoReload,
                quiet=conf.WebQuiet)
+
+def main():
+    """Entry point for stand-alone execution."""
+    conf.WebAutoReload, conf.WebQuiet = True, False
+    start()
 
 
 app = init()
 
 
 if "__main__" == __name__:
-    conf.WebAutoReload, conf.WebQuiet = True, False
-    start()
+    main()

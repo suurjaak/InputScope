@@ -2,7 +2,6 @@
 Index page.
 
 Template arguments:
-  apptitle   program title
   stats      data statistics
   input      "mouse"|"keyboard"
 
@@ -20,16 +19,16 @@ Template arguments:
     %input = "keyboard" if table in ("keys", "combos") else "mouse"
   <tbody>
   <tr><th>{{table}}</th></tr>
-    %if not data["total"]:
+    %if not data["count"]:
   <tr><td>Total:</td><td>0</td></tr>
   </tbody>
         %continue # for table, data
-    %end # if not data["total"]
-  <tr><td>Total:</td><td><a href="{{get_url("/%s/<table>" % input, table=table)}}">{{data["total"]}}</a></td></tr>
+    %end # if not data["count"]
+  <tr><td>Total:</td><td><a href="{{get_url("/%s/<table>" % input, table=table)}}">{{data["count"]}}</a></td></tr>
   <tr><td>Days:</td>
     <td>
     %for item in data["days"]:
-    <a href="{{get_url("/%s/<table>/<day>" % input, table=table, day=item["day"])}}">{{item["day"]}}</a> ({{item["total"]}})<br />
+    <a href="{{get_url("/%s/<table>/<day>" % input, table=table, day=item["day"])}}">{{item["day"]}}</a> ({{item["count"]}})<br />
     %end # for item
     </td>
   </tr>

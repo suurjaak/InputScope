@@ -2,7 +2,6 @@
 Mouse statistics page.
 
 Template arguments:
-  apptitle   program title
   table      mouse events table shown, moves|clicks|scrolls
   day        day for mouse events, if any
   events     list of mouse events
@@ -11,7 +10,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    20.04.2015
+@modified    29.04.2015
 %"""
 %import conf
 %WEBROOT = get_url("/")
@@ -71,7 +70,7 @@ Template arguments:
     elm_heatmap.style.width = "{{conf.MouseHeatmapSize[0]}}px";
     elm_heatmap.style.height = "{{conf.MouseHeatmapSize[1]}}px";
     var myHeatmap = h337.create({container: elm_heatmap, radius: RADIUS});
-    myHeatmap.setData({data: positions});
+        myHeatmap.setData({data: positions, max: positions.length ? positions[0].value : 0});
 
 
     var replay = function(index) {
@@ -101,7 +100,7 @@ Template arguments:
 
     elm_button.addEventListener("click", function() {
       if ("Replay" == elm_button.value) {
-        myHeatmap.setData({data: []});
+        myHeatmap.setData({data: [], max: positions.length ? positions[0].value : 0});
         elm_button.value = "Pause";
         replay(0);
       } else if ("Continue" != elm_button.value) {

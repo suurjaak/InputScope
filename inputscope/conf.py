@@ -16,11 +16,11 @@ SampleJSON = {"a": false, "b": [0.1, 0.2]}
 ServerIP = 0.0.0.0
 
 save() retains only the DEFAULT section, and writes only values diverging from
-the declared ones in source code.
+the declared ones in source code. File is deleted if all values are at default.
 
 @author      Erki Suurjaak
 @created     26.03.2015
-@modified    14.04.2015
+@modified    29.04.2015
 ------------------------------------------------------------------------------
 """
 try: import ConfigParser as configparser # Py2
@@ -36,37 +36,34 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "0.0.1"
-VersionDate = "14.04.2015"
+Version = "1.0"
+VersionDate = "29.04.2015"
 
 """TCP port of the web user interface."""
 WebHost = "localhost"
 WebPort = 8099
 WebUrl = "http://%s:%s" % (WebHost, WebPort)
 
-HomepageUrl = "https://github.com/suurjaak/inputscope"
+HomepageUrl = "https://github.com/suurjaak/InputScope"
 
 """Size of the heatmaps, in pixels."""
 MouseHeatmapSize = (640, 360)
 KeyboardHeatmapSize = (680, 180)
 
-"""Default desktop size used for scaling, if size not available from system."""
+"""Default desktop size for scaling, if not available from system, in pixels."""
 DefaultScreenSize = (1920, 1080)
 
 """Whether mouse or keyboard logging is enabled."""
 MouseEnabled = True
 KeyboardEnabled = True
 
-"""Maximum interval between key presses to count as one typing session."""
+"""Maximum keypress interval to count as one typing session, in seconds."""
 KeyboardSessionMaxDelta = 3
 
 """Physical length of a pixel, in meters."""
 PixelLength = 0.00024825
 
-
-"""
-@todo siin üks variant 
-"""
+"""Key positions in keyboard heatmap."""
 KeyPositions = {
   "Escape": (12, 12),
   "F1": (72, 12),
@@ -222,7 +219,6 @@ TemplatePath = os.path.join(RootPath, "views")
 
 """Path for application icon file."""
 IconPath = os.path.join(StaticPath, "icon.ico")
-
 
 """Statements to execute in database at startup, like CREATE TABLE."""
 DbStatements = (

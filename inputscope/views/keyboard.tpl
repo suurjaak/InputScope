@@ -2,7 +2,6 @@
 Keyboard statistics page.
 
 Template arguments:
-  apptitle   program title
   table      keyboard events table to show, "keys"
   day        day for keyboard events, if any
   events     list of all events
@@ -11,9 +10,9 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    23.04.2015
+@modified    29.04.2015
 %"""
-%import cgi, math
+%import cgi
 %import conf
 %WEBROOT = get_url("/")
 %title = "Keyboard %s" % table
@@ -37,29 +36,23 @@ Template arguments:
 <span id="progressbar"></span>
 </div>
 
-<div id="key_heatmap"><img id="keyboard" src="{{WEBROOT}}static/keyboard.svg" alt=""/></div>
+<div id="key_heatmap"><img id="keyboard" src="{{WEBROOT}}static/keyboard.svg" width="{{conf.KeyboardHeatmapSize[0]}}" height="{{conf.KeyboardHeatmapSize[1]}}" alt=""/></div>
 
-<label for="show_keyboard" class="check_label"><input type="checkbox" id="show_keyboard" checked="checked" />Show keyboard</label>
 <label for="show_heatmap" class="check_label"><input type="checkbox" id="show_heatmap" checked="checked" />Show heatmap</label>
+<label for="show_keyboard" class="check_label"><input type="checkbox" id="show_keyboard" checked="checked" />Show keyboard</label>
 
 <div id="tables">
 
 <table id="stats">
-%for key, val in get("stats", []):
+%for key, val in stats:
   <tr><td>{{key}}</td><td>{{val}}</td></tr>
 %end # for key, val
 </table>
 
 <table>
   <tr><th>Key</th><th>Count</th></tr>
-%for item in counts:
-    %key = item["key"]
-      %if len(key) == 1 and (ord(key) <= 32 or ord(key) == 127):
-          %key = "#%02d" % ord(key)
-      %else:
-          %key = cgi.escape(key).encode("ascii", "xmlcharrefreplace")    
-      %end # if
-  <tr><td>{{!key}}</td><td>{{item["total"]}}</td></tr>
+%for item in counts_display:
+  <tr><td>{{item["key"]}}</td><td>{{item["count"]}}</td></tr>
 %end # for item
 </table>
 </div>
@@ -71,17 +64,12 @@ Template arguments:
   var positions = [\\
 %for item in counts:
     %data = []
-    %keys = item["realkey"].split("-") if "combos" == table else [item["realkey"]]
+    %keys = item["key"].split("-") if "combos" == table else [item["key"]]
     %for key in keys:
-        %if len(key) == 1 and (ord(key) <= 32 or ord(key) == 127):
-            %key = "#%02d" % ord(key)
-        %else:
-            %key = cgi.escape(key).encode("ascii", "xmlcharrefreplace")    
-        %end # if
         %if key not in conf.KeyPositions:
             %continue # for key
         %end # if key not in
-        {x: {{conf.KeyPositions[key][0]}}, "y": {{conf.KeyPositions[key][1]}}, value: {{math.log(item.get("total", 1), 10)}}, label: "{{!key}}"}, \\
+{x: {{conf.KeyPositions[key][0]}}, "y": {{conf.KeyPositions[key][1]}}, value: {{item["count"]}}, label: "{{key}}"}, \\
     %end # for key
 %end # for item
 ];
@@ -91,15 +79,10 @@ Template arguments:
     %for fullkey, count in item["keys"].items():
         %keys = fullkey.split("-") if "combos" == table else [fullkey]
         %for key in keys:
-            %if len(key) == 1 and (ord(key) <= 32 or ord(key) == 127):
-                %key = "#%02d" % ord(key)
-            %else:
-                %key = cgi.escape(key).encode("ascii", "xmlcharrefreplace")    
-            %end # if
             %if key not in conf.KeyPositions:
                 %continue # for key
             %end # if key not in
-            %data.append({"x": conf.KeyPositions[key][0], "y": conf.KeyPositions[key][1], "count": count, "key": key})
+            %data.append({"x": conf.KeyPositions[key][0], "y": conf.KeyPositions[key][1], "count": count, "key": key.encode("utf-8")})
         %end # for key
     %end # for fullkey
 {dt: "{{item["dt"].isoformat()}}", data: {{!data}}}, \\
@@ -150,6 +133,7 @@ Template arguments:
           setTimeout(replay, interval, index + 1);
 
       } else {
+        myHeatmap.setData({data: positions, max: positions.length ? positions[0].value : 0});
         elm_button.value = "Replay";
       }
     };
@@ -157,7 +141,7 @@ Template arguments:
 
     elm_button.addEventListener("click", function() {
       if ("Replay" == elm_button.value) {
-        myHeatmap.setData({data: [], max: positions.length ? positions[0].value : 0});
+        myHeatmap.setData({data: [], max: 0});
         elm_button.value = "Pause";
         replay(0);
       } else if ("Continue" != elm_button.value) {
