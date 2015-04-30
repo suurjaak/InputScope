@@ -26,9 +26,9 @@ setuptools.setup(
     keywords="mouse keyboard logging heatmap",
 
     install_requires=["bottle", "PyUserInput"],
-    entry_points={"gui_scripts": ["inputscope = inputscope.main:run"]},
-    entry_points={"console_scripts": ["inputscope-listener = listener.main:run"],
-                                     ["inputscope-webui = webui.main:run"]},
+    entry_points={"gui_scripts": ["inputscope = inputscope.main:main"],
+                  "console_scripts": ["inputscope-listener = inputscope.listener:main",
+                                      "inputscope-webui = inputscope.webui:main"]},
 
     packages=setuptools.find_packages(),
     include_package_data=True, # Use MANIFEST.in for data files

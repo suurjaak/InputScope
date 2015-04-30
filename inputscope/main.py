@@ -250,7 +250,6 @@ def start_listener(inqueue, outqueue):
 
 def main():
     """Entry point for stand-alone execution."""
-    multiprocessing.freeze_support()
     conf.init()
     db.init(conf.DbPath, conf.DbStatements)
 
@@ -272,4 +271,5 @@ def main():
 
 
 if "__main__" == __name__:
+    multiprocessing.freeze_support()
     main()

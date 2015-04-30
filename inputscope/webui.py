@@ -204,7 +204,7 @@ def start():
 
 def main():
     """Entry point for stand-alone execution."""
-    conf.WebAutoReload, conf.WebQuiet = True, False
+    conf.WebQuiet = False
     start()
 
 

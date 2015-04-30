@@ -1,0 +1,2 @@
+recursive-include inputscope *.py *.tpl *.db *.css *.ico *.js *.svg
+include LICENSE.md README.md requirements.txt
