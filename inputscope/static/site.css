@@ -3,35 +3,13 @@
  *
  * @author      Erki Suurjaak
  * @created     07.04.2015
- * @modified    29.04.2015
+ * @modified    04.05.2015
  */
 * {
   font-family: Tahoma;
 }
 #header, #footer, #header *, #footer * {
   font-size: 0.85em;
-}
-h3 {
-  display: inline-block;
-}
-tbody {
-  display: table;
-  border: 1px dashed #1abc9c;
-  margin-bottom: 20px;
-  margin-top: 20px;
-  padding: 5px;
-  width: 100%;
-}
-td {
-  vertical-align: top;
-  padding-right: 10px;
-  font-size: 0.9em;
-}
-th {
-  text-align: left;
-  text-transform: uppercase;
-  font-size: 0.8em;
-  min-width: 80px;
 }
 #header {
   width: 700px;
@@ -85,6 +63,58 @@ th {
   margin-right: auto;
   border: 1px solid #1abc9c;
 }
+#status {
+  font-size: 0.8em;
+  color: gray;
+  margin-bottom: 10px;
+  position: relative;
+}
+#progressbar {
+  width: 0px;
+  height: 5px;
+  background: lightgray;
+  display: block;
+  position: absolute;
+  bottom: -5px;
+}
+#button_replay {
+  width: 70px;
+}
+#tables {
+  clear: both;
+  overflow: auto;
+}
+#stats {
+  clear: both;
+  float: right;
+  margin-right: 10px;
+}
+h3 {
+  display: inline-block;
+}
+tbody {
+  display: table;
+  border: 1px dashed #1abc9c;
+  margin-bottom: 20px;
+  margin-top: 20px;
+  padding: 5px;
+  width: 100%;
+}
+td {
+  vertical-align: top;
+  padding-right: 10px;
+  font-size: 0.9em;
+}
+th {
+  text-align: left;
+  text-transform: uppercase;
+  font-size: 0.8em;
+  min-width: 80px;
+}
+input[type="range"] {
+  vertical-align: middle;
+  width: 120px;
+}
 span.range {
   position: relative;
 }
@@ -104,33 +134,4 @@ label.range_label {
   position: absolute;
   top: -18px;
   width: 100%;
-}
-input[type="range"] {
-  vertical-align: middle;
-  width: 120px;
-}
-#status {
-  font-size: 0.8em;
-  color: gray;
-  margin-bottom: 10px;
-  position: relative;
-}
-#progressbar {
-  width: 0px;
-  height: 5px;
-  background: lightgray;
-  display: block;
-  position: absolute;
-  bottom: -5px;
-}
-#button_replay {
-  width: 70px;
-}
-table#stats {
-  clear: both;
-  float: right;
-  margin-right: 10px;
-}
-#tables {
-  clear: both;
 }

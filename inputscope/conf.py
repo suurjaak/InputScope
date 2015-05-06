@@ -20,7 +20,7 @@ the declared ones in source code. File is deleted if all values are at default.
 
 @author      Erki Suurjaak
 @created     26.03.2015
-@modified    29.04.2015
+@modified    06.05.2015
 ------------------------------------------------------------------------------
 """
 try: import ConfigParser as configparser # Py2
@@ -37,7 +37,7 @@ import sys
 """Program title, version number and version date."""
 Title = "InputScope"
 Version = "1.0"
-VersionDate = "29.04.2015"
+VersionDate = "06.05.2015"
 
 """TCP port of the web user interface."""
 WebHost = "localhost"
@@ -109,8 +109,8 @@ KeyPositions = {
   "I": (270, 84),
   "O": (300, 84),
   "P": (330, 84),
-  "Oem_3": (370, 84),
-  "Oem_4": (400, 84),
+  "Oem_3": (360, 84),
+  "Oem_4": (390, 84),
   "Enter": (426, 96),
 
   "CapsLock": (25, 111),
@@ -198,7 +198,9 @@ WebAutoReload = False
 """Whether web server is quiet or echoes access log."""
 WebQuiet = True
 
-if getattr(sys, "frozen", False): # Running as a pyinstaller executable
+"""Whether running as a pyinstaller executable."""
+Frozen = getattr(sys, "frozen", False)
+if Frozen:
     ExecutablePath = ShortcutIconPath = os.path.abspath(sys.executable)
     ApplicationPath = os.path.dirname(ExecutablePath)
     RootPath = os.path.join(os.environ.get("_MEIPASS2", getattr(sys, "_MEIPASS", "")))
@@ -254,14 +256,14 @@ def init(filename=ConfigPath):
 
 def save(filename=ConfigPath):
     """Saves this module's changed attributes to INI configuration."""
-    global DefaultValues
+    default_values = defaults()
     parser = configparser.RawConfigParser()
     parser.optionxform = str # Force case-sensitivity on names
     try:
         save_types = basestring, int, float, tuple, list, dict, type(None)
         for k, v in sorted(globals().items()):
             if not isinstance(v, save_types) or k.startswith("_") \
-            or DefaultValues.get(k, parser) == v: continue # for k, v
+            or default_values.get(k, parser) == v: continue # for k, v
             try: parser.set("DEFAULT", k, json.dumps(v))
             except Exception: pass
         if parser.defaults():
@@ -276,14 +278,13 @@ def save(filename=ConfigPath):
         logging.warn("Error writing config to %s.", filename, exc_info=True)
 
 
-def register_defaults(values={}):
+def defaults(values={}):
     """Returns a once-assembled dict of this module's storable attributes."""
     if values: return values
     save_types = basestring, int, float, tuple, list, dict, type(None)
     for k, v in globals().items():
         if isinstance(v, save_types) and not k.startswith("_"): values[k] = v
-    values["DefaultValues"] = values
     return values
 
 
-DefaultValues = register_defaults() # Store initial values to compare on saving
+defaults() # Store initial values to compare on saving

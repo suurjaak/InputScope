@@ -10,7 +10,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    29.04.2015
+@modified    06.05.2015
 %"""
 %import cgi
 %import conf
@@ -88,6 +88,9 @@ Template arguments:
 {dt: "{{item["dt"].isoformat()}}", data: {{!data}}}, \\
 %end # for item
 ];
+  var elm_heatmap  = document.getElementById("key_heatmap");
+  elm_heatmap.style.width = "{{conf.KeyboardHeatmapSize[0]}}px";
+  elm_heatmap.style.height = "{{conf.KeyboardHeatmapSize[1]}}px";
 
   window.addEventListener("load", function() {
 
@@ -96,12 +99,9 @@ Template arguments:
         elm_button   = document.getElementById("button_replay"),
         elm_progress = document.getElementById("progressbar"),
         elm_status   = document.getElementById("statustext"),
-        elm_heatmap  = document.getElementById("key_heatmap"),
         elm_show_hm  = document.getElementById("show_heatmap"),
         elm_show_kb  = document.getElementById("show_keyboard"),
         elm_keyboard = document.getElementById("keyboard");
-    elm_heatmap.style.width = "{{conf.KeyboardHeatmapSize[0]}}px";
-    elm_heatmap.style.height = "{{conf.KeyboardHeatmapSize[1]}}px";
     var myHeatmap = h337.create({container: elm_heatmap, radius: RADIUS});
     myHeatmap.setData({data: positions, max: positions.length ? positions[0].value : 0});
 

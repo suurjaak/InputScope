@@ -1,16 +1,16 @@
 InputScope
 ==========
 
-Mouse and keyboard input heatmap visualizer, and input statistics.
+Mouse and keyboard input heatmap visualizer and statistics.
 
 Three components:
 * main - wxPython desktop tray program, runs listener and webui
-* listener - logs mouse and keyboard input
-* webui - web frontend for statistics and heatmaps
+* listener - logs mouse and keyboard input, can run individually
+* webui - web frontend for statistics and heatmaps, can run individually
 
 Listener and web-UI components can be run separately, or launched from main.
 
-Data is kept in an SQLite database.
+Data is kept in an SQLite database, under inputscope/var.
 
 [![Mouse heatmap](https://raw.github.com/suurjaak/InputScope/media/img/th_mouse.png)](https://raw.github.com/suurjaak/InputScope/media/img/mouse.png)
 [![Keyboard heatmap](https://raw.github.com/suurjaak/InputScope/media/img/th_keyboard.png)](https://raw.github.com/suurjaak/InputScope/media/img/keyboard.png)
@@ -51,9 +51,9 @@ Icon from Paomedia small-n-flat iconset,
 released under Creative Commons (Attribution 3.0 Unported),
 https://www.iconfinder.com/icons/285642/monitor_icon.
 
-Keyboard image modified from Wikipedia File:ISO keyboard (105) QWERTY UK.svg,
+Keyboard image modified from Wikipedia `File:ISO keyboard (105) QWERTY UK.svg`,
 released under the GNU Free Documentation License,
-http://en.wikipedia.org/wiki/File:ISO_keyboard_(105)_QWERTY_UK.svg
+http://en.wikipedia.org/wiki/File:ISO_keyboard_(105)_QWERTY_UK.svg.
 
 
 License

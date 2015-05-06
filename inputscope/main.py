@@ -5,14 +5,15 @@ command-line echoer otherwise. Launches the event listener and web UI server.
 
 @author      Erki Suurjaak
 @created     05.05.2015
-@modified    29.04.2015
+@modified    04.05.2015
 """
 import multiprocessing
 import multiprocessing.forking
 import os
-import signal
+import subprocess
 import sys
 import threading
+import time
 import webbrowser
 try: import win32com.client # For creating startup shortcut
 except ImportError: pass
@@ -38,6 +39,12 @@ class Popen(multiprocessing.forking.Popen):
 class Process(multiprocessing.Process): _Popen = Popen
 
 
+class QueueLine(object):
+    """Queue-like interface for writing lines to a file-like object."""
+    def __init__(self, output): self.output = output
+    def put(self, item): self.output.write("%s\n" % item)
+
+
 class Model(threading.Thread):
     """Input monitor main runner model."""
 
@@ -48,43 +55,46 @@ class Model(threading.Thread):
         threading.Thread.__init__(self)
         self.messagehandler = messagehandler
         self.running = False
-        self.listenerqueue = multiprocessing.Queue() # Out-queue to listener
-        self.webqueue      = multiprocessing.Queue() # Out-queue to webui
-        self.inqueue       = multiprocessing.Queue() # In-queue from listener
+        self.listenerqueue = None
+        self.listener = None
+        self.webui = None
 
     def toggle(self, input):
         if "mouse" == input:
-            enabled = conf.MouseEnabled = not conf.MouseEnabled
+            on = conf.MouseEnabled = not conf.MouseEnabled
         elif "keyboard" == input:
-            enabled = conf.KeyboardEnabled = not conf.KeyboardEnabled
-        self.listenerqueue.put("%s_%s" % (input, "start" if enabled else "stop"))
+            on = conf.KeyboardEnabled = not conf.KeyboardEnabled
         conf.save()
+        if self.listenerqueue:
+            self.listenerqueue.put("%s_%s" % (input, "start" if on else "stop"))
 
     def stop(self):
         self.running = False
-        self.listenerqueue.put("exit"), self.webqueue.put("exit")
-        self.inqueue.put(None) # Wake up thread waiting on queue
+        self.listener and self.listener.terminate()
+        self.webui and self.webui.terminate()
 
     def log_resolution(self, size):
         if size: db.insert("screen_sizes", x=size[0], y=size[1])
 
     def run(self):
-        try: signal.signal(signal.SIGINT, lambda x: None) # Do not propagate Ctrl-C
-        except ValueError: pass
-        listenerargs = self.listenerqueue, self.inqueue
-        Process(target=start_listener, args=listenerargs).start()
-        Process(target=start_webui, args=(self.webqueue,)).start()
-        try: signal.signal(signal.SIGINT, signal.default_int_handler)
-        except ValueError: pass
+        if conf.Frozen:
+            self.listenerqueue = multiprocessing.Queue()
+            self.listener = Process(target=listener.start, args=(self.listenerqueue,))
+            self.webui = Process(target=webui.start)
+            self.listener.start(), self.webui.start()
+        else:
+            args = lambda *x: [sys.executable,
+                   os.path.join(conf.ApplicationPath, x[0])] + list(x[1:])
+            self.listener = subprocess.Popen(args("listener.py", "--quiet"),
+                                             stdin=subprocess.PIPE)
+            self.webui    = subprocess.Popen(args("webui.py"))
+            self.listenerqueue = QueueLine(self.listener.stdin)
 
         if conf.MouseEnabled:    self.listenerqueue.put("mouse_start")
         if conf.KeyboardEnabled: self.listenerqueue.put("keyboard_start")
 
         self.running = True
-        while self.running:
-            data = self.inqueue.get()
-            if not data: continue
-            self.messagehandler and self.messagehandler(data)
+        while self.running: time.sleep(1)
 
 
 class MainApp(getattr(wx, "App", object)):
@@ -108,6 +118,7 @@ class MainApp(getattr(wx, "App", object)):
         self.Bind(wx.EVT_CLOSE, self.OnClose)
         self.Bind(wx.EVT_DISPLAY_CHANGED, self.OnDisplayChanged)
         self.trayicon.Bind(wx.EVT_TASKBAR_LEFT_DCLICK, self.OnOpenUI)
+        self.trayicon.Bind(wx.EVT_TASKBAR_LEFT_DOWN, self.OnOpenMenu)
         self.trayicon.Bind(wx.EVT_TASKBAR_RIGHT_DOWN, self.OnOpenMenu)
         self.frame_console.Bind(wx.EVT_CLOSE, self.OnToggleConsole)
 
@@ -231,31 +242,12 @@ class StartupService(object):
             shortcut.save()
 
 
-def start_webui(inqueue=None):
-    """Starts the web server, with an optional incoming message queue."""
-    def handle_commands(queue):
-        while True:
-            if queue.get() in ["exit", None]:
-                os.kill(os.getpid(), signal.SIGINT) # Best way to shutdown bottle
-    if inqueue: threading.Thread(target=handle_commands, args=(inqueue,)).start()
-    webui.start()
-
-
-def start_listener(inqueue, outqueue):
-    """Starts the mouse and keyboard listener."""
-    conf.init(), db.init(conf.DbPath)
-    runner = listener.Listener(inqueue, outqueue)
-    runner.run()
-
-
 def main():
     """Entry point for stand-alone execution."""
-    conf.init()
-    db.init(conf.DbPath, conf.DbStatements)
+    conf.init(), db.init(conf.DbPath, conf.DbStatements)
 
     if wx:
-        app = MainApp(redirect=True) # stdout and stderr redirected to wx popup
-        app.MainLoop()
+        MainApp(redirect=True).MainLoop() # stdout/stderr directed to wx popup
     else:
         model = Model(lambda x: sys.stderr.write("\r%s" % x))
         if tk:
@@ -271,5 +263,5 @@ def main():
 
 
 if "__main__" == __name__:
-    multiprocessing.freeze_support()
+    if conf.Frozen: multiprocessing.freeze_support()
     main()

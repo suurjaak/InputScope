@@ -4,12 +4,11 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    29.04.2015
+@modified    06.05.2015
 """
 import collections
 import datetime
 import math
-import os
 import re
 import bottle
 from bottle import hook, request, route
@@ -40,7 +39,7 @@ def mouse(table, day=None):
     where = (("DATE(dt)", day),) if day else ()
     events = db.fetch(table, where=where, order="dt")
     stats, positions, events = stats_mouse(events, table)
-    return bottle.template("mouse.tpl", locals())
+    return bottle.template("mouse.tpl", locals(), conf=conf)
 
 
 @route("/keyboard/<table>")
@@ -55,7 +54,7 @@ def keyboard(table, day=None):
                                   "key", "count DESC")
     events = db.fetch(table, where=where, order="id")
     stats, collatedevents = stats_keyboard(events, table)
-    return bottle.template("keyboard.tpl", locals())
+    return bottle.template("keyboard.tpl", locals(), conf=conf)
 
 
 @route("/<input>")
@@ -68,7 +67,7 @@ def inputindex(input):
     for table in tables:
         stats[table] = db.fetchone(table, countminmax)
         stats[table]["days"] = db.fetch(table, dtcols, group="day", order="day")
-    return bottle.template("input.tpl", locals())
+    return bottle.template("input.tpl", locals(), conf=conf)
 
 
 @route("/")
@@ -84,7 +83,7 @@ def index():
         for func, key in [(min, "first"), (max, "last")]:
             stats[input][key] = (row[key] if key not in stats[input]
                                  else func(stats[input][key], row[key]))
-    return bottle.template("index.tpl", locals())
+    return bottle.template("index.tpl", locals(), conf=conf)
 
 
 def stats_keyboard(events, table):
@@ -112,7 +111,7 @@ def stats_keyboard(events, table):
         collated[-1]["dt"] = e["dt"]
         collated[-1]["keys"][e["realkey"]] += 1
         prev_dt = e["dt"]
-    longest_session = max(sessions, key=lambda x: sum(x, datetime.timedelta()))
+    longest_session = max(sessions + [[datetime.timedelta()]], key=lambda x: sum(x, datetime.timedelta()))
     stats = [
         ("Average interval between combos",
          sum(deltas, datetime.timedelta()) / len(deltas)),
@@ -139,7 +138,8 @@ def stats_keyboard(events, table):
 
 def stats_mouse(events, table):
     """Returns statistics, positions and rescaled events for mouse events."""
-    distance, last = 0, None
+    if not events: return [], [], []
+    distance, last, deltas = 0, None, []
     HS = conf.MouseHeatmapSize
     SC = dict(("xy"[i], conf.DefaultScreenSize[i] / float(HS[i])) for i in [0, 1])
     xymap = collections.defaultdict(int)
@@ -147,8 +147,9 @@ def stats_mouse(events, table):
     sizeidx, sizelen = -1, len(sizes) # Scale by desktop size at event time
     for e in events:
         if last:
+            deltas.append(e["dt"] - last["dt"])
             distance += math.sqrt(sum(abs(e[k] - last[k])**2 for k in "xy"))
-        last = dict(e) if "moves" == table else None
+        last = dict(e) # Copy, as we modify coordinates
         if sizeidx < 0: # Find latest size from before event
             for i, size in reversed(list(enumerate(sizes))):
                 if e["dt"] >= size["dt"]:
@@ -165,10 +166,36 @@ def stats_mouse(events, table):
 
     stats, positions = [], [dict(x=x, y=y, count=v) for (x, y), v in xymap.items()]
     if "moves" == table:
-        px = re.sub("(\d)(?=(\d{3})+(?!\d))", r"\1,", "%d" % math.ceil(distance))
-        stats = [("Distance in pixels", "%spx" % px),
-                 ("Distance in meters", "%.1fm (if pixel is %smm)" 
-                  % (distance * conf.PixelLength, conf.PixelLength * 1000))]
+        px = re.sub(r"(\d)(?=(\d{3})+(?!\d))", r"\1,", "%d" % math.ceil(distance))
+        seconds = timedelta_seconds(events[-1]["dt"] - events[0]["dt"])
+        stats = [("Total distance", "%s pixels " % px),
+                 ("", "%.1f meters (if pixel is %smm)" %
+                  (distance * conf.PixelLength, conf.PixelLength * 1000)),
+                 ("Average speed", "%.1f pixels per second" % (distance / (seconds or 1))),
+                 ("", "%.4f meters per second" %
+                  (distance * conf.PixelLength / (seconds or 1))),
+                ]
+    elif "scrolls" == table:
+        counts = collections.Counter(e["wheel"] for e in events)
+        stats = [("Scrolls per hour", 
+                  int(len(events) / (timedelta_seconds(events[-1]["dt"] - events[0]["dt"]) / 3600 or 1))),
+                 ("Average interval", sum(deltas, datetime.timedelta()) / (len(deltas) or 1)),
+                 ("Scrolls down", counts[-1]),
+                 ("Scrolls up", counts[1]),
+                ]
+    elif "clicks" == table:
+        "average distance between clicks"
+        counts = collections.Counter(e["button"] for e in events)
+        NAMES = {1: "Left", 2: "Right", 3: "Middle"}
+        stats = [("Clicks per hour", 
+                  int(len(events) / (timedelta_seconds(events[-1]["dt"] - events[0]["dt"]) / 3600 or 1))),
+                 ("Average interval between clicks",
+                  sum(deltas, datetime.timedelta()) / (len(deltas) or 1)),
+                 ("Average distance between clicks",
+                  "%.1f pixels" % (distance / (len(events) or 1))),
+                ]
+        for k, v in sorted(counts.items()):
+            stats += [("%s button clicks" % NAMES.get(k, "%s." % k), v)]
     return stats, positions, events
 
 
@@ -186,8 +213,7 @@ def init():
     """Initialize configuration and web application."""
     global app
     if app: return app
-    conf.init()
-    db.init(conf.DbPath, conf.DbStatements)
+    conf.init(), db.init(conf.DbPath, conf.DbStatements)
 
     bottle.TEMPLATE_PATH.insert(0, conf.TemplatePath)
     app = bottle.default_app()

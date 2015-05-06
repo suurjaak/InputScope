@@ -14,14 +14,11 @@ db.execute("DROP TABLE test")
 
 @author      Erki Suurjaak
 @created     05.03.2014
-@modified    22.04.2015
+@modified    03.05.2015
 """
 import os
 import re
 import sqlite3
-
-DBPATH = None # Default database path
-INIT_STATEMENTS = [] # Statements to run in default database at startup
 
 
 def fetch(table, cols="*", where=(), group="", order=(), limit=(), **kwargs):
@@ -68,7 +65,8 @@ def execute(sql, args=None):
 
 def get_cursor():
     """Returns a cursor to the default database."""
-    return make_cursor(DBPATH, INIT_STATEMENTS)
+    config = get_config()
+    return make_cursor(config["path"], config["statements"])
 
 
 def make_cursor(path, init_statements=(), _cursorcache={}):
@@ -131,7 +129,10 @@ def makeSQL(action, table, cols="*", where=(), group="", order=(), limit=(), val
     return sql, args
 
 
-def init(path, statements=None):
-    global DBPATH, INIT_STATEMENTS
-    DBPATH, INIT_STATEMENTS = path, statements
-    get_cursor()
+def get_config(config={}): return config
+
+
+def init(path, init_statements=None):
+    config = get_config()
+    config["path"], config["statements"] = path, init_statements
+    make_cursor(config["path"], config["statements"])

@@ -16,7 +16,7 @@ from inputscope import conf
 setuptools.setup(
     name=conf.Title,
     version=conf.Version,
-    description="Mouse and keyboard input heatmap visualizer, and input statistics",
+    description="Mouse and keyboard input heatmap visualizer and statistics",
     url="https://github.com/suurjaak/InputScope",
 
     author="Erki Suurjaak",
@@ -48,7 +48,7 @@ setuptools.setup(
     ],
 
     long_description=
-"""Mouse and keyboard input heatmap visualizer, and input statistics.
+"""Mouse and keyboard input heatmap visualizer and statistics.
 
 Three components:
 - main - wxPython desktop tray program, runs listener and webui

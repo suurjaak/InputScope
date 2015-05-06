@@ -10,7 +10,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    29.04.2015
+@modified    06.05.2015
 %"""
 %import conf
 %WEBROOT = get_url("/")
@@ -57,6 +57,9 @@ Template arguments:
 {x: {{pos["x"]}}, y: {{pos["y"]}}, dt: "{{pos["dt"].isoformat()}}"}, \\
 %end # for pos
 ];
+  var elm_heatmap  = document.getElementById("mouse_heatmap");
+  elm_heatmap.style.width = "{{conf.MouseHeatmapSize[0]}}px";
+  elm_heatmap.style.height = "{{conf.MouseHeatmapSize[1]}}px";
 
 
   window.addEventListener("load", function() {
@@ -65,12 +68,9 @@ Template arguments:
         elm_interval = document.getElementById("replay_interval"),
         elm_button   = document.getElementById("button_replay"),
         elm_progress = document.getElementById("progressbar"),
-        elm_status   = document.getElementById("statustext"),
-        elm_heatmap  = document.getElementById("mouse_heatmap");
-    elm_heatmap.style.width = "{{conf.MouseHeatmapSize[0]}}px";
-    elm_heatmap.style.height = "{{conf.MouseHeatmapSize[1]}}px";
+        elm_status   = document.getElementById("statustext");
     var myHeatmap = h337.create({container: elm_heatmap, radius: RADIUS});
-        myHeatmap.setData({data: positions, max: positions.length ? positions[0].value : 0});
+    myHeatmap.setData({data: positions, max: positions.length ? positions[0].value : 0});
 
 
     var replay = function(index) {

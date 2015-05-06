@@ -32,7 +32,7 @@ Template arguments:
 
 <div id="footer">
 <div>
-  Mouse and keyboard input visualizer. &copy; 2015 Erki Suurjaak. <a href="{{conf.HomepageUrl}}">github</a>
+  Mouse and keyboard input visualizer. &copy; 2015 Erki Suurjaak. <a href="{{conf.HomepageUrl}}" target="_blank">github</a>
 </div>
 </div>
 
