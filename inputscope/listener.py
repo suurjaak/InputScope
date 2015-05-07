@@ -4,7 +4,7 @@ Mouse and keyboard listener, logs events to database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    06.05.2015
+@modified    07.05.2015
 """
 from __future__ import print_function
 import datetime
@@ -187,7 +187,7 @@ class KeyHandler(pykeyboard.PyKeyboardEvent):
 
         if vkey not in self.MODIFIERNAMES and not is_altgr:
             modifier = "-".join(k for k in ["Ctrl", "Alt", "Shift", "Win"]
-                                if self.modifiers[k])
+                                if self._modifiers[k])
             if modifier and modifier != "Shift": # Shift-X is not a combo
                 if self._modifiers["Ctrl"] and event.Ascii:
                     key = self._keyname(unichr(event.KeyID))
