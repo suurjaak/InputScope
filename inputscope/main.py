@@ -70,7 +70,7 @@ class Model(threading.Thread):
 
     def stop(self):
         self.running = False
-        self.listener and self.listener.terminate()
+        self.listener and self.listenerqueue.put("exit")
         self.webui and self.webui.terminate()
 
     def log_resolution(self, size):
@@ -87,7 +87,7 @@ class Model(threading.Thread):
                    os.path.join(conf.ApplicationPath, x[0])] + list(x[1:])
             self.listener = subprocess.Popen(args("listener.py", "--quiet"),
                                              stdin=subprocess.PIPE)
-            self.webui    = subprocess.Popen(args("webui.py"))
+            self.webui = subprocess.Popen(args("webui.py"))
             self.listenerqueue = QueueLine(self.listener.stdin)
 
         if conf.MouseEnabled:    self.listenerqueue.put("mouse_start")
@@ -123,8 +123,8 @@ class MainApp(getattr(wx, "App", object)):
         self.frame_console.Bind(wx.EVT_CLOSE, self.OnToggleConsole)
 
         self.model.log_resolution(wx.GetDisplaySize())
-        self.model.start()
-        return True
+        wx.CallAfter(self.model.start)
+        return True # App.OnInit returns whether processing should continue
 
 
     def OnOpenMenu(self, event):
