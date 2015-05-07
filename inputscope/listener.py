@@ -2,6 +2,8 @@
 """
 Mouse and keyboard listener, logs events to database.
 
+--quiet      prints out nothing
+
 @author      Erki Suurjaak
 @created     06.04.2015
 @modified    07.05.2015

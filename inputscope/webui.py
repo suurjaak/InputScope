@@ -2,6 +2,8 @@
 """
 Web frontend interface, displays statistics from a database.
 
+--quiet      prints out nothing
+
 @author      Erki Suurjaak
 @created     06.04.2015
 @modified    06.05.2015
@@ -10,6 +12,7 @@ import collections
 import datetime
 import math
 import re
+import sys
 import bottle
 from bottle import hook, request, route
 
@@ -230,7 +233,7 @@ def start():
 
 def main():
     """Entry point for stand-alone execution."""
-    conf.WebQuiet = False
+    conf.WebQuiet = "--quiet" in sys.argv
     start()
 
 

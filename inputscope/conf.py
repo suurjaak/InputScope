@@ -196,7 +196,7 @@ KeyPositions = {
 WebAutoReload = False
 
 """Whether web server is quiet or echoes access log."""
-WebQuiet = True
+WebQuiet = False
 
 """Whether running as a pyinstaller executable."""
 Frozen = getattr(sys, "frozen", False)

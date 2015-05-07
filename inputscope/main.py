@@ -87,7 +87,7 @@ class Model(threading.Thread):
                    os.path.join(conf.ApplicationPath, x[0])] + list(x[1:])
             self.listener = subprocess.Popen(args("listener.py", "--quiet"),
                                              stdin=subprocess.PIPE)
-            self.webui = subprocess.Popen(args("webui.py"))
+            self.webui = subprocess.Popen(args("webui.py", "--quiet"))
             self.listenerqueue = QueueLine(self.listener.stdin)
 
         if conf.MouseEnabled:    self.listenerqueue.put("mouse_start")
@@ -129,17 +129,14 @@ class MainApp(getattr(wx, "App", object)):
 
     def OnOpenMenu(self, event):
         """Creates and opens a popup menu for the tray icon."""
-        menu = wx.Menu()
-        item_ui = wx.MenuItem(menu, -1, "&Open statistics")
-        item_startup = wx.MenuItem(menu, -1, "&Start with Windows", 
-            kind=wx.ITEM_CHECK) if self.startupservice.can_start() else None
-        item_mouse = wx.MenuItem(menu, -1, "Stop &mouse logging",
-                                 kind=wx.ITEM_CHECK)
-        item_keyboard = wx.MenuItem(menu, -1, "Stop &keyboard logging",
-                                    kind=wx.ITEM_CHECK)
-        item_console = wx.MenuItem(menu, -1, "Show Python &console",
-                                   kind=wx.ITEM_CHECK)
-        item_exit = wx.MenuItem(menu, -1, "E&xit %s" % conf.Title)
+        menu, makeitem = wx.Menu(), lambda x, **k: wx.MenuItem(menu, -1, x, **k)
+        item_ui       = makeitem("&Open statistics")
+        item_startup  = makeitem("&Start with Windows",  kind=wx.ITEM_CHECK) \
+                        if self.startupservice.can_start() else None
+        item_mouse    = makeitem("Stop &mouse logging", kind=wx.ITEM_CHECK)
+        item_keyboard = makeitem("Stop &keyboard logging", kind=wx.ITEM_CHECK)
+        item_console  = makeitem("Show Python &console", kind=wx.ITEM_CHECK)
+        item_exit     = makeitem("E&xit %s" % conf.Title)
 
         font = item_ui.Font
         font.SetWeight(wx.FONTWEIGHT_BOLD)
@@ -243,7 +240,7 @@ class StartupService(object):
 
 
 def main():
-    """Entry point for stand-alone execution."""
+    """Program entry point."""
     conf.init(), db.init(conf.DbPath, conf.DbStatements)
 
     if wx:
