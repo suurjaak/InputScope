@@ -207,7 +207,7 @@ class StartupService(object):
         """Sets the program to run at system startup."""
         shortcut_path = self.get_shortcut_path()
         target_path = conf.ExecutablePath
-        workdir, icon = conf.ApplicationPath, conf.IconPath
+        workdir, icon = conf.ApplicationPath, conf.ShortcutIconPath
         self.create_shortcut(shortcut_path, target_path, workdir, icon)
 
     def stop(self):
