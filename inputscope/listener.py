@@ -99,6 +99,7 @@ class DataHandler(threading.Thread):
     def stop(self):
         self.running = False
         self.inqueue.put(None) # Wake up thread waiting on queue
+        db.close()
 
     def handle(self, **kwargs):
         kwargs["dt"] = datetime.datetime.now()

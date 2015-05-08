@@ -5,16 +5,16 @@ Simple convenience wrapper for SQLite. Example usage:
 db.init(":memory:", ["CREATE TABLE test (id INTEGER PRIMARY KEY, val TEXT)"])
 for i in range(5): db.insert("test", [("val", "venividivici")])
 db.insert("test", val=None)
-db.select("test", val=None, limit=[0, 3]).fetchone()
+db.fetchone("test", val=None, limit=[0, 3])
 db.update("test", values=[("val", "arrivederci")], val=None)
 db.update("test", values=[("val", "ciao")], where=[("val", ("IS NOT", None))])
-db.select("test", order=["val", ("id", "DESC")], limit=[0, 4]).fetchall()
+db.fetch("test", order=["val", ("id", "DESC")], limit=[0, 4])
 db.delete("test", val="something")
 db.execute("DROP TABLE test")
 
 @author      Erki Suurjaak
 @created     05.03.2014
-@modified    03.05.2015
+@modified    07.05.2015
 """
 import os
 import re
@@ -136,3 +136,8 @@ def init(path, init_statements=None):
     config = get_config()
     config["path"], config["statements"] = path, init_statements
     make_cursor(config["path"], config["statements"])
+
+
+def close():
+    try: getcursor().connection.close()
+    except Exception: pass
