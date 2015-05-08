@@ -12,7 +12,6 @@ Template arguments:
 @created     07.04.2015
 @modified    06.05.2015
 %"""
-%import conf
 %WEBROOT = get_url("/")
 %title = "Mouse %s" % table
 %rebase("base.tpl", **locals())

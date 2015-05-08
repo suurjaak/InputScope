@@ -13,7 +13,6 @@ Template arguments:
 @modified    06.05.2015
 %"""
 %import cgi
-%import conf
 %WEBROOT = get_url("/")
 %title = "Keyboard %s" % table
 %rebase("base.tpl", **locals())

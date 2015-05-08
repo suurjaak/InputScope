@@ -9,7 +9,6 @@ Template arguments:
 @created     07.04.2015
 @modified    23.04.2015
 %"""
-%import conf
 %WEBROOT = get_url("/")
 <!DOCTYPE html>
 <html>
