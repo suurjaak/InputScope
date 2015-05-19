@@ -14,7 +14,7 @@ db.execute("DROP TABLE test")
 
 @author      Erki Suurjaak
 @created     05.03.2014
-@modified    07.05.2015
+@modified    18.05.2015
 """
 import os
 import re
@@ -60,6 +60,7 @@ def delete(table, where=(), **kwargs):
 
 
 def execute(sql, args=None):
+    """Executes the SQL and returns sqlite3.Cursor."""
     return get_cursor().execute(sql, args or {})
 
 
@@ -69,22 +70,21 @@ def get_cursor():
     return make_cursor(config["path"], config["statements"])
 
 
-def make_cursor(path, init_statements=(), _cursorcache={}):
-    """Returns a cursor to the database, creating it if not cached."""
-    result = _cursorcache.get(path)
-    if not result:
+def make_cursor(path, init_statements=(), _connectioncache={}):
+    """Returns a cursor to the database, making new connection if not cached."""
+    connection = _connectioncache.get(path)
+    if not connection:
         is_new = not os.path.exists(path) or not os.path.getsize(path)
         try: is_new and os.makedirs(os.path.dirname(path))
         except OSError: pass
-        db = sqlite3.connect(path, isolation_level=None, check_same_thread=False,
-                             detect_types=sqlite3.PARSE_DECLTYPES)
-        result = db.cursor()
-        for x in init_statements or []: result.execute(x)
-        try: is_new and ":mem" not in path.lower() and os.chmod(path, 0707)
+        connection = sqlite3.connect(path, isolation_level=None,
+            check_same_thread=False, detect_types=sqlite3.PARSE_DECLTYPES)
+        for x in init_statements or (): connection.execute(x)
+        try: is_new and ":memory:" not in path.lower() and os.chmod(path, 0707)
         except OSError: pass
-        result.row_factory = lambda cur, row: dict(sqlite3.Row(cur, row))
-        _cursorcache[path] = result
-    return result
+        connection.row_factory = lambda cur, row: dict(sqlite3.Row(cur, row))
+        _connectioncache[path] = connection
+    return connection.cursor()
 
 
 def makeSQL(action, table, cols="*", where=(), group="", order=(), limit=(), values=()):
@@ -92,7 +92,7 @@ def makeSQL(action, table, cols="*", where=(), group="", order=(), limit=(), val
     cols  =    cols if isinstance(cols,  basestring) else ", ".join(cols)
     group =   group if isinstance(group, basestring) else ", ".join(group)
     order = [order] if isinstance(order, basestring) else order
-    limit = [limit] if isinstance(limit, basestring) else limit
+    limit = [limit] if isinstance(limit, (basestring, int)) else limit
     sql = "SELECT %s FROM %s" % (cols, table) if "SELECT" == action else ""
     sql = "DELETE FROM %s"    % (table)       if "DELETE" == action else sql
     sql = "INSERT INTO %s"    % (table)       if "INSERT" == action else sql
@@ -139,5 +139,5 @@ def init(path, init_statements=None):
 
 
 def close():
-    try: getcursor().connection.close()
+    try: get_cursor().connection.close()
     except Exception: pass
