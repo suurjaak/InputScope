@@ -20,7 +20,7 @@ the declared ones in source code. File is deleted if all values are at default.
 
 @author      Erki Suurjaak
 @created     26.03.2015
-@modified    06.05.2015
+@modified    19.05.2015
 ------------------------------------------------------------------------------
 """
 try: import ConfigParser as configparser # Py2
@@ -36,8 +36,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.0"
-VersionDate = "06.05.2015"
+Version = "1.1a"
+VersionDate = "19.05.2015"
 
 """TCP port of the web user interface."""
 WebHost = "localhost"
@@ -222,16 +222,29 @@ TemplatePath = os.path.join(RootPath, "views")
 """Path for application icon file."""
 IconPath = os.path.join(StaticPath, "icon.ico")
 
+"""SQL template for trigger to update day counts."""
+TriggerTemplate = """
+CREATE TRIGGER IF NOT EXISTS on_insert_{0} AFTER INSERT ON {0}
+BEGIN
+  INSERT OR IGNORE INTO counts (type, day, count) VALUES ('{0}', NEW.day, 0);
+  UPDATE counts SET count = count + 1 WHERE type = '{0}' AND day = NEW.day;
+END;"""
+
+"""SQL template for day field index."""
+DayIndexTemplate = "CREATE INDEX IF NOT EXISTS idx_{0}_day ON {0} (day)"
+
 """Statements to execute in database at startup, like CREATE TABLE."""
 DbStatements = (
-  "CREATE TABLE IF NOT EXISTS moves (id INTEGER NOT NULL PRIMARY KEY, dt TIMESTAMP, x INTEGER, y INTEGER)",
-  "CREATE TABLE IF NOT EXISTS clicks (id INTEGER NOT NULL PRIMARY KEY, dt TIMESTAMP, x INTEGER, y INTEGER, button INTEGER)",
-  "CREATE TABLE IF NOT EXISTS scrolls (id INTEGER NOT NULL PRIMARY KEY, dt TIMESTAMP, x INTEGER, y INTEGER, wheel INTEGER)",
-  "CREATE TABLE IF NOT EXISTS keys (id INTEGER NOT NULL PRIMARY KEY, dt TIMESTAMP, key TEXT, realkey TEXT)",
-  "CREATE TABLE IF NOT EXISTS combos (id INTEGER NOT NULL PRIMARY KEY, dt TIMESTAMP, key TEXT, realkey TEXT)",
+  "CREATE TABLE IF NOT EXISTS moves (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, x INTEGER, y INTEGER)",
+  "CREATE TABLE IF NOT EXISTS clicks (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, x INTEGER, y INTEGER, button INTEGER)",
+  "CREATE TABLE IF NOT EXISTS scrolls (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, x INTEGER, y INTEGER, wheel INTEGER)",
+  "CREATE TABLE IF NOT EXISTS keys (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, key TEXT, realkey TEXT)",
+  "CREATE TABLE IF NOT EXISTS combos (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, key TEXT, realkey TEXT)",
   "CREATE TABLE IF NOT EXISTS app_events (id INTEGER NOT NULL PRIMARY KEY, dt TIMESTAMP DEFAULT (DATETIME('now', 'localtime')), type TEXT)",
   "CREATE TABLE IF NOT EXISTS screen_sizes (id INTEGER NOT NULL PRIMARY KEY, dt TIMESTAMP DEFAULT (DATETIME('now', 'localtime')), x INTEGER, y INTEGER)",
-)
+  "CREATE TABLE IF NOT EXISTS counts (id INTEGER NOT NULL PRIMARY KEY, type TEXT, day DATETIME, count INTEGER, UNIQUE(type, day))",
+) + tuple(TriggerTemplate.format(x) for x in ["moves", "clicks", "scrolls", "keys", "combos"]
+) + tuple(DayIndexTemplate.format(x) for x in ["moves", "clicks", "scrolls", "keys", "combos"])
 
 
 def init(filename=ConfigPath):

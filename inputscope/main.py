@@ -5,7 +5,7 @@ command-line echoer otherwise. Launches the event listener and web UI server.
 
 @author      Erki Suurjaak
 @created     05.05.2015
-@modified    04.05.2015
+@modified    19.05.2015
 """
 import multiprocessing
 import multiprocessing.forking
@@ -122,7 +122,7 @@ class MainApp(getattr(wx, "App", object)):
         self.trayicon.Bind(wx.EVT_TASKBAR_RIGHT_DOWN, self.OnOpenMenu)
         self.frame_console.Bind(wx.EVT_CLOSE, self.OnToggleConsole)
 
-        self.model.log_resolution(wx.GetDisplaySize())
+        wx.CallAfter(self.model.log_resolution, wx.GetDisplaySize())
         wx.CallAfter(self.model.start)
         return True # App.OnInit returns whether processing should continue
 

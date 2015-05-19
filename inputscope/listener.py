@@ -6,13 +6,14 @@ Mouse and keyboard listener, logs events to database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    07.05.2015
+@modified    19.05.2015
 """
 from __future__ import print_function
 import datetime
 import Queue
 import sys
 import threading
+import time
 import pykeyboard
 import pymouse
 
@@ -102,7 +103,7 @@ class DataHandler(threading.Thread):
         db.close()
 
     def handle(self, **kwargs):
-        kwargs["dt"] = datetime.datetime.now()
+        kwargs.update(day=datetime.date.today(), stamp=time.time())
         self.inqueue.put(kwargs)
 
 

@@ -8,7 +8,7 @@ Three components:
 * listener - logs mouse and keyboard input, can run individually
 * webui - web frontend for statistics and heatmaps, can run individually
 
-Listener and web-UI components can be run separately, or launched from main.
+Listener and web-UI components can be run separately.
 
 Data is kept in an SQLite database, under inputscope/var.
 
