@@ -4,30 +4,32 @@ Keyboard statistics page.
 Template arguments:
   table      keyboard events table to show, "keys"
   day        day for keyboard events, if any
+  days       list of available days
+  input      "keyboard"
   events     list of all events
   counts     keyboard event counts
   stats      keyboard statistics
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    06.05.2015
+@modified    20.05.2015
 %"""
-%import cgi
 %WEBROOT = get_url("/")
-%title = "Keyboard %s" % table
+%title = "%s %s" % (input.capitalize(), table)
 %rebase("base.tpl", **locals())
 
-<a href="{{get_url("/<input>", input="keyboard")}}">Keyboard index</a><br />
 <h3>{{title}}</h3>{{", %s" % day if day else ""}} ({{len(events)}})
 
-<input type="button" id="button_replay" value="Replay" />
-<span class="range">
-  <label for="replay_interval" class="range_label">speed</label>
-  <input type="range" id="replay_interval" min="1" max="100" value="50" title="Animation interval" />
-</span>
-<span class="range">
-  <label for="replay_step" class="range_label">step</label>
-  <input type="range" id="replay_step" min="1" max="100" value="1" title="Points in each animation" />
+<span id="replaysection">
+  <input type="button" id="button_replay" value="Replay" />
+  <span class="range">
+    <label for="replay_interval" class="range_label">speed</label>
+    <input type="range" id="replay_interval" min="1" max="100" value="50" title="Animation interval" />
+  </span>
+  <span class="range">
+    <label for="replay_step" class="range_label">step</label>
+    <input type="range" id="replay_step" min="1" max="100" value="1" title="Points in each animation" />
+  </span>
 </span>
 
 <div id="status">

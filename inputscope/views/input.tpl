@@ -4,10 +4,11 @@ Index page.
 Template arguments:
   stats      data statistics
   input      "mouse"|"keyboard"
+  table      "moves"|"clicks"|"scrolls"|"keys"|"combos", if any
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    07.04.2015
+@modified    20.05.2015
 %"""
 %WEBROOT = get_url("/")
 %title = input.capitalize()

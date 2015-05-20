@@ -6,7 +6,7 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    18.05.2015
+@modified    20.05.2015
 """
 import collections
 import datetime
@@ -43,6 +43,7 @@ def mouse(table, day=None):
     events = db.fetch(table, where=where, order="day")
     for e in events: e["dt"] = datetime.datetime.fromtimestamp(e["stamp"])
     stats, positions, events = stats_mouse(events, table)
+    days, input = db.fetch("counts", order="day", type=table), "mouse"
     return bottle.template("mouse.tpl", locals(), conf=conf)
 
 
@@ -59,6 +60,7 @@ def keyboard(table, day=None):
     events = db.fetch(table, where=where, order="stamp")
     for e in events: e["dt"] = datetime.datetime.fromtimestamp(e["stamp"])
     stats, collatedevents = stats_keyboard(events, table)
+    days, input = db.fetch("counts", order="day", type=table), "keyboard"
     return bottle.template("keyboard.tpl", locals(), conf=conf)
 
 

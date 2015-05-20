@@ -3,7 +3,7 @@
  *
  * @author      Erki Suurjaak
  * @created     07.04.2015
- * @modified    04.05.2015
+ * @modified    20.05.2015
  */
 * {
   font-family: Tahoma;
@@ -43,11 +43,59 @@
   padding: 7px;
 }
 #header a {
-  font-size: 1.5em;
   color: white;
+  text-decoration: none;
+}
+#header a:hover {
+  text-decoration: underline;
+}
+#headerlinks {
+  float: left;
+  position: relative;
+}
+#indexlink {
+  font-size: 2em;
   padding: 10px;
   position: relative;
   top: 6px;
+}
+#inputlinks {
+  float: right;
+  font-size: 1em;
+  padding: 3px;
+  position: relative;
+  top: 5px;
+}
+#inputlinks a {
+  display: block;
+}
+#replaysection {
+  float: right;
+  margin-top: 20px;
+}
+#daysection {
+  float: right;
+  font-size: 1em;
+  padding: 10px;
+  min-width: 260px;
+  display: table;
+  margin: 0 auto;
+  text-align: center;
+  position: relative;
+}
+#daysection a {
+  position: absolute;
+  top: 3px;
+  padding: 10px;
+}
+#daysection a:first-child {
+  left: 0px;
+}
+#daysection a:last-child {
+  right: 0px;
+}
+#daysection select {
+  text-align: center;
 }
 #footer a {
   position: absolute;
