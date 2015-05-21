@@ -12,7 +12,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    20.05.2015
+@modified    21.05.2015
 %"""
 %WEBROOT = get_url("/")
 %title = "%s %s" % (input.capitalize(), table)
@@ -31,6 +31,18 @@ Template arguments:
     <input type="range" id="replay_step" min="1" max="100" value="1" title="Points in each animation" />
   </span>
 </span>
+
+%if day:
+<div id="tablelinks">
+%for type, tbl in [(k, x) for k, tt in conf.InputTables for x in tt]:
+    %if tbl == table:
+  <span>{{tbl}}</span>
+    %else:
+  <a href="{{get_url("/%s/<table>/<day>" % type, table=tbl, day=day)}}">{{tbl}}</a>
+    %end # if tbl == table
+%end # for type, tbl
+</div>
+%end # if day
 
 <div id="status">
 <span id="statustext"><br /></span>
@@ -74,6 +86,19 @@ Template arguments:
     var myHeatmap = h337.create({container: elm_heatmap, radius: RADIUS});
     myHeatmap.setData({data: positions, max: positions.length ? positions[0].value : 0});
 
+    elm_button.addEventListener("click", function() {
+      if ("Replay" == elm_button.value) {
+        myHeatmap.setData({data: [], max: positions.length ? positions[0].value : 0});
+        elm_button.value = "Pause";
+        replay(0);
+      } else if ("Continue" != elm_button.value) {
+        elm_button.value = "Continue";
+      } else {
+        elm_button.value = "Pause";
+        resumeFunc && resumeFunc();
+        resumeFunc = undefined;
+      };
+    });
 
     var replay = function(index) {
       if (index <= events.length - 1) {
@@ -98,21 +123,6 @@ Template arguments:
         elm_button.value = "Replay";
       }
     };
-
-
-    elm_button.addEventListener("click", function() {
-      if ("Replay" == elm_button.value) {
-        myHeatmap.setData({data: [], max: positions.length ? positions[0].value : 0});
-        elm_button.value = "Pause";
-        replay(0);
-      } else if ("Continue" != elm_button.value) {
-        elm_button.value = "Continue";
-      } else {
-        elm_button.value = "Pause";
-        resumeFunc && resumeFunc();
-        resumeFunc = undefined;
-      };
-    });
 
   });
 </script>

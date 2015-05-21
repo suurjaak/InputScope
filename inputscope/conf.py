@@ -20,7 +20,7 @@ the declared ones in source code. File is deleted if all values are at default.
 
 @author      Erki Suurjaak
 @created     26.03.2015
-@modified    19.05.2015
+@modified    21.05.2015
 ------------------------------------------------------------------------------
 """
 try: import ConfigParser as configparser # Py2
@@ -36,8 +36,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.1a"
-VersionDate = "19.05.2015"
+Version = "1.1b"
+VersionDate = "21.05.2015"
 
 """TCP port of the web user interface."""
 WebHost = "localhost"
@@ -62,6 +62,9 @@ KeyboardSessionMaxDelta = 3
 
 """Physical length of a pixel, in meters."""
 PixelLength = 0.00024825
+
+"""Mapping tables to input types."""
+InputTables = [("mouse", ["moves", "clicks", "scrolls"]), ("keyboard", ["keys", "combos"])]
 
 """Key positions in keyboard heatmap."""
 KeyPositions = {
@@ -243,8 +246,8 @@ DbStatements = (
   "CREATE TABLE IF NOT EXISTS app_events (id INTEGER NOT NULL PRIMARY KEY, dt TIMESTAMP DEFAULT (DATETIME('now', 'localtime')), type TEXT)",
   "CREATE TABLE IF NOT EXISTS screen_sizes (id INTEGER NOT NULL PRIMARY KEY, dt TIMESTAMP DEFAULT (DATETIME('now', 'localtime')), x INTEGER, y INTEGER)",
   "CREATE TABLE IF NOT EXISTS counts (id INTEGER NOT NULL PRIMARY KEY, type TEXT, day DATETIME, count INTEGER, UNIQUE(type, day))",
-) + tuple(TriggerTemplate.format(x) for x in ["moves", "clicks", "scrolls", "keys", "combos"]
-) + tuple(DayIndexTemplate.format(x) for x in ["moves", "clicks", "scrolls", "keys", "combos"])
+) + tuple(TriggerTemplate.format(x) for x in [x for k, vv in InputTables for x in vv]
+) + tuple(DayIndexTemplate.format(x) for x in [x for k, vv in InputTables for x in vv])
 
 
 def init(filename=ConfigPath):

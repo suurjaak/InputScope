@@ -3,7 +3,7 @@
  *
  * @author      Erki Suurjaak
  * @created     07.04.2015
- * @modified    20.05.2015
+ * @modified    21.05.2015
  */
 * {
   font-family: Tahoma;
@@ -45,9 +45,6 @@
 #header a {
   color: white;
   text-decoration: none;
-}
-#header a:hover {
-  text-decoration: underline;
 }
 #headerlinks {
   float: left;
@@ -102,9 +99,6 @@
   right: 10px;
   color: white;
   font-size: 1em;
-}
-#content a:visited {
-  color: blue;
 }
 #mouse_heatmap {
   margin-left: auto;
@@ -182,4 +176,22 @@ label.range_label {
   position: absolute;
   top: -18px;
   width: 100%;
+}
+#header a:hover, #content a:hover {
+  text-decoration: underline;
+}
+#tablelinks {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  font-weight: bold;
+  font-size: 0.8em;
+}
+#tablelinks a {
+  color: #1abc9c;
+  margin: 2px;
+  text-decoration: none;
+}
+#tablelinks span {
+  margin: 2px;
 }

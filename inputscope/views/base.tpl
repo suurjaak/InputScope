@@ -40,14 +40,15 @@ Template arguments:
 <span id="daysection">
     %dayidx = next((i for i, x in enumerate(days) if x["day"] == day), None)
     %prevday, nextday = (days[x]["day"] if 0 <= x < len(days) else None for x in [dayidx-1, dayidx+1]) if dayidx is not None else [None]*2
+    %prevday = prevday if day else days[-1]["day"]
   <a href="{{get_url("/%s/<table>/<day>" % input, table=table, day=prevday)}}">{{"< %s" % prevday if prevday else ""}}</a>
 
   <select id="dayselector">
-    %if not day:
+    %if not day or not events:
     <option>- day -</option>
     %end # if not day
-    %for d in days:
-    <option{{' selected="selected"' if day == d["day"] else ""}}>{{d["day"]}}</option>
+    %for d in days[::-1]:
+    <option{{!' selected="selected"' if day == d["day"] else ""}}>{{d["day"]}}</option>
     %end # for d
   </select>
 

@@ -6,7 +6,7 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    20.05.2015
+@modified    21.05.2015
 """
 import collections
 import datetime
@@ -79,10 +79,9 @@ def inputindex(input):
 @route("/")
 def index():
     """Handler for showing the GUI index page."""
-    stats = {"mouse": {"count": 0}, "keyboard": {"count": 0}}
+    stats = dict((k, {"count": 0}) for k, tt in conf.InputTables)
     countminmax = "SUM(count) AS count, MIN(day) AS first, MAX(day) AS last"
-    tables = {"keyboard": ("keys", "combos"), "mouse": ("moves", "clicks", "scrolls")}
-    for input, table in [(x, t) for x, tt in tables.items() for t in tt]:
+    for input, table in [(x, t) for x, tt in conf.InputTables for t in tt]:
         row = db.fetchone("counts", countminmax, type=table)
         if not row["count"]: continue # for input, table
         stats[input]["count"] += row["count"]
