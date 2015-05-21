@@ -12,8 +12,10 @@ Listener and web-UI components can be run separately.
 
 Data is kept in an SQLite database, under inputscope/var.
 
-[![Mouse heatmap](https://raw.githubusercontent.com/suurjaak/InputScope/media/th_mouse.png)](https://raw.githubusercontent.com/suurjaak/InputScope/media/mouse.png)
-[![Keyboard heatmap](https://raw.githubusercontent.com/suurjaak/InputScope/media/th_keyboard.png)](https://raw.githubusercontent.com/suurjaak/InputScope/media/keyboard.png)
+[![Mouse clicks heatmap](https://raw.githubusercontent.com/suurjaak/InputScope/media/th_clicks.png)](https://raw.githubusercontent.com/suurjaak/InputScope/media/clicks.png)
+[![Mouse moves heatmap](https://raw.githubusercontent.com/suurjaak/InputScope/media/th_moves.png)](https://raw.githubusercontent.com/suurjaak/InputScope/media/moves.png)
+[![Keyboard keys heatmap](https://raw.githubusercontent.com/suurjaak/InputScope/media/th_keys.png)](https://raw.githubusercontent.com/suurjaak/InputScope/media/keys.png)
+[![Keyboard combos heatmap](https://raw.githubusercontent.com/suurjaak/InputScope/media/th_combos.png)](https://raw.githubusercontent.com/suurjaak/InputScope/media/combos.png)
 
 
 Installation
