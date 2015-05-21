@@ -10,7 +10,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    23.04.2015
+@modified    21.05.2015
 %"""
 %WEBROOT = get_url("/")
 %days = get("days", [])
@@ -40,7 +40,7 @@ Template arguments:
 <span id="daysection">
     %dayidx = next((i for i, x in enumerate(days) if x["day"] == day), None)
     %prevday, nextday = (days[x]["day"] if 0 <= x < len(days) else None for x in [dayidx-1, dayidx+1]) if dayidx is not None else [None]*2
-    %prevday = prevday if day else days[-1]["day"]
+    %prevday = prevday if day and events else days[-1]["day"]
   <a href="{{get_url("/%s/<table>/<day>" % input, table=table, day=prevday)}}">{{"< %s" % prevday if prevday else ""}}</a>
 
   <select id="dayselector">

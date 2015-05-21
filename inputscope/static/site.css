@@ -46,6 +46,15 @@
   color: white;
   text-decoration: none;
 }
+#footer a {
+  position: absolute;
+  right: 10px;
+  color: white;
+  font-size: 1em;
+}
+#header a:hover, #content a:hover {
+  text-decoration: underline;
+}
 #headerlinks {
   float: left;
   position: relative;
@@ -82,7 +91,7 @@
 }
 #daysection a {
   position: absolute;
-  top: 3px;
+  top: 2px;
   padding: 10px;
 }
 #daysection a:first-child {
@@ -94,13 +103,22 @@
 #daysection select {
   text-align: center;
 }
-#footer a {
+#tablelinks {
   position: absolute;
-  right: 10px;
-  color: white;
-  font-size: 1em;
+  top: 4px;
+  left: 4px;
+  font-weight: bold;
+  font-size: 0.8em;
 }
-#mouse_heatmap {
+#tablelinks a {
+  color: #1abc9c;
+  margin: 2px;
+  text-decoration: none;
+}
+#tablelinks span {
+  margin: 2px;
+}
+#heatmap.mouse {
   margin-left: auto;
   margin-right: auto;
   border: 1px solid #1abc9c;
@@ -126,7 +144,7 @@
   clear: both;
   overflow: auto;
 }
-#stats {
+#stats.keyboard {
   clear: both;
   float: right;
   margin-right: 10px;
@@ -176,22 +194,4 @@ label.range_label {
   position: absolute;
   top: -18px;
   width: 100%;
-}
-#header a:hover, #content a:hover {
-  text-decoration: underline;
-}
-#tablelinks {
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  font-weight: bold;
-  font-size: 0.8em;
-}
-#tablelinks a {
-  color: #1abc9c;
-  margin: 2px;
-  text-decoration: none;
-}
-#tablelinks span {
-  margin: 2px;
 }

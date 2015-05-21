@@ -3,7 +3,7 @@
 Pyinstaller spec file for InputScope, produces a Windows executable.
 
 @created   13.04.2015
-@modified  22.04.2015
+@modified  21.05.2015
 """
 import os
 import sys
@@ -21,9 +21,8 @@ for d in a.datas:
 a.datas += [(os.path.join(*x), os.path.join(APPPATH, *x), "DATA") for x in
             (["static", "icon.ico"], ["static", "site.css"],
              ["static", "heatmap.min.js"], ["static", "keyboard.svg"],
-             ["views", "base.tpl"], ["views", "index.tpl"],
-             ["views", "input.tpl"], ["views", "keyboard.tpl"],
-             ["views", "mouse.tpl"])]
+             ["views", "base.tpl"], ["views", "heatmap.tpl"],
+             ["views", "index.tpl"], ["views", "input.tpl"])]
 pyz = PYZ(a.pure)
 
 exename = "%s_%s.exe" % (conf.Title, conf.Version)
