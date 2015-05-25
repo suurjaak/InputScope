@@ -12,8 +12,8 @@ Template arguments:
   stats      keyboard statistics
 
 @author      Erki Suurjaak
-@created     21.05.2015
-@modified    21.05.2015
+@created     07.04.2015
+@modified    25.05.2015
 %"""
 %WEBROOT = get_url("/")
 %title = "%s %s" % (input.capitalize(), table)
@@ -82,8 +82,6 @@ Template arguments:
 
 <script type="text/javascript">
 
-  var RADIUS = {{20 if "keyboard" == input else 3 if len(events) > 40000 else 5 if len(events) > 10000 else 10}};
-  var resumeFunc = null;
 %if "keyboard" == input:
   var positions = [\\
     %for item in counts:
@@ -125,6 +123,8 @@ Template arguments:
 ];
 %end # if "keyboard"
 
+  var RADIUS = {{20 if "keyboard" == input else 3 if len(events) > 40000 else 5 if len(events) > 10000 else 10}};
+  var resumeFunc = null;
   var elm_heatmap  = document.getElementById("heatmap");
   %mapsize = conf.KeyboardHeatmapSize if "keyboard" == input else conf.MouseHeatmapSize
   elm_heatmap.style.width = "{{mapsize[0]}}px";
@@ -152,7 +152,6 @@ Template arguments:
 
     elm_button.addEventListener("click", function() {
       if ("Replay" == elm_button.value) {
-        myHeatmap.setData({data: [], max: 0});
         myHeatmap.setData({data: [], max: {{!0 if "keyboard" == input else "positions.length ? positions[0].value : 0"}}});
         elm_button.value = "Pause";
         replay(0);
