@@ -2,25 +2,28 @@
 Mouse or keyboard heatmap and statistics page.
 
 Template arguments:
-  table      events table to show, like "clicks" or "keys"
-  day        day for events, if any
-  days       list of available days
-  input      "mouse"|"keyboard"
-  events     list of all events
-  counts     keyboard event counts
-  positions  mouse position counts
-  stats      keyboard statistics
+  table           events table to show, like "clicks" or "keys"
+  day             day for events, if any
+  days            list of available days
+  input           "mouse"|"keyboard"
+  count           count of all events
+  counts          keyboard event counts
+  counts_display  displayed event counts for keyboard combos
+  events          total list of events, for all tables but "moves"
+  positions       mouse position counts
+  stats           keyboard statistics
 
 @author      Erki Suurjaak
-@created     07.04.2015
-@modified    25.05.2015
+@created     21.05.2015
+@modified    16.06.2015
 %"""
 %WEBROOT = get_url("/")
 %title = "%s %s" % (input.capitalize(), table)
 %rebase("base.tpl", **locals())
 
-<h3>{{title}}</h3>{{", %s" % day if day else ""}} ({{len(events)}})
+<h3>{{title}}</h3>{{", %s" % day if day else ""}} ({{count}})
 
+%if "moves" != table:
 <span id="replaysection">
   <input type="button" id="button_replay" value="Replay" />
   <span class="range">
@@ -32,23 +35,28 @@ Template arguments:
     <input type="range" id="replay_step" min="1" max="100" value="1" title="Points in each animation" />
   </span>
 </span>
+%end # if "moves" != table
 
-%if day:
 <div id="tablelinks">
 %for type, tbl in [(k, x) for k, tt in conf.InputTables for x in tt]:
     %if tbl == table:
   <span>{{tbl}}</span>
     %else:
+        %if day:
   <a href="{{get_url("/%s/<table>/<day>" % type, table=tbl, day=day)}}">{{tbl}}</a>
+        %else:
+  <a href="{{get_url("/%s/<table>" % type, table=tbl)}}">{{tbl}}</a>
+        %end # if day
     %end # if tbl == table
 %end # for type, tbl
 </div>
-%end # if day
 
+%if "moves" != table:
 <div id="status">
 <span id="statustext"><br /></span>
 <span id="progressbar"></span>
 </div>
+%end # if "moves" != table
 
 %if "keyboard" == input:
 <div id="heatmap"><img id="keyboard" src="{{WEBROOT}}static/keyboard.svg" width="{{conf.KeyboardHeatmapSize[0]}}" height="{{conf.KeyboardHeatmapSize[1]}}" alt=""/></div>
@@ -82,6 +90,8 @@ Template arguments:
 
 <script type="text/javascript">
 
+  var RADIUS = {{20 if "keyboard" == input else 10}};
+  var resumeFunc = null;
 %if "keyboard" == input:
   var positions = [\\
     %for item in counts:
@@ -123,8 +133,6 @@ Template arguments:
 ];
 %end # if "keyboard"
 
-  var RADIUS = {{20 if "keyboard" == input else 3 if len(events) > 40000 else 5 if len(events) > 10000 else 10}};
-  var resumeFunc = null;
   var elm_heatmap  = document.getElementById("heatmap");
   %mapsize = conf.KeyboardHeatmapSize if "keyboard" == input else conf.MouseHeatmapSize
   elm_heatmap.style.width = "{{mapsize[0]}}px";
@@ -150,8 +158,9 @@ Template arguments:
       elm_heatmap.getElementsByTagName("canvas")[0].style.display = this.checked ? "" : "none";
     });
 
-    elm_button.addEventListener("click", function() {
+    if (elm_button) elm_button.addEventListener("click", function() {
       if ("Replay" == elm_button.value) {
+        myHeatmap.setData({data: [], max: 0});
         myHeatmap.setData({data: [], max: {{!0 if "keyboard" == input else "positions.length ? positions[0].value : 0"}}});
         elm_button.value = "Pause";
         replay(0);
