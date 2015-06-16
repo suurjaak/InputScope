@@ -12,6 +12,7 @@ Template arguments:
   events          total list of events, for all tables but "moves"
   positions       mouse position counts
   stats           keyboard statistics
+  tabledays       set of tables that have events for specified day
 
 @author      Erki Suurjaak
 @created     21.05.2015
@@ -42,7 +43,9 @@ Template arguments:
     %if tbl == table:
   <span>{{tbl}}</span>
     %else:
-        %if day:
+        %if day and tbl not in tabledays:
+  <span class="inactive">{{tbl}}</span>
+        %elif day:
   <a href="{{get_url("/%s/<table>/<day>" % type, table=tbl, day=day)}}">{{tbl}}</a>
         %else:
   <a href="{{get_url("/%s/<table>" % type, table=tbl)}}">{{tbl}}</a>

@@ -43,6 +43,7 @@ def mouse(table, day=None):
     events = db.select(table, where=where, order="day")
     stats, positions, count, events = stats_mouse(events, table)
     days, input = db.fetch("counts", order="day", type=table), "mouse"
+    tabledays = set(x["type"] for x in db.fetch("counts", day=day)) if day else {}
     return bottle.template("heatmap.tpl", locals(), conf=conf)
 
 
@@ -60,6 +61,7 @@ def keyboard(table, day=None):
     for e in events: e["dt"] = datetime.datetime.fromtimestamp(e["stamp"])
     stats, collatedevents, count = stats_keyboard(events, table)
     days, input = db.fetch("counts", order="day", type=table), "keyboard"
+    tabledays = set(x["type"] for x in db.fetch("counts", day=day)) if day else {}
     return bottle.template("heatmap.tpl", locals(), conf=conf)
 
 

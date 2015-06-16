@@ -3,7 +3,7 @@
  *
  * @author      Erki Suurjaak
  * @created     07.04.2015
- * @modified    21.05.2015
+ * @modified    16.06.2015
  */
 * {
   font-family: Tahoma;
@@ -117,6 +117,10 @@
 }
 #tablelinks span {
   margin: 2px;
+}
+#tablelinks span.inactive {
+  color: gray;
+  font-weight: normal;
 }
 #heatmap.mouse {
   margin-left: auto;
