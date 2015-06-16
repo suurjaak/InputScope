@@ -5,7 +5,7 @@ command-line echoer otherwise. Launches the event listener and web UI server.
 
 @author      Erki Suurjaak
 @created     05.05.2015
-@modified    19.05.2015
+@modified    28.05.2015
 """
 import multiprocessing
 import multiprocessing.forking
@@ -118,7 +118,6 @@ class MainApp(getattr(wx, "App", object)):
         self.Bind(wx.EVT_CLOSE, self.OnClose)
         self.Bind(wx.EVT_DISPLAY_CHANGED, self.OnDisplayChanged)
         self.trayicon.Bind(wx.EVT_TASKBAR_LEFT_DCLICK, self.OnOpenUI)
-        self.trayicon.Bind(wx.EVT_TASKBAR_LEFT_DOWN, self.OnOpenMenu)
         self.trayicon.Bind(wx.EVT_TASKBAR_RIGHT_DOWN, self.OnOpenMenu)
         self.frame_console.Bind(wx.EVT_CLOSE, self.OnToggleConsole)
 
