@@ -2,6 +2,7 @@
 """
 Pyinstaller spec file for InputScope, produces a Windows executable.
 
+@author    Erki Suurjaak
 @created   13.04.2015
 @modified  21.05.2015
 """
