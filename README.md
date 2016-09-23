@@ -30,7 +30,7 @@ Or:
 `pip install inputscope`
 
 The pip installation will add commands `inputscope`, `inputscope-listener` 
-and `inputscope-webui` command to path.
+and `inputscope-webui` to path.
 
 
 Dependencies

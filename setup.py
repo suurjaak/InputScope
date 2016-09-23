@@ -7,8 +7,6 @@ Setup.py for InputScope.
 @modified    29.04.2015
 ------------------------------------------------------------------------------
 """
-import glob
-import os
 import setuptools
 
 from inputscope import conf

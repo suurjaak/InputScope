@@ -14,7 +14,7 @@ db.execute("DROP TABLE test")
 
 @author      Erki Suurjaak
 @created     05.03.2014
-@modified    18.05.2015
+@modified    23.07.2015
 """
 import os
 import re
@@ -134,7 +134,7 @@ def get_config(config={}): return config
 
 def init(path, init_statements=None):
     config = get_config()
-    config["path"], config["statements"] = path, init_statements
+    config.update(path=path, statements=init_statements)
     make_cursor(config["path"], config["statements"])
 
 
