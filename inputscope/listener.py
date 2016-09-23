@@ -6,7 +6,7 @@ Mouse and keyboard listener, logs events to database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    19.05.2015
+@modified    22.09.2016
 """
 from __future__ import print_function
 import datetime
@@ -38,6 +38,7 @@ class Listener(threading.Thread):
         self.running = True
         while self.running:
             command = self.inqueue.get()
+            if not command: continue
             if "exit" == command:
                 self.stop()
             elif "mouse_start" == command:
@@ -52,6 +53,9 @@ class Listener(threading.Thread):
             elif "keyboard_stop" == command:
                 if self.key_handler:
                     self.key_handler = self.key_handler.stop()
+            elif command.startswith("screen_size"):
+                size = list(map(int, command.split()[1:]))
+                if size: db.insert("screen_sizes", x=size[0], y=size[1])
 
     def stop(self):
         self.running = False
@@ -93,7 +97,7 @@ class DataHandler(threading.Thread):
             try:
                 for item in dbqueue:
                     db.insert(*item), dbqueue.remove(item)
-            except Exception as e:
+            except StandardError as e:
                 print(e, event, data)
             self.output(self.counts)
 
@@ -262,8 +266,9 @@ class LineQueue(threading.Thread):
 
 def start(inqueue, outqueue=None):
     """Starts the listener with incoming and outgoing queues."""
-    conf.init(), db.init(conf.DbPath)
-    Listener(inqueue, outqueue).run()
+    conf.init(), db.init(conf.DbPath, conf.DbStatements)
+    try: Listener(inqueue, outqueue).run()
+    except KeyboardInterrupt: pass
 
 
 def main():

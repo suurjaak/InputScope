@@ -5,11 +5,13 @@ command-line echoer otherwise. Launches the event listener and web UI server.
 
 @author      Erki Suurjaak
 @created     05.05.2015
-@modified    28.05.2015
+@modified    22.09.2016
 """
+import errno
 import multiprocessing
 import multiprocessing.forking
 import os
+import signal
 import subprocess
 import sys
 import threading
@@ -17,15 +19,13 @@ import time
 import webbrowser
 try: import win32com.client # For creating startup shortcut
 except ImportError: pass
-tk = None
+wx = tk = None
 try: import wx, wx.lib.sized_controls, wx.py.shell
 except ImportError:
-    wx = None
     try: import Tkinter as tk   # For getting screen size if wx unavailable
     except ImportError: pass
 
 import conf
-import db
 import listener
 import webui
 
@@ -42,22 +42,25 @@ class Process(multiprocessing.Process): _Popen = Popen
 class QueueLine(object):
     """Queue-like interface for writing lines to a file-like object."""
     def __init__(self, output): self.output = output
-    def put(self, item): self.output.write("%s\n" % item)
+    def put(self, item):
+        try: self.output.write("%s\n" % item)
+        except IOError as e:
+            if e.errno != errno.EINVAL: raise # Invalid argument, probably stale pipe
 
 
 class Model(threading.Thread):
     """Input monitor main runner model."""
 
-    def __init__(self, messagehandler=None):
-        """
-        @param   messagehandler  function to invoke with incoming messages
-        """
+    def __init__(self):
         threading.Thread.__init__(self)
-        self.messagehandler = messagehandler
         self.running = False
+        self.initialqueue = multiprocessing.Queue()
         self.listenerqueue = None
         self.listener = None
         self.webui = None
+        # Avoid leaving zombie child processes on Ctrl-Break/C etc
+        signal.signal(signal.SIGBREAK, lambda *a, **kw: self.stop(True))
+        signal.signal(signal.SIGINT, lambda *a, **kw: self.stop(True))
 
     def toggle(self, input):
         if "mouse" == input:
@@ -68,13 +71,15 @@ class Model(threading.Thread):
         if self.listenerqueue:
             self.listenerqueue.put("%s_%s" % (input, "start" if on else "stop"))
 
-    def stop(self):
+    def stop(self, exit=False):
         self.running = False
-        self.listener and self.listenerqueue.put("exit")
-        self.webui and self.webui.terminate()
+        if self.listener: self.listenerqueue.put("exit"), self.listener.terminate()
+        if self.webui: self.webui.terminate()
+        if exit: sys.exit()
 
     def log_resolution(self, size):
-        if size: db.insert("screen_sizes", x=size[0], y=size[1])
+        q = self.listenerqueue or self.initialqueue
+        q.put("screen_size %s %s" % (size[0], size[1]))
 
     def run(self):
         if conf.Frozen:
@@ -92,6 +97,8 @@ class Model(threading.Thread):
 
         if conf.MouseEnabled:    self.listenerqueue.put("mouse_start")
         if conf.KeyboardEnabled: self.listenerqueue.put("keyboard_start")
+        while not self.initialqueue.empty():
+            self.listenerqueue.put(self.initialqueue.get())
 
         self.running = True
         while self.running: time.sleep(1)
@@ -212,7 +219,7 @@ class StartupService(object):
     def stop(self):
         """Stops the program from running at system startup."""
         try: os.unlink(self.get_shortcut_path())
-        except Exception: pass
+        except StandardError: pass
 
     def get_shortcut_path(self):
         path = "~\\Start Menu\\Programs\\Startup\\%s.lnk" % conf.Title
@@ -240,12 +247,12 @@ class StartupService(object):
 
 def main():
     """Program entry point."""
-    conf.init(), db.init(conf.DbPath, conf.DbStatements)
+    conf.init()
 
     if wx:
         MainApp(redirect=True).MainLoop() # stdout/stderr directed to wx popup
     else:
-        model = Model(lambda x: sys.stderr.write("\r%s" % x))
+        model = Model()
         if tk:
             widget = tk.Tk() # Use Tkinter instead to get screen size
             size = widget.winfo_screenwidth(), widget.winfo_screenheight()
@@ -254,6 +261,8 @@ def main():
         print("Web interface running at %s" % conf.WebUrl)
         try:
             model.run()
+        except IOError as e:
+            if e.errno != errno.EINTR: raise # Interrupted syscall, probably sleep
         except KeyboardInterrupt:
             model.stop()
 
