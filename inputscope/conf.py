@@ -20,7 +20,7 @@ the declared ones in source code. File is deleted if all values are at default.
 
 @author      Erki Suurjaak
 @created     26.03.2015
-@modified    25.09.2016
+@modified    21.01.2021
 ------------------------------------------------------------------------------
 """
 try: import ConfigParser as configparser # Py2
@@ -36,8 +36,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.3.dev0"
-VersionDate = "25.09.2016"
+Version = "1.3.dev1"
+VersionDate = "21.01.2021"
 
 """TCP port of the web user interface."""
 WebHost = "localhost"
@@ -47,7 +47,7 @@ WebUrl = "http://%s:%s" % (WebHost, WebPort)
 HomepageUrl = "https://github.com/suurjaak/InputScope"
 
 """Size of the heatmaps, in pixels."""
-MouseHeatmapSize = (640, 360)
+MouseHeatmapSize    = (640, 360)
 KeyboardHeatmapSize = (680, 180)
 
 """Default desktop size for scaling, if not available from system, in pixels."""

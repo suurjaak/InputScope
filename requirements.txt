@@ -1,4 +1,3 @@
 bottle
 PyUserInput
-
-# wxPython is not available via pip
+wxPython>=4.0

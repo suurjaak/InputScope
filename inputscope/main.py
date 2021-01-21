@@ -5,7 +5,7 @@ command-line echoer otherwise. Launches the event listener and web UI server.
 
 @author      Erki Suurjaak
 @created     05.05.2015
-@modified    22.09.2016
+@modified    21.01.2021
 """
 import errno
 import multiprocessing
@@ -20,7 +20,7 @@ import webbrowser
 try: import win32com.client # For creating startup shortcut
 except ImportError: pass
 wx = tk = None
-try: import wx, wx.lib.sized_controls, wx.py.shell
+try: import wx, wx.adv, wx.py.shell
 except ImportError:
     try: import Tkinter as tk   # For getting screen size if wx unavailable
     except ImportError: pass
@@ -110,11 +110,11 @@ class MainApp(getattr(wx, "App", object)):
         self.startupservice = StartupService()
 
         self.frame_console = wx.py.shell.ShellFrame(None)
-        self.trayicon = wx.TaskBarIcon()
+        self.trayicon = wx.adv.TaskBarIcon()
 
         if os.path.exists(conf.IconPath):
             icons = wx.IconBundle()
-            icons.AddIconFromFile(conf.IconPath, wx.BITMAP_TYPE_ICO)
+            icons.AddIcon(conf.IconPath, wx.BITMAP_TYPE_ICO)
             self.frame_console.SetIcons(icons)
             icon = (icons.GetIconOfExactSize((16, 16))
                     if "win32" == sys.platform else icons.GetIcon((24, 24)))
@@ -124,8 +124,8 @@ class MainApp(getattr(wx, "App", object)):
 
         self.Bind(wx.EVT_CLOSE, self.OnClose)
         self.Bind(wx.EVT_DISPLAY_CHANGED, self.OnDisplayChanged)
-        self.trayicon.Bind(wx.EVT_TASKBAR_LEFT_DCLICK, self.OnOpenUI)
-        self.trayicon.Bind(wx.EVT_TASKBAR_RIGHT_DOWN, self.OnOpenMenu)
+        self.trayicon.Bind(wx.adv.EVT_TASKBAR_LEFT_DCLICK, self.OnOpenUI)
+        self.trayicon.Bind(wx.adv.EVT_TASKBAR_RIGHT_DOWN, self.OnOpenMenu)
         self.frame_console.Bind(wx.EVT_CLOSE, self.OnToggleConsole)
 
         wx.CallAfter(self.model.log_resolution, wx.GetDisplaySize())
@@ -148,14 +148,14 @@ class MainApp(getattr(wx, "App", object)):
         font.SetWeight(wx.FONTWEIGHT_BOLD)
         item_ui.Font = font
 
-        menu.AppendItem(item_ui)
-        menu.AppendItem(item_startup) if item_startup else None
+        menu.Append(item_ui)
+        menu.Append(item_startup) if item_startup else None
         menu.AppendSeparator()
-        menu.AppendItem(item_mouse)
-        menu.AppendItem(item_keyboard)
+        menu.Append(item_mouse)
+        menu.Append(item_keyboard)
         menu.AppendSeparator()
-        menu.AppendItem(item_console)
-        menu.AppendItem(item_exit)
+        menu.Append(item_console)
+        menu.Append(item_exit)
 
         if item_startup: item_startup.Check(self.startupservice.is_started())
         item_mouse.Check(not conf.MouseEnabled)
