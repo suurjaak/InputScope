@@ -3,6 +3,10 @@ InputScope
 
 Mouse and keyboard input heatmap visualizer and statistics.
 
+Keypresses are logged as physical keys, ignoring Unicode mappings.
+Keyboard logging can interfere with remote control desktop, 
+UI automation scripts, and sticky keys.
+
 Three components:
 * main - wxPython desktop tray program, runs listener and webui
 * listener - logs mouse and keyboard input, can run individually

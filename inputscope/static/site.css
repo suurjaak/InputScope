@@ -3,7 +3,7 @@
  *
  * @author      Erki Suurjaak
  * @created     07.04.2015
- * @modified    16.06.2015
+ * @modified    25.09.2016
  */
 * {
   font-family: Tahoma;
@@ -28,6 +28,9 @@
   margin-right: auto;
   padding: 10px;
 }
+#dbinfo {
+  display: none;
+}
 #footer {
   position: relative;
   width: 700px;
@@ -48,9 +51,14 @@
 }
 #footer a {
   position: absolute;
-  right: 10px;
   color: white;
   font-size: 1em;
+}
+#footer a:first-of-type {
+  left: 10px;
+}
+#footer a:last-of-type {
+  right: 10px;
 }
 #header a:hover, #content a:hover {
   text-decoration: underline;
@@ -198,4 +206,47 @@ label.range_label {
   position: absolute;
   top: -18px;
   width: 100%;
+}
+#overlay {
+  display: none;
+  align-items: center;
+  bottom: 0;
+  justify-content: center;
+  left: 0;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 10000;
+}
+#overlay.visible {
+  display: flex;
+}
+#overlay #overshadow {
+  background: black;
+  bottom: 0;
+  height: 100%;
+  left: 0;
+  opacity: 0.5;
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 100%;
+}
+#overlay #overcontent {
+  background: white;
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  opacity: 1;
+  padding: 10px;
+  padding-right: 20px;
+  position: relative;
+  z-index: 10001;
+}
+#overlay #overcontent > * {
+  align-self: center;
+}
+#overlay #overcontent td:first-child {
+  font-weight: bold;
 }

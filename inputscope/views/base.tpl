@@ -7,6 +7,7 @@ Template arguments:
   days       list of available days
   input      "mouse"|"keyboard"
   table      events table shown, moves|clicks|scrolls|keys|combos
+  dbinfo     [(database info label, value)]
 
 @author      Erki Suurjaak
 @created     07.04.2015
@@ -62,21 +63,46 @@ Template arguments:
 {{!base}}
 </div>
 
+<div id="overlay">
+  <div id="overshadow"></div>
+  <div id="overcontent">
+    <table>
+%for k, v in dbinfo:
+      <tr><td>{{k}}:</td><td>{{v}}</td></tr>
+%end # for k, v
+    </table>
+    <button id="overlayclose">OK</button>
+  </div>
+</div>
+
 <div id="footer">
 <div>
+  <a href="#" id="overlaylink">database info</a>
   Mouse and keyboard input visualizer. &copy; 2015 Erki Suurjaak. <a href="{{conf.HomepageUrl}}" target="_blank">github</a>
 </div>
 </div>
 
+<script type="text/javascript">
+window.addEventListener("load", function() {
+  var elm_overlay = document.getElementById("overlay");
+  var toggleOverlay = function(evt) {
+    elm_overlay.classList.toggle("visible");
+    evt && evt.preventDefault();
+  };
+
+  document.getElementById("overlaylink").addEventListener("click", toggleOverlay);
+  document.getElementById("overlayclose").addEventListener("click", toggleOverlay);
+  document.getElementById("overshadow").addEventListener("click", toggleOverlay);
+  document.body.addEventListener("keydown", function(evt) {
+    if (evt.keyCode == 27 && elm_overlay.classList.contains("visible")) toggleOverlay();
+  });
 
 %if days:
-<script type="text/javascript">
-  window.addEventListener("load", function() {
-    document.getElementById("dayselector").addEventListener("change", function() {
-      window.location.href = "{{get_url("/%s/<table>" % input, table=table)}}/" + this.value;
-    });
+  document.getElementById("dayselector").addEventListener("change", function() {
+    window.location.href = "{{get_url("/%s/<table>" % input, table=table)}}/" + this.value;
   });
-</script>
 %end # if days
+});
+</script>
 </body>
 </html>

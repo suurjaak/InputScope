@@ -6,11 +6,12 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    16.06.2015
+@modified    25.09.2016
 """
 import collections
 import datetime
 import math
+import os
 import re
 import sys
 import bottle
@@ -44,6 +45,7 @@ def mouse(table, day=None):
     stats, positions, count, events = stats_mouse(events, table)
     days, input = db.fetch("counts", order="day", type=table), "mouse"
     tabledays = set(x["type"] for x in db.fetch("counts", day=day)) if day else {}
+    dbinfo = stats_db(conf.DbPath)
     return bottle.template("heatmap.tpl", locals(), conf=conf)
 
 
@@ -62,6 +64,7 @@ def keyboard(table, day=None):
     stats, collatedevents, count = stats_keyboard(events, table)
     days, input = db.fetch("counts", order="day", type=table), "keyboard"
     tabledays = set(x["type"] for x in db.fetch("counts", day=day)) if day else {}
+    dbinfo = stats_db(conf.DbPath)
     return bottle.template("heatmap.tpl", locals(), conf=conf)
 
 
@@ -74,6 +77,7 @@ def inputindex(input):
     for table in tables:
         stats[table] = db.fetchone("counts", countminmax, type=table)
         stats[table]["days"] = db.fetch("counts", order="day DESC", type=table)
+    dbinfo = stats_db(conf.DbPath)
     return bottle.template("input.tpl", locals(), conf=conf)
 
 
@@ -89,6 +93,7 @@ def index():
         for func, key in [(min, "first"), (max, "last")]:
             stats[input][key] = (row[key] if key not in stats[input]
                                  else func(stats[input][key], row[key]))
+    dbinfo = stats_db(conf.DbPath)
     return bottle.template("index.tpl", locals(), conf=conf)
 
 
@@ -209,6 +214,24 @@ def stats_mouse(events, table):
     return stats, positions, count, all_events
 
 
+def stats_db(filename):
+    """Returns database information as [(label, value), ]."""
+    conf.InputTables
+    result = [("Database", filename),
+              ("Created", datetime.datetime.fromtimestamp(os.path.getctime(filename))),
+              ("Last modified", datetime.datetime.fromtimestamp(os.path.getmtime(filename))),
+              ("Size", format_bytes(os.path.getsize(filename))), ]
+    cmap = dict((x["type"], x["count"]) for x in db.fetch("counts", "type, SUM(count) AS count", group="type"))
+    for name, tables in conf.InputTables:
+        #total = sum(db.fetchone(t, "COUNT(*) AS c")["c"] for t in tables[:1])
+        """total = 0
+        for t in tables:
+            print datetime.datetime.now(), t
+            total += db.fetchone(t, "COUNT(*) AS c")["c"]"""
+        result += [("%s events" % name.capitalize(), sum(cmap.get(t) or 0 for t in tables))]
+    return result
+
+
 def timedelta_seconds(timedelta):
     """Returns the total timedelta duration in seconds."""
     return (timedelta.total_seconds() if hasattr(timedelta, "total_seconds")
@@ -226,6 +249,18 @@ def format_timedelta(timedelta):
         f = "%d" % c if "second" != n else str(c).rstrip("0").rstrip(".")
         if f != "0": items += [f + n]
     return " ".join(items or ["0 seconds"])
+
+
+def format_bytes(size, precision=2, inter=" "):
+    """Returns a formatted byte size (e.g. 421.45 MB)."""
+    result = "0 bytes"
+    if size:
+        UNITS = [("bytes", "byte")[1 == size]] + [x + "B" for x in "KMGTPEZY"]
+        exponent = min(int(math.log(size, 1024)), len(UNITS) - 1)
+        result = "%.*f" % (precision, size / (1024. ** exponent))
+        result += "" if precision > 0 else "."  # Do not strip integer zeroes
+        result = result.rstrip("0").rstrip(".") + inter + UNITS[exponent]
+    return result
 
 
 def init():
