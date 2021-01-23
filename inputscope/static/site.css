@@ -3,7 +3,7 @@
  *
  * @author      Erki Suurjaak
  * @created     07.04.2015
- * @modified    25.09.2016
+ * @modified    23.01.2021
  */
 * {
   font-family: Tahoma;
@@ -86,6 +86,12 @@
 #replaysection {
   float: right;
   margin-top: 20px;
+  position: relative;
+}
+#replaysection #limit {
+  font-size: 0.8em;
+  opacity: 0.5;
+  color: gray;
 }
 #daysection {
   float: right;

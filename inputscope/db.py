@@ -9,12 +9,13 @@ db.fetchone("test", val=None, limit=[0, 3])
 db.update("test", values=[("val", "arrivederci")], val=None)
 db.update("test", values=[("val", "ciao")], where=[("val", ("IS NOT", None))])
 db.fetch("test", order=["val", ("id", "DESC")], limit=[0, 4])
+db.fetch("test", id=("IN", [1, 2, 3]))
 db.delete("test", val="something")
 db.execute("DROP TABLE test")
 
 @author      Erki Suurjaak
 @created     05.03.2014
-@modified    23.07.2015
+@modified    23.01.2021
 """
 import os
 import re
@@ -112,10 +113,17 @@ def makeSQL(action, table, cols="*", where=(), group="", order=(), limit=(), val
         for i, (col, val) in enumerate(where):
             key = "%sW%s" % (re.sub("\\W", "_", col), i)
             dbval = val[1] if isinstance(val, (list, tuple)) else val
-            args[key] = dbval
             op = "IS" if dbval == val else val[0]
-            op = "=" if dbval is not None and "IS" == op else op
-            sql += (" AND " if i else "") + "%s %s :%s" % (col, op, key)
+
+            if op in ("IN", "NOT IN"):
+                keys = ["%s_%s" % (col, j) for j in range(len(val[1]))]
+                args.update(zip(keys, val[1]))
+                sql += (" AND " if i else "") + "%s %s (%s)" % (
+                        col, op, ", ".join(":" + x for x in keys))
+            else:
+                args[key] = dbval
+                op = "=" if dbval is not None and "IS" == op else op
+                sql += (" AND " if i else "") + "%s %s :%s" % (col, op, key)
     if group:
         sql += " GROUP BY " + group
     if order:

@@ -9,14 +9,14 @@ Template arguments:
   count           count of all events
   counts          keyboard event counts
   counts_display  displayed event counts for keyboard combos
-  events          total list of events, for all tables but "moves"
+  events          list of replayable events
   positions       mouse position counts
   stats           keyboard statistics
   tabledays       set of tables that have events for specified day
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    16.06.2015
+@modified    23.01.2021
 %"""
 %WEBROOT = get_url("/")
 %title = "%s %s" % (input.capitalize(), table)
@@ -24,19 +24,20 @@ Template arguments:
 
 <h3>{{ title }}</h3>{{ ", %s" % day if day else "" }} ({{ "{:,}".format(count) }})
 
-%if "moves" != table:
 <span id="replaysection">
   <input type="button" id="button_replay" value="Replay" />
-  <span class="range">
+  <span class="range" title="Animation interval">
     <label for="replay_interval" class="range_label">speed</label>
-    <input type="range" id="replay_interval" min="1" max="100" value="50" title="Animation interval" />
+    <input type="range" id="replay_interval" min="1" max="100" value="50" />
   </span>
-  <span class="range">
+  <span class="range" title="Points in each animation">
     <label for="replay_step" class="range_label">step</label>
-    <input type="range" id="replay_step" min="1" max="100" value="1" title="Points in each animation" />
+    <input type="range" id="replay_step" min="1" max="100" value="1" />
   </span>
+%if count > conf.MaxEventsForReplay:
+  <div id="limit">Replay limited to a maximum of {{ "{:,}".format(conf.MaxEventsForReplay) }} events.</div>
+%end # if count > conf.MaxEventsForReplay
 </span>
-%end # if "moves" != table
 
 <div id="tablelinks">
 %for type, tbl in [(k, x) for k, tt in conf.InputTables for x in tt]:
@@ -54,12 +55,12 @@ Template arguments:
 %end # for type, tbl
 </div>
 
-%if "moves" != table:
+%if events:
 <div id="status">
 <span id="statustext"><br /></span>
 <span id="progressbar"></span>
 </div>
-%end # if "moves" != table
+%end # if events
 
 %if "keyboard" == input:
 <div id="heatmap"><img id="keyboard" src="{{ WEBROOT }}static/keyboard.svg" width="{{ conf.KeyboardHeatmapSize[0] }}" height="{{ conf.KeyboardHeatmapSize[1] }}" alt=""/></div>
@@ -78,6 +79,9 @@ Template arguments:
 %for key, val in stats:
     <tr><td>{{ key }}</td><td>{{ val }}</td></tr>
 %end # for key, val
+%if count > conf.MaxEventsForStats:
+    <tr><td colspan="2">Statistics and heatmap limited to a maximum of {{ "{:,}".format(conf.MaxEventsForStats) }} events.</td></tr>
+%end # if count > conf.MaxEventsForStats
   </table>
 
 %if "keyboard" == input:
@@ -109,7 +113,7 @@ Template arguments:
     %end # for item
 ];
   var events = [\\
-    %for item in collatedevents:
+    %for item in events:
         %data = []
         %for fullkey, count in item["keys"].items():
             %keys = fullkey.split("-") if "combos" == table else [fullkey]
@@ -189,7 +193,7 @@ Template arguments:
         elm_status.innerHTML = events[index]["dt"] + " " + percent;
         elm_progress.style.width = percent;
 
-        var interval = elm_interval.max - elm_interval.value;
+        var interval = elm_interval.max - elm_interval.value + parseInt(elm_interval.min);
         if ("Pause" != elm_button.value)
           resumeFunc = function() { setTimeout(replay, interval, index + 1); };
         else

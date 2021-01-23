@@ -36,7 +36,7 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.3.dev2"
+Version = "1.3.dev3"
 VersionDate = "23.01.2021"
 
 """TCP port of the web user interface."""
@@ -59,6 +59,12 @@ KeyboardEnabled = True
 
 """Maximum keypress interval to count as one typing session, in seconds."""
 KeyboardSessionMaxDelta = 3
+
+"""Maximum number of events to use for statistics page."""
+MaxEventsForStats = 1000 * 1000
+
+"""Maximum number of events to replay on statistics page."""
+MaxEventsForReplay = 100 * 1000
 
 """Physical length of a pixel, in meters."""
 PixelLength = 0.00024825

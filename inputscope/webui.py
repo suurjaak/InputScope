@@ -40,11 +40,20 @@ def server_static(filepath):
 @route("/mouse/<table>/<day>")
 def mouse(table, day=None):
     """Handler for showing mouse statistics for specified type and day."""
-    where = (("day", day),) if day else ()
-    events = db.select(table, where=where, order="day")
-    stats, positions, count, events = stats_mouse(events, table)
-    days, input = db.fetch("counts", order="day", type=table), "mouse"
+    days = db.fetch("counts", order="day", type=table)
+    count, input = sum(v["count"] for v in days if not day or v["day"] == day), "mouse"
     tabledays = set(x["type"] for x in db.fetch("counts", day=day)) if day else {}
+
+    where = (("day", day), ) if day else ()
+    if not day: # Mouse tables can have 100M+ rows, total order takes too long
+        mydays, mycount = [], 0
+        for myday in days:
+            mydays, mycount = mydays + [myday["day"]], mycount + myday["count"]
+            if mycount >= conf.MaxEventsForStats: break # for myday
+        if len(mydays) != len(days):
+            where = (("day", ("IN", mydays)), )
+    events = db.select(table, where=where, order="stamp", limit=conf.MaxEventsForStats)
+    stats, positions, events = stats_mouse(events, table, count)
     dbinfo = stats_db(conf.DbPath)
     return bottle.template("heatmap.tpl", locals(), conf=conf)
 
@@ -53,17 +62,19 @@ def mouse(table, day=None):
 @route("/keyboard/<table>/<day>")
 def keyboard(table, day=None):
     """Handler for showing the keyboard statistics page."""
-    cols, group = "realkey AS key, COUNT(*) AS count", "realkey"
+    days = db.fetch("counts", order="day", type=table)
+    count, input = sum(v["count"] for v in days if not day or v["day"] == day), "keyboard"
+    tabledays = set(x["type"] for x in db.fetch("counts", day=day)) if day else {}
+
     where = (("day", day),) if day else ()
+    cols, group = "realkey AS key, COUNT(*) AS count", "realkey"
     counts_display = counts = db.fetch(table, cols, where, group, "count DESC")
     if "combos" == table:
         counts_display = db.fetch(table, "key, COUNT(*) AS count", where,
                                   "key", "count DESC")
-    events = db.fetch(table, where=where, order="stamp")
-    for e in events: e["dt"] = datetime.datetime.fromtimestamp(e["stamp"])
-    stats, collatedevents, count = stats_keyboard(events, table)
-    days, input = db.fetch("counts", order="day", type=table), "keyboard"
-    tabledays = set(x["type"] for x in db.fetch("counts", day=day)) if day else {}
+
+    events = db.select(table, where=where, order="stamp", limit=conf.MaxEventsForStats)
+    stats, events = stats_keyboard(events, table, count)
     dbinfo = stats_db(conf.DbPath)
     return bottle.template("heatmap.tpl", locals(), conf=conf)
 
@@ -97,20 +108,21 @@ def index():
     return bottle.template("index.tpl", locals(), conf=conf)
 
 
-def stats_keyboard(events, table):
-    """Return (statistics, collated events, total count) for keyboard events."""
-    if len(events) < 2: return [], []
-    deltas, prev_dt = [], None
+def stats_keyboard(events, table, count):
+    """Return (statistics, collated and max-limited events) for keyboard events."""
+    deltas, first, last = [], None, None
     sessions, session = [], None
     UNBROKEN_DELTA = datetime.timedelta(seconds=conf.KeyboardSessionMaxDelta)
     blank = collections.defaultdict(lambda: collections.defaultdict(int))
     collated = [blank.copy()] # [{dt, keys: {key: count}}]
     for e in events:
-        if prev_dt:
-            if (prev_dt.second != e["dt"].second
-            or prev_dt.minute != e["dt"].minute or prev_dt.hour != e["dt"].hour):
+        e.pop("id") # Decrease memory overhead
+        e["dt"] = datetime.datetime.fromtimestamp(e.pop("stamp"))
+        if not first: first = e
+        if last:
+            if last["dt"].timetuple()[:6] != e["dt"].timetuple()[:6]: # Ignore usecs
                 collated.append(blank.copy())
-            delta = e["dt"] - prev_dt
+            delta = e["dt"] - last["dt"]
             deltas.append(delta)
             if delta > UNBROKEN_DELTA:
                 session = None
@@ -121,14 +133,15 @@ def stats_keyboard(events, table):
                 session.append(delta)
         collated[-1]["dt"] = e["dt"]
         collated[-1]["keys"][e["realkey"]] += 1
-        prev_dt = e["dt"]
+        last = e
+
     longest_session = max(sessions + [[datetime.timedelta()]], key=lambda x: sum(x, datetime.timedelta()))
     stats = [
         ("Average combo interval",
          format_timedelta(sum(deltas, datetime.timedelta()) / len(deltas))),
-    ] if "combos" == table else [
+    ] if last and "combos" == table else [
         ("Keys per hour",
-         int(3600 * len(events) / timedelta_seconds(events[-1]["dt"] - events[0]["dt"]))),
+         int(3600 * count / timedelta_seconds(last["dt"] - first["dt"]))),
         ("Average key interval",
          format_timedelta(sum(deltas, datetime.timedelta()) / len(deltas))),
         ("Typing sessions (key interval < %ss)" % UNBROKEN_DELTA.seconds,
@@ -143,28 +156,30 @@ def stats_keyboard(events, table):
          len(longest_session) + 1),
         ("Most keys in session",
          max(len(x) + 1 for x in sessions)),
-    ]
-    stats += [("Total time interval", format_timedelta(events[-1]["dt"] - events[0]["dt"]))]
-    return stats, collated, len(events)
+    ] if last else []
+    if last:
+        stats += [("Total time interval", format_timedelta(last["dt"] - first["dt"]))]
+    return stats, collated[:conf.MaxEventsForReplay]
 
 
 
-def stats_mouse(events, table):
-    """Returns (statistics, positions, event count, events if not "moves")."""
+def stats_mouse(events, table, count):
+    """Returns (statistics, positions, max-limited events)."""
     distance, first, last, totaldelta = 0, None, None, datetime.timedelta()
-    count, all_events = 0, []
+    all_events = []
     HS = conf.MouseHeatmapSize
     SC = dict(("xy"[i], conf.DefaultScreenSize[i] / float(HS[i])) for i in [0, 1])
     xymap, counts = collections.defaultdict(int), collections.Counter()
     sizes = db.fetch("screen_sizes", order=("dt",))
     sizeidx, sizelen = -1, len(sizes) # Scale by desktop size at event time
     for e in events:
-        e["dt"] = datetime.datetime.fromtimestamp(e["stamp"])
+        e.pop("id") # Decrease memory overhead
+        e["dt"] = datetime.datetime.fromtimestamp(e.pop("stamp"))
         if not first: first = e
         if last:
             totaldelta += e["dt"] - last["dt"]
             distance += math.sqrt(sum(abs(e[k] - last[k])**2 for k in "xy"))
-        last = dict(e) # Copy as we modify coordinates
+        last = dict(e) # Copy, as we modify coordinates for heatmap size
         if sizeidx < 0: # Find latest size from before event
             for i, size in reversed(list(enumerate(sizes))):
                 if e["dt"] >= size["dt"]:
@@ -179,10 +194,8 @@ def stats_mouse(events, table):
                           for k in "xy")
         e["x"], e["y"] = tuple(min(int(e[k] / SC[k]), HS["y" == k]) for k in "xy")
         xymap[(e["x"], e["y"])] += 1
-        if "moves" != table:
-            counts.update([e["button" if "clicks" == table else "wheel"]])
-            all_events.append(e)
-        count += 1
+        if "moves" != table: counts.update([e["button" if "clicks" == table else "wheel"]])
+        if len(all_events) < conf.MaxEventsForReplay: all_events.append(e)
 
     stats, positions = [], [dict(x=x, y=y, count=v) for (x, y), v in xymap.items()]
     if "moves" == table and count:
@@ -211,7 +224,7 @@ def stats_mouse(events, table):
             stats += [("%s button clicks" % NAMES.get(k, "%s." % k), v)]
     if count:
         stats += [("Total time interval", format_timedelta(last["dt"] - first["dt"]))]
-    return stats, positions, count, all_events
+    return stats, positions, all_events
 
 
 def stats_db(filename):
