@@ -60,6 +60,9 @@
 #footer a:last-of-type {
   right: 10px;
 }
+#content a {
+  text-decoration: none;
+}
 #header a:hover, #content a:hover {
   text-decoration: underline;
 }
@@ -212,6 +215,24 @@ label.range_label {
   position: absolute;
   top: -18px;
   width: 100%;
+}
+a.toggle {
+  float: right;
+  position: relative;
+  left: 10px;
+}
+a.toggle:hover {
+  text-decoration: none !important;
+}
+table.input_index td.days .count {
+  display: none;
+}
+table.input_index td.days.collapsed .count {
+  display: block;
+  white-space: nowrap;
+}
+table.input_index td.days.collapsed .days {
+  display: none;
 }
 #overlay {
   display: none;
