@@ -26,11 +26,11 @@ Template arguments:
 
 <span id="replaysection">
   <input type="button" id="button_replay" value="Replay" />
-  <span class="range" title="Animation interval">
+  <span class="range" title="Animation interval (100..1 milliseconds)">
     <label for="replay_interval" class="range_label">speed</label>
     <input type="range" id="replay_interval" min="1" max="100" value="50" />
   </span>
-  <span class="range" title="Points in each animation">
+  <span class="range" title="Points in each animation (1..100)">
     <label for="replay_step" class="range_label">step</label>
     <input type="range" id="replay_step" min="1" max="100" value="1" />
   </span>
