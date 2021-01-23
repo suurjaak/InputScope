@@ -22,7 +22,7 @@ Template arguments:
 %title = "%s %s" % (input.capitalize(), table)
 %rebase("base.tpl", **locals())
 
-<h3>{{title}}</h3>{{", %s" % day if day else ""}} ({{count}})
+<h3>{{ title }}</h3>{{ ", %s" % day if day else "" }} ({{ "{:,}".format(count) }})
 
 %if "moves" != table:
 <span id="replaysection">
@@ -41,14 +41,14 @@ Template arguments:
 <div id="tablelinks">
 %for type, tbl in [(k, x) for k, tt in conf.InputTables for x in tt]:
     %if tbl == table:
-  <span>{{tbl}}</span>
+  <span>{{ tbl }}</span>
     %else:
         %if day and tbl not in tabledays:
-  <span class="inactive">{{tbl}}</span>
+  <span class="inactive">{{ tbl }}</span>
         %elif day:
-  <a href="{{get_url("/%s/<table>/<day>" % type, table=tbl, day=day)}}">{{tbl}}</a>
+  <a href="{{ get_url("/%s/<table>/<day>" % type, table=tbl, day=day) }}">{{ tbl }}</a>
         %else:
-  <a href="{{get_url("/%s/<table>" % type, table=tbl)}}">{{tbl}}</a>
+  <a href="{{ get_url("/%s/<table>" % type, table=tbl) }}">{{ tbl }}</a>
         %end # if day
     %end # if tbl == table
 %end # for type, tbl
@@ -62,7 +62,7 @@ Template arguments:
 %end # if "moves" != table
 
 %if "keyboard" == input:
-<div id="heatmap"><img id="keyboard" src="{{WEBROOT}}static/keyboard.svg" width="{{conf.KeyboardHeatmapSize[0]}}" height="{{conf.KeyboardHeatmapSize[1]}}" alt=""/></div>
+<div id="heatmap"><img id="keyboard" src="{{ WEBROOT }}static/keyboard.svg" width="{{ conf.KeyboardHeatmapSize[0] }}" height="{{ conf.KeyboardHeatmapSize[1] }}" alt=""/></div>
 
 <label for="show_heatmap" class="check_label"><input type="checkbox" id="show_heatmap" checked="checked" />Show heatmap</label>
 <label for="show_keyboard" class="check_label"><input type="checkbox" id="show_keyboard" checked="checked" />Show keyboard</label>
@@ -74,9 +74,9 @@ Template arguments:
 
 <div id="tables">
 
-  <table id="stats" class="{{input}}">
+  <table id="stats" class="{{ input }}">
 %for key, val in stats:
-    <tr><td>{{key}}</td><td>{{val}}</td></tr>
+    <tr><td>{{ key }}</td><td>{{ val }}</td></tr>
 %end # for key, val
   </table>
 
@@ -84,7 +84,7 @@ Template arguments:
   <table>
     <tr><th>Key</th><th>Count</th></tr>
     %for item in counts_display:
-    <tr><td>{{item["key"]}}</td><td>{{item["count"]}}</td></tr>
+    <tr><td>{{ item["key"] }}</td><td>{{ item["count"] }}</td></tr>
     %end # for item
   </table>
 %end # if "keyboard"
@@ -93,7 +93,7 @@ Template arguments:
 
 <script type="text/javascript">
 
-  var RADIUS = {{20 if "keyboard" == input else 10}};
+  var RADIUS = {{ 20 if "keyboard" == input else 10 }};
   var resumeFunc = null;
 %if "keyboard" == input:
   var positions = [\\
@@ -104,7 +104,7 @@ Template arguments:
             %if key not in conf.KeyPositions:
                 %continue # for key
             %end # if key not in
-{x: {{conf.KeyPositions[key][0]}}, "y": {{conf.KeyPositions[key][1]}}, value: {{item["count"]}}, label: "{{key}}"}, \\
+{x: {{ conf.KeyPositions[key][0] }}, "y": {{ conf.KeyPositions[key][1] }}, value: {{ item["count"] }}, label: "{{ key }}"}, \\
         %end # for key
     %end # for item
 ];
@@ -120,26 +120,26 @@ Template arguments:
                 %data.append({"x": conf.KeyPositions[key][0], "y": conf.KeyPositions[key][1], "count": count, "key": key.encode("utf-8")})
             %end # for key
         %end # for fullkey
-{dt: "{{item["dt"].isoformat()}}", data: {{!data}}}, \\
+{dt: "{{ item["dt"].isoformat() }}", data: {{! data }}}, \\
     %end # for item
 ];
 %else:
   var positions = [\\
     %for pos in positions:
-{x: {{pos["x"]}}, y: {{pos["y"]}}, value: {{pos.get("count", 1)}}}, \\
+{x: {{ pos["x"] }}, y: {{ pos["y"] }}, value: {{ pos.get("count", 1) }}}, \\
     %end # for pos
 ];
   var events = [\\
     %for pos in events:
-{x: {{pos["x"]}}, y: {{pos["y"]}}, dt: "{{pos["dt"].isoformat()}}"}, \\
+{x: {{ pos["x"] }}, y: {{ pos["y"] }}, dt: "{{ pos["dt"].isoformat() }}"}, \\
     %end # for pos
 ];
 %end # if "keyboard"
 
   var elm_heatmap  = document.getElementById("heatmap");
   %mapsize = conf.KeyboardHeatmapSize if "keyboard" == input else conf.MouseHeatmapSize
-  elm_heatmap.style.width = "{{mapsize[0]}}px";
-  elm_heatmap.style.height = "{{mapsize[1]}}px";
+  elm_heatmap.style.width = "{{ mapsize[0] }}px";
+  elm_heatmap.style.height = "{{ mapsize[1] }}px";
 
   window.addEventListener("load", function() {
 
@@ -164,7 +164,7 @@ Template arguments:
     if (elm_button) elm_button.addEventListener("click", function() {
       if ("Replay" == elm_button.value) {
         myHeatmap.setData({data: [], max: 0});
-        myHeatmap.setData({data: [], max: {{!0 if "keyboard" == input else "positions.length ? positions[0].value : 0"}}});
+        myHeatmap.setData({data: [], max: {{! 0 if "keyboard" == input else "positions.length ? positions[0].value : 0" }}});
         elm_button.value = "Pause";
         replay(0);
       } else if ("Continue" != elm_button.value) {

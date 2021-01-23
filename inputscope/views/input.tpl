@@ -22,12 +22,12 @@ Template arguments:
     %end # if not data["count"]
     %input = "keyboard" if table in ("keys", "combos") else "mouse"
   <tbody>
-  <tr><th>{{table}}</th></tr>
-  <tr><td>Total:</td><td><a href="{{get_url("/%s/<table>" % input, table=table)}}">{{data["count"]}}</a></td></tr>
+  <tr><th>{{ table }}</th></tr>
+  <tr><td>Total:</td><td><a href="{{ get_url("/%s/<table>" % input, table=table) }}">{{ "{:,}".format(data["count"]) }}</a></td></tr>
   <tr><td>Days:</td>
     <td>
     %for item in data["days"]:
-    <a href="{{get_url("/%s/<table>/<day>" % input, table=table, day=item["day"])}}">{{item["day"]}}</a> ({{item["count"]}})<br />
+    <a href="{{ get_url("/%s/<table>/<day>" % input, table=table, day=item["day"]) }}">{{ item["day"] }}</a> ({{ "{:,}".format(item["count"])  }})<br />
     %end # for item
     </td>
   </tr>

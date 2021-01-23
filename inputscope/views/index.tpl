@@ -14,11 +14,11 @@ Template arguments:
 <div>
 <table>
 %for input, data in stats.items():
-  <tbody><tr><th>{{input}}</th><th></th><th></th></tr><tr>
+  <tbody><tr><th>{{ input }}</th><th></th><th></th></tr><tr>
   <td>Total:</td>
     %if data["count"]:
-      <td><a href="{{get_url("/<input>", input=input)}}">{{data["count"]}}</a></td>
-      <td>from {{data["first"]}} to {{data["last"]}}</td>
+      <td><a href="{{ get_url("/<input>", input=input) }}">{{ "{:,}".format(data["count"]) }}</a></td>
+      <td>from {{ data["first"] }} to {{ data["last"] }}</td>
     %else:
       <td>0</td>
     %end # if data["count"]

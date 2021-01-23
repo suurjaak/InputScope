@@ -6,7 +6,7 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    25.09.2016
+@modified    23.01.2021
 """
 import collections
 import datetime
@@ -228,7 +228,7 @@ def stats_db(filename):
         for t in tables:
             print datetime.datetime.now(), t
             total += db.fetchone(t, "COUNT(*) AS c")["c"]"""
-        result += [("%s events" % name.capitalize(), sum(cmap.get(t) or 0 for t in tables))]
+        result += [("%s events" % name.capitalize(), "{:,}".format(sum(cmap.get(t) or 0 for t in tables)))]
     return result
 
 

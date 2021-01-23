@@ -20,7 +20,7 @@ the declared ones in source code. File is deleted if all values are at default.
 
 @author      Erki Suurjaak
 @created     26.03.2015
-@modified    21.01.2021
+@modified    23.01.2021
 ------------------------------------------------------------------------------
 """
 try: import ConfigParser as configparser # Py2
@@ -36,8 +36,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.3.dev1"
-VersionDate = "21.01.2021"
+Version = "1.3.dev2"
+VersionDate = "23.01.2021"
 
 """TCP port of the web user interface."""
 WebHost = "localhost"
@@ -246,7 +246,7 @@ DbStatements = (
   "CREATE TABLE IF NOT EXISTS app_events (id INTEGER NOT NULL PRIMARY KEY, dt TIMESTAMP DEFAULT (DATETIME('now', 'localtime')), type TEXT)",
   "CREATE TABLE IF NOT EXISTS screen_sizes (id INTEGER NOT NULL PRIMARY KEY, dt TIMESTAMP DEFAULT (DATETIME('now', 'localtime')), x INTEGER, y INTEGER)",
   "CREATE TABLE IF NOT EXISTS counts (id INTEGER NOT NULL PRIMARY KEY, type TEXT, day DATETIME, count INTEGER, UNIQUE(type, day))",
-) + tuple(TriggerTemplate.format(x) for x in [x for k, vv in InputTables for x in vv]
+) + tuple(TriggerTemplate .format(x) for x in [x for k, vv in InputTables for x in vv]
 ) + tuple(DayIndexTemplate.format(x) for x in [x for k, vv in InputTables for x in vv])
 
 
