@@ -59,7 +59,7 @@ Template arguments:
 <div id="status">
 <span id="statustext"><br /></span>
 <span id="progressbar"></span>
-<a href="javascript:;" title="Stop replay" id="replay_stop">x</a>
+<a href="javascript:;" title="Stop replay and reset heatmap" id="replay_stop">x</a>
 </div>
 %end # if events
 
@@ -201,7 +201,11 @@ Template arguments:
         var step = parseInt(elm_step.value);
         if (step > 1) {
           index = Math.min(index + step - 1, events.length - 1);
-          myHeatmap.setData({data: events.slice(0, index + 1), max: {{! 0 if "keyboard" == input else "positions.length ? positions[0].value : 0" }}});
+%if "keyboard" == input:
+          myHeatmap.setData({data: events.slice(0, index + 1).reduce(function(o, v) { o.push.apply(o, v.data); return o; }, []), max: 0});
+%else:
+          myHeatmap.setData({data: events.slice(0, index + 1), max: positions[0].value});
+%end # if "keyboard" == input:
         } else myHeatmap.addData(events[index].data || events[index]);
 
         var percent = (100 * index / events.length).toFixed() + "%";
