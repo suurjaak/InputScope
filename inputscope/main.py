@@ -5,7 +5,7 @@ command-line echoer otherwise. Launches the event listener and web UI server.
 
 @author      Erki Suurjaak
 @created     05.05.2015
-@modified    21.01.2021
+@modified    24.01.2021
 """
 import errno
 import multiprocessing
@@ -130,6 +130,10 @@ class MainApp(getattr(wx, "App", object)):
 
         wx.CallAfter(self.model.log_resolution, wx.GetDisplaySize())
         wx.CallAfter(self.model.start)
+        wx.CallAfter(lambda: self and self.trayicon.ShowBalloon(conf.Title,
+                     "Logging %s inputs." % (" and ".join(filter(bool,
+                     [conf.MouseEnabled and "mouse", conf.KeyboardEnabled and "keyboard"]))
+                     if conf.MouseEnabled or conf.KeyboardEnabled else "no")))
         return True # App.OnInit returns whether processing should continue
 
 
