@@ -6,7 +6,7 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    23.01.2021
+@modified    24.01.2021
 """
 import collections
 import datetime
@@ -47,7 +47,7 @@ def mouse(table, period=None):
     count = sum(v["count"] for v in days if not period or v["day"][:len(period)] == period)
     tabledays = set(x["type"] for x in db.fetch("counts", day=("LIKE", period + "%"))) if period else {}
 
-    where = (("day", ("LIKE", period + "%")), ) if period else ()
+    where = (("day", period), ) if period else ()
     if not period: # Mouse tables can have 100M+ rows, total order takes too long
         mydays, mycount = [], 0
         for myday in days:
@@ -55,6 +55,10 @@ def mouse(table, period=None):
             if mycount >= conf.MaxEventsForStats: break # for myday
         if len(mydays) != len(days):
             where = (("day", ("IN", mydays)), )
+    elif len(period) < 8: # Month period, query by known month days
+        mydays = [v["day"] for v in days if v["day"][:7] == period]
+        where = (("day", ("IN", mydays)), )
+
     events = db.select(table, where=where, order="stamp", limit=conf.MaxEventsForStats)
     stats, positions, events = stats_mouse(events, table, count)
     dbinfo = stats_db(conf.DbPath)
@@ -72,7 +76,10 @@ def keyboard(table, period=None):
     count = sum(v["count"] for v in days if not period or v["day"][:len(period)] == period)
     tabledays = set(x["type"] for x in db.fetch("counts", day=("LIKE", period + "%"))) if period else {}
 
-    where = (("day", ("LIKE", period + "%")), ) if period else ()
+    where = (("day", period), ) if period else ()
+    if period and len(period) < 8: # Month period, query by known month days
+        mydays = [v["day"] for v in days if v["day"][:7] == period]
+        where = (("day", ("IN", mydays)), )
     cols, group = "realkey AS key, COUNT(*) AS count", "realkey"
     counts_display = counts = db.fetch(table, cols, where, group, "count DESC")
     if "combos" == table:
