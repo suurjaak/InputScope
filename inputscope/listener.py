@@ -6,7 +6,7 @@ Mouse and keyboard listener, logs events to database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    22.09.2016
+@modified    24.01.2021
 """
 from __future__ import print_function
 import datetime
@@ -68,6 +68,7 @@ class Listener(threading.Thread):
 
 class DataHandler(threading.Thread):
     """Output thread, inserts events to database and to output function."""
+
     def __init__(self, output):
         threading.Thread.__init__(self)
         self.counts = {} # {type: count}
@@ -81,25 +82,50 @@ class DataHandler(threading.Thread):
         self.running = True
         dbqueue = [] # Data queued for later after first insert failed
         db.insert("app_events", type="start")
+
+        def one_line(pt1, pt2, pt3):
+            """Returns whether points more or less fall onto one line."""
+            (x1, y1), (x2, y2), (x3, y3) = pt1, pt2, pt3
+            if  not (x1 >= x2 >= x3) and not (y1 >= y2 >= y3) \
+            and not (x1 <= x2 <= x3) and not (y1 <= y2 <= y3): return False
+            return abs((y1 - y2) * (x1 - x3) - (y1 - y3) * (x1 - x2)) <= conf.MouseMoveJoinRadius
+
         while self.running:
-            data = self.inqueue.get()
-            if not data: continue # while self.running
+            data, items = self.inqueue.get(), []
+            while data:
+                items.append(data)
+                try: data = self.inqueue.get(block=False)
+                except Queue.Empty: data = None
+            if not items: continue # while self.running
 
-            event = data.pop("type")
-            if event in self.lasts: # Skip event if same position as last
-                pos = data["x"], data["y"]
-                if self.lasts[event] == pos: continue # while self.running
-                self.lasts[event] = pos
+            move0, move1 = None, None
+            for data in items:
+                event = data.pop("type")
+                if event in self.lasts: # Skip event if same position as last
+                    pos = data["x"], data["y"]
+                    if self.lasts[event] == pos: continue # for data
+                    self.lasts[event] = pos
 
-            if event not in self.counts: self.counts[event] = 0
-            self.counts[event] += 1
-            dbqueue.append((event, data))
+                if "moves" == event:
+                    if move0 and move1 and move1["stamp"] - move0["stamp"] < conf.MouseMoveJoinWindow \
+                    and data["stamp"] - move1["stamp"] < conf.MouseMoveJoinWindow:
+                        if one_line(*[(v["x"], v["y"]) for v in (move0, move1, data)]):
+                            move1.update(data) # Reduce move events
+                            continue # for data
+                    move0, move1 = move1, data
+
+                if event not in self.counts: self.counts[event] = 0
+                self.counts[event] += 1
+                dbqueue.append((event, data))
+
             try:
-                for item in dbqueue:
-                    db.insert(*item), dbqueue.remove(item)
+                while dbqueue:
+                    db.insert(*dbqueue[0])
+                    dbqueue.pop(0)
             except StandardError as e:
                 print(e, event, data)
             self.output(self.counts)
+            if conf.EventsWriteInterval > 0: time.sleep(conf.EventsWriteInterval)
 
     def stop(self):
         self.running = False
@@ -274,6 +300,8 @@ def start(inqueue, outqueue=None):
 def main():
     """Entry point for stand-alone execution."""
     conf.init(), db.init(conf.DbPath)
+    try: db.execute("PRAGMA journal_mode = WAL")
+    except Exception: pass
     inqueue = LineQueue(sys.stdin).queue
     outqueue = type("", (), {"put": lambda self, x: print("\r%s" % x, end=" ")})()
     if "--quiet" in sys.argv: outqueue = None

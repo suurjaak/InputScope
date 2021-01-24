@@ -36,7 +36,7 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.3.dev10"
+Version = "1.3.dev11"
 VersionDate = "24.01.2021"
 
 """TCP port of the web user interface."""
@@ -59,6 +59,15 @@ KeyboardEnabled = True
 
 """Maximum keypress interval to count as one typing session, in seconds."""
 KeyboardSessionMaxDelta = 3
+
+"""Fuzz radius for linear move events for event reduction, in seconds."""
+MouseMoveJoinWindow = 0.5
+
+"""Maximum interval between linear move events for event reduction, in pixels."""
+MouseMoveJoinRadius = 10
+
+"""Interval between writings events to database, in seconds."""
+EventsWriteInterval = 5
 
 """Maximum number of events to use for statistics page."""
 MaxEventsForStats = 1000 * 1000

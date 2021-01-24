@@ -159,25 +159,26 @@ def stats_keyboard(events, table, count):
     stats = [
         ("Average combo interval",
          format_timedelta(sum(deltas, datetime.timedelta()) / len(deltas))),
-    ] if last and "combos" == table else [
+    ] if deltas and "combos" == table else [
         ("Keys per hour",
-         int(3600 * count / timedelta_seconds(last["dt"] - first["dt"]))),
+         int(3600 * count / timedelta_seconds(last["dt"] - first["dt"]))
+         if last["dt"] != first["dt"] else count),
         ("Average key interval",
          format_timedelta(sum(deltas, datetime.timedelta()) / len(deltas))),
         ("Typing sessions (key interval < %ss)" % UNBROKEN_DELTA.seconds,
          len(sessions)),
         ("Average keys in session",
-         sum(len(x) + 1 for x in sessions) / len(sessions)),
+         sum(len(x) + 1 for x in sessions) / len(sessions) if sessions else 0),
         ("Average session duration", format_timedelta(sum((sum(x, datetime.timedelta())
-         for x in sessions), datetime.timedelta()) / len(sessions))),
+         for x in sessions), datetime.timedelta()) / (len(sessions) or 1))),
         ("Longest session duration",
          format_timedelta(sum(longest_session, datetime.timedelta()))),
         ("Keys in longest session",
          len(longest_session) + 1),
         ("Most keys in session",
-         max(len(x) + 1 for x in sessions)),
-    ] if last else []
-    if last:
+         max(len(x) + 1 for x in sessions) if sessions else 0),
+    ] if deltas and "keys" == table else []
+    if deltas:
         stats += [("Total time interval", format_timedelta(last["dt"] - first["dt"]))]
     return stats, collated[:conf.MaxEventsForReplay]
 
@@ -230,16 +231,16 @@ def stats_mouse(events, table, count):
     elif "scrolls" == table and count:
         stats = [("Scrolls per hour", 
                   int(count / (timedelta_seconds(last["dt"] - first["dt"]) / 3600 or 1))),
-                 ("Average interval", totaldelta / count),
+                 ("Average interval", totaldelta / (count or 1)),
                  ("Scrolls down", counts[-1]),
                  ("Scrolls up", counts[1]), ]
     elif "clicks" == table and count:
         NAMES = {1: "Left", 2: "Right", 3: "Middle"}
         stats = [("Clicks per hour", 
                   int(count / (timedelta_seconds(last["dt"] - first["dt"]) / 3600 or 1))),
-                 ("Average interval between clicks", totaldelta / count),
+                 ("Average interval between clicks", totaldelta / (count or 1)),
                  ("Average distance between clicks",
-                  "%.1f pixels" % (distance / count)), ]
+                  "%.1f pixels" % (distance / (count or 1))), ]
         for k, v in sorted(counts.items()):
             stats += [("%s button clicks" % NAMES.get(k, "%s." % k), v)]
     if count:
