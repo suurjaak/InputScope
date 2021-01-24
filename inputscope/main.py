@@ -60,7 +60,7 @@ class Model(threading.Thread):
         self.webui = None
         # Avoid leaving zombie child processes on Ctrl-Break/C etc
         signal.signal(signal.SIGBREAK, lambda *a, **kw: self.stop(True))
-        signal.signal(signal.SIGINT, lambda *a, **kw: self.stop(True))
+        signal.signal(signal.SIGINT,   lambda *a, **kw: self.stop(True))
 
     def toggle(self, input):
         if "mouse" == input:
@@ -143,9 +143,9 @@ class MainApp(getattr(wx, "App", object)):
         item_ui       = makeitem("&Open statistics")
         item_startup  = makeitem("&Start with Windows",  kind=wx.ITEM_CHECK) \
                         if self.startupservice.can_start() else None
-        item_mouse    = makeitem("Stop &mouse logging", kind=wx.ITEM_CHECK)
-        item_keyboard = makeitem("Stop &keyboard logging", kind=wx.ITEM_CHECK)
-        item_console  = makeitem("Show Python &console", kind=wx.ITEM_CHECK)
+        item_mouse    = makeitem("Enable &mouse logging",    kind=wx.ITEM_CHECK)
+        item_keyboard = makeitem("Enable &keyboard logging", kind=wx.ITEM_CHECK)
+        item_console  = makeitem("Show Python &console",     kind=wx.ITEM_CHECK)
         item_exit     = makeitem("E&xit %s" % conf.Title)
 
         font = item_ui.Font
@@ -162,8 +162,8 @@ class MainApp(getattr(wx, "App", object)):
         menu.Append(item_exit)
 
         if item_startup: item_startup.Check(self.startupservice.is_started())
-        item_mouse.Check(not conf.MouseEnabled)
-        item_keyboard.Check(not conf.KeyboardEnabled)
+        item_mouse.Check(conf.MouseEnabled)
+        item_keyboard.Check(conf.KeyboardEnabled)
         item_console.Check(self.frame_console.Shown)
 
         menu.Bind(wx.EVT_MENU, self.OnOpenUI,         id=item_ui.GetId())
