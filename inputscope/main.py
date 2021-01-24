@@ -8,6 +8,7 @@ command-line echoer otherwise. Launches the event listener and web UI server.
 @modified    24.01.2021
 """
 import errno
+import functools
 import multiprocessing
 import multiprocessing.forking
 import os
@@ -62,14 +63,27 @@ class Model(threading.Thread):
         signal.signal(signal.SIGBREAK, lambda *a, **kw: self.stop(True))
         signal.signal(signal.SIGINT,   lambda *a, **kw: self.stop(True))
 
-    def toggle(self, input):
-        if "mouse" == input:
-            on = conf.MouseEnabled = not conf.MouseEnabled
-        elif "keyboard" == input:
-            on = conf.KeyboardEnabled = not conf.KeyboardEnabled
+    def toggle(self, category):
+        if category not in conf.InputFlags: return
+
+        input = next((k for k, vv in conf.InputEvents.items() if category in vv), None)
+        attr = conf.InputFlags[category]
+        on = not getattr(conf, attr)
+        if input and not getattr(conf, conf.InputFlags[input]):
+            on = True # Force on, as event checkboxes are always off if input is off
+            # Set other input categories off, as only a single one was enabled
+            for c, flag in ((c, conf.InputFlags[c]) for c in conf.InputEvents[input]):
+                setattr(conf, flag, False)
+        setattr(conf, attr, on)
+        if input and on: setattr(conf, conf.InputFlags[input], True)
+        elif input and not any(getattr(conf, conf.InputFlags.get(c), False)
+                               for c in conf.InputEvents[input]):
+            # Toggle entire input off if all event categories are now off
+            setattr(conf, conf.InputFlags[input], False)
+
         conf.save()
         if self.listenerqueue:
-            self.listenerqueue.put("%s_%s" % (input, "start" if on else "stop"))
+            self.listenerqueue.put("%s_%s" % (category, "start" if on else "stop"))
 
     def stop(self, exit=False):
         self.running = False
@@ -97,6 +111,10 @@ class Model(threading.Thread):
 
         if conf.MouseEnabled:    self.listenerqueue.put("mouse_start")
         if conf.KeyboardEnabled: self.listenerqueue.put("keyboard_start")
+        for category, flag in conf.InputFlags.items():
+            if category not in conf.InputEvents \
+            and hasattr(conf, flag) and not getattr(conf, flag):
+                self.listenerqueue.put("%s_stop" % category)
         while not self.initialqueue.empty():
             self.listenerqueue.put(self.initialqueue.get())
 
@@ -128,51 +146,85 @@ class MainApp(getattr(wx, "App", object)):
         self.trayicon.Bind(wx.adv.EVT_TASKBAR_RIGHT_DOWN, self.OnOpenMenu)
         self.frame_console.Bind(wx.EVT_CLOSE, self.OnToggleConsole)
 
-        wx.CallAfter(self.model.log_resolution, wx.GetDisplaySize())
-        wx.CallAfter(self.model.start)
-        wx.CallAfter(lambda: self and self.trayicon.ShowBalloon(conf.Title,
-                     "Logging %s inputs." % (" and ".join(filter(bool,
-                     [conf.MouseEnabled and "mouse", conf.KeyboardEnabled and "keyboard"]))
-                     if conf.MouseEnabled or conf.KeyboardEnabled else "no")))
+
+        def after():
+            if not self: return
+            self.model.log_resolution(wx.GetDisplaySize())
+            self.model.start()
+            msg = "Logging %s." % ("\nand ".join(filter(bool,
+                  ["%s inputs (%s)" % (i, ", ".join(c for c in conf.InputEvents[i]
+                                             if getattr(conf, conf.InputFlags[c])))
+                  for i in conf.InputEvents if getattr(conf, conf.InputFlags[i])]))
+                  if conf.MouseEnabled or conf.KeyboardEnabled else "no inputs")
+            self.trayicon.ShowBalloon(conf.Title, msg)
+            
+
+        wx.CallAfter(after)
         return True # App.OnInit returns whether processing should continue
 
 
     def OnOpenMenu(self, event):
         """Creates and opens a popup menu for the tray icon."""
-        menu, makeitem = wx.Menu(), lambda x, **k: wx.MenuItem(menu, -1, x, **k)
-        item_ui       = makeitem("&Open statistics")
-        item_startup  = makeitem("&Start with Windows",  kind=wx.ITEM_CHECK) \
+        menu, makeitem = wx.Menu(), lambda m, x, **k: wx.MenuItem(m, -1, x, **k)
+        mousemenu, keyboardmenu = wx.Menu(), wx.Menu()
+        on_category = lambda c: functools.partial(self.OnToggleCategory, c)
+        item_ui       = makeitem(menu, "&Open statistics")
+        item_startup  = makeitem(menu, "Start with &Windows",  kind=wx.ITEM_CHECK) \
                         if self.startupservice.can_start() else None
-        item_mouse    = makeitem("Enable &mouse logging",    kind=wx.ITEM_CHECK)
-        item_keyboard = makeitem("Enable &keyboard logging", kind=wx.ITEM_CHECK)
-        item_console  = makeitem("Show Python &console",     kind=wx.ITEM_CHECK)
-        item_exit     = makeitem("E&xit %s" % conf.Title)
+        item_mouse    = makeitem(menu, "Enable &mouse logging",    kind=wx.ITEM_CHECK)
+        item_keyboard = makeitem(menu, "Enable &keyboard logging", kind=wx.ITEM_CHECK)
+        item_console  = makeitem(menu, "Show Python &console",     kind=wx.ITEM_CHECK)
+        item_exit     = makeitem(menu, "E&xit %s" % conf.Title)
+
+        item_moves    = makeitem(mousemenu,    "Log mouse &movement",   kind=wx.ITEM_CHECK)
+        item_clicks   = makeitem(mousemenu,    "Log mouse &clicks",     kind=wx.ITEM_CHECK)
+        item_scrolls  = makeitem(keyboardmenu, "Log mouse &scrolls",    kind=wx.ITEM_CHECK)
+        item_keys     = makeitem(keyboardmenu, "Log individual &keys",  kind=wx.ITEM_CHECK)
+        item_combos   = makeitem(keyboardmenu, "Log key &combinations", kind=wx.ITEM_CHECK)
 
         font = item_ui.Font
         font.SetWeight(wx.FONTWEIGHT_BOLD)
         item_ui.Font = font
 
+        mousemenu.Append(item_moves)
+        mousemenu.Append(item_clicks)
+        mousemenu.Append(item_scrolls)
+        keyboardmenu.Append(item_keys)
+        keyboardmenu.Append(item_combos)
+
         menu.Append(item_ui)
         menu.Append(item_startup) if item_startup else None
         menu.AppendSeparator()
         menu.Append(item_mouse)
+        menu.AppendSubMenu(mousemenu,    "  Mouse &event categories")
         menu.Append(item_keyboard)
+        menu.AppendSubMenu(keyboardmenu, "  Keyboard event &categories")
         menu.AppendSeparator()
         menu.Append(item_console)
         menu.Append(item_exit)
 
         if item_startup: item_startup.Check(self.startupservice.is_started())
-        item_mouse.Check(conf.MouseEnabled)
+        item_mouse   .Check(conf.MouseEnabled)
+        item_moves   .Check(conf.MouseEnabled and conf.MouseMovesEnabled)
+        item_clicks  .Check(conf.MouseEnabled and conf.MouseClicksEnabled)
+        item_scrolls .Check(conf.MouseEnabled and conf.MouseScrollsEnabled)
         item_keyboard.Check(conf.KeyboardEnabled)
-        item_console.Check(self.frame_console.Shown)
+        item_keys    .Check(conf.KeyboardEnabled and conf.KeyboardKeysEnabled)
+        item_combos  .Check(conf.KeyboardEnabled and conf.KeyboardCombosEnabled)
+        item_console .Check(self.frame_console.Shown)
 
-        menu.Bind(wx.EVT_MENU, self.OnOpenUI,         id=item_ui.GetId())
-        menu.Bind(wx.EVT_MENU, self.OnToggleStartup,  id=item_startup.GetId()) \
+        menu.Bind(wx.EVT_MENU, self.OnOpenUI,           id=item_ui.GetId())
+        menu.Bind(wx.EVT_MENU, self.OnToggleStartup,    id=item_startup.GetId()) \
         if item_startup else None
-        menu.Bind(wx.EVT_MENU, self.OnToggleMouse,    id=item_mouse.GetId())
-        menu.Bind(wx.EVT_MENU, self.OnToggleKeyboard, id=item_keyboard.GetId())
-        menu.Bind(wx.EVT_MENU, self.OnToggleConsole,  id=item_console.GetId())
-        menu.Bind(wx.EVT_MENU, self.OnClose,          id=item_exit.GetId())
+        menu.Bind(wx.EVT_MENU, on_category("mouse"),    id=item_mouse.GetId())
+        menu.Bind(wx.EVT_MENU, on_category("keyboard"), id=item_keyboard.GetId())
+        menu.Bind(wx.EVT_MENU, on_category("moves"),    id=item_moves.GetId())
+        menu.Bind(wx.EVT_MENU, on_category("clicks"),   id=item_clicks.GetId())
+        menu.Bind(wx.EVT_MENU, on_category("scrolls"),  id=item_scrolls.GetId())
+        menu.Bind(wx.EVT_MENU, on_category("keys"),     id=item_keys.GetId())
+        menu.Bind(wx.EVT_MENU, on_category("combos"),   id=item_combos.GetId())
+        menu.Bind(wx.EVT_MENU, self.OnToggleConsole,    id=item_console.GetId())
+        menu.Bind(wx.EVT_MENU, self.OnClose,            id=item_exit.GetId())
         self.trayicon.PopupMenu(menu)
 
 
@@ -186,11 +238,8 @@ class MainApp(getattr(wx, "App", object)):
         self.startupservice.stop() if self.startupservice.is_started() \
         else self.startupservice.start()
 
-    def OnToggleMouse(self, event):
-        self.model.toggle("mouse")
-
-    def OnToggleKeyboard(self, event):
-        self.model.toggle("keyboard")
+    def OnToggleCategory(self, category, event):
+        self.model.toggle(category)
 
     def OnToggleConsole(self, event):
         self.frame_console.Show(not self.frame_console.IsShown())

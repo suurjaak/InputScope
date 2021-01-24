@@ -36,7 +36,7 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.3.dev11"
+Version = "1.3.dev12"
 VersionDate = "24.01.2021"
 
 """TCP port of the web user interface."""
@@ -54,8 +54,34 @@ KeyboardHeatmapSize = (680, 180)
 DefaultScreenSize = (1920, 1080)
 
 """Whether mouse or keyboard logging is enabled."""
-MouseEnabled = True
+MouseEnabled    = True
 KeyboardEnabled = True
+
+"""Individual mouse event logging flags."""
+MouseMovesEnabled   = True
+MouseClicksEnabled  = True
+MouseScrollsEnabled = True
+
+"""Individual key event logging flags."""
+KeyboardKeysEnabled   = True
+KeyboardCombosEnabled = True
+
+"""Mapping inputs to event types."""
+InputEvents = {
+    "mouse":    ("moves", "clicks", "scrolls"),
+    "keyboard": ("keys", "combos")
+}
+"""Mapping inputs and event types to config flag names."""
+InputFlags = {
+    "mouse"   : "MouseEnabled",
+    "keyboard": "KeyboardEnabled",
+
+    "moves"   : "MouseMovesEnabled",
+    "clicks"  : "MouseClicksEnabled",
+    "scrolls" : "MouseScrollsEnabled",
+    "keys"    : "KeyboardKeysEnabled",
+    "combos"  : "KeyboardCombosEnabled",
+}
 
 """Maximum keypress interval to count as one typing session, in seconds."""
 KeyboardSessionMaxDelta = 3

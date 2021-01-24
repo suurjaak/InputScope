@@ -39,18 +39,36 @@ class Listener(threading.Thread):
         while self.running:
             command = self.inqueue.get()
             if not command: continue
+
+            if not any(command.startswith("%s_" % x) for x in conf.InputEvents) \
+            and (command.endswith("_start") or command.endswith("_stop")):
+                category, action = command.split("_")
+                on = ("start" == action)
+                attr = conf.InputFlags.get(category)
+                if hasattr(conf, attr): setattr(conf, attr, on)
+                input = next((k for k, vv in conf.InputEvents.items() if category in vv), None)
+                # Do not toggle input completely off if any other input category still on
+                if not on and any(getattr(conf, conf.InputFlags.get(c), False)
+                                  for c in conf.InputEvents.get(input, ())): on = None
+                if input and on is not None:
+                    command = "%s_%s" % (input, action)
+
             if "exit" == command:
                 self.stop()
             elif "mouse_start" == command:
+                conf.MouseEnabled = True
                 if not self.mouse_handler:
                     self.mouse_handler = MouseHandler(self.data_handler.handle)
             elif "mouse_stop" == command:
+                conf.MouseEnabled = False
                 if self.mouse_handler:
                     self.mouse_handler = self.mouse_handler.stop()
             elif "keyboard_start" == command:
+                conf.KeyboardEnabled = True
                 if not self.key_handler:
                     self.key_handler = KeyHandler(self.data_handler.handle)
             elif "keyboard_stop" == command:
+                conf.KeyboardEnabled = False
                 if self.key_handler:
                     self.key_handler = self.key_handler.stop()
             elif command.startswith("screen_size"):
@@ -100,13 +118,13 @@ class DataHandler(threading.Thread):
 
             move0, move1 = None, None
             for data in items:
-                event = data.pop("type")
-                if event in self.lasts: # Skip event if same position as last
+                category = data.pop("type")
+                if category in self.lasts: # Skip event if same position as last
                     pos = data["x"], data["y"]
-                    if self.lasts[event] == pos: continue # for data
-                    self.lasts[event] = pos
+                    if self.lasts[category] == pos: continue # for data
+                    self.lasts[category] = pos
 
-                if "moves" == event:
+                if "moves" == category:
                     if move0 and move1 and move1["stamp"] - move0["stamp"] < conf.MouseMoveJoinWindow \
                     and data["stamp"] - move1["stamp"] < conf.MouseMoveJoinWindow:
                         if one_line(*[(v["x"], v["y"]) for v in (move0, move1, data)]):
@@ -114,16 +132,16 @@ class DataHandler(threading.Thread):
                             continue # for data
                     move0, move1 = move1, data
 
-                if event not in self.counts: self.counts[event] = 0
-                self.counts[event] += 1
-                dbqueue.append((event, data))
+                if category not in self.counts: self.counts[category] = 0
+                self.counts[category] += 1
+                dbqueue.append((category, data))
 
             try:
                 while dbqueue:
                     db.insert(*dbqueue[0])
                     dbqueue.pop(0)
             except StandardError as e:
-                print(e, event, data)
+                print(e, category, data)
             self.output(self.counts)
             if conf.EventsWriteInterval > 0: time.sleep(conf.EventsWriteInterval)
 
@@ -133,6 +151,8 @@ class DataHandler(threading.Thread):
         db.close()
 
     def handle(self, **kwargs):
+        category = kwargs.get("type")
+        if not getattr(conf, conf.InputFlags.get(category), False): return
         kwargs.update(day=datetime.date.today(), stamp=time.time())
         self.inqueue.put(kwargs)
 
@@ -199,6 +219,7 @@ class KeyHandler(pykeyboard.PyKeyboardEvent):
 
     def _handle_windows(self, event):
         """Windows key event handler."""
+        if not conf.KeyboardEnabled: return
         vkey = self._keyname(event.GetKey())
         if event.Message in self.KEYS_UP + self.KEYS_DOWN:
             if vkey in self.MODIFIERNAMES:
@@ -219,7 +240,7 @@ class KeyHandler(pykeyboard.PyKeyboardEvent):
         if DEBUG: print("Adding key %s (real %s)" % (key.encode("utf-8"), vkey.encode("utf-8")))
         self._output(type="keys", key=key, realkey=vkey)
 
-        if vkey not in self.MODIFIERNAMES and not is_altgr:
+        if vkey not in self.MODIFIERNAMES and not is_altgr and conf.KeyboardCombosEnabled:
             modifier = "-".join(k for k in ["Ctrl", "Alt", "Shift", "Win"]
                                 if self._modifiers[k])
             if modifier and modifier != "Shift": # Shift-X is not a combo
@@ -248,11 +269,13 @@ class KeyHandler(pykeyboard.PyKeyboardEvent):
 
     def _handle_mac(self, keycode):
         """Mac key event handler"""
+        if not conf.KeyboardEnabled: return
         key = self._keyname(unichr(keycode))
         self._output(type="keys", key=key, realkey=key)
 
     def _handle_linux(self, keycode, character, press):
         """Linux key event handler."""
+        if not conf.KeyboardEnabled: return
         if character is None: return
         key = self._keyname(character, keycode)
         if key in self.MODIFIERNAMES:
@@ -260,7 +283,7 @@ class KeyHandler(pykeyboard.PyKeyboardEvent):
             self._realmodifiers[key] = press
         if press:
             self._output(type="keys", key=key, realkey=key)
-        if press and key not in self.MODIFIERNAMES:
+        if press and key not in self.MODIFIERNAMES and conf.KeyboardCombosEnabled:
             modifier = "-".join(k for k in ["Ctrl", "Alt", "Shift", "Win"]
                                 if self._modifiers[k])
             if modifier and modifier != "Shift": # Shift-X is not a combo
