@@ -198,13 +198,15 @@ Template arguments:
 
       if (index <= events.length - 1) {
 
-        var step = elm_step.value;
-        for (var i = 0; i < step && index + i < events.length; i++)
-          myHeatmap.addData(events[index + i].data || events[index + i]);
-        index += i - 1;
+        var step = parseInt(elm_step.value);
+        if (step > 1) {
+          index = Math.min(index + step - 1, events.length - 1);
+          myHeatmap.setData({data: events.slice(0, index + 1), max: {{! 0 if "keyboard" == input else "positions.length ? positions[0].value : 0" }}});
+        } else myHeatmap.addData(events[index + 1].data || events[index + 1]);
 
         var percent = (100 * index / events.length).toFixed() + "%";
-        percent = (index == events.length - 1) ? "100%" : percent;
+        if (index == events.length - 1) percent = "100%";
+        else if ("100%" == percent && index < events.length - 1) percent = "99%";
         elm_status.innerHTML = events[index]["dt"] + " " + percent;
         elm_progress.style.width = percent;
 
