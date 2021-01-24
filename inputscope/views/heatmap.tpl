@@ -16,7 +16,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    23.01.2021
+@modified    24.01.2021
 %"""
 %WEBROOT = get_url("/")
 %title = "%s %s" % (input.capitalize(), table)
@@ -59,6 +59,7 @@ Template arguments:
 <div id="status">
 <span id="statustext"><br /></span>
 <span id="progressbar"></span>
+<a href="javascript:;" title="Stop replay" id="replay_stop">x</a>
 </div>
 %end # if events
 
@@ -147,14 +148,16 @@ Template arguments:
 
   window.addEventListener("load", function() {
 
-    var elm_step     = document.getElementById("replay_step"),
-        elm_interval = document.getElementById("replay_interval"),
-        elm_button   = document.getElementById("button_replay"),
-        elm_progress = document.getElementById("progressbar"),
-        elm_status   = document.getElementById("statustext"),
-        elm_show_hm  = document.getElementById("show_heatmap"),
-        elm_show_kb  = document.getElementById("show_keyboard"),
-        elm_keyboard = document.getElementById("keyboard");
+    var elm_step      = document.getElementById("replay_step"),
+        elm_interval  = document.getElementById("replay_interval"),
+        elm_button    = document.getElementById("button_replay"),
+        elm_progress  = document.getElementById("progressbar"),
+        elm_statusdiv = document.getElementById("status"),
+        elm_status    = document.getElementById("statustext"),
+        elm_show_hm   = document.getElementById("show_heatmap"),
+        elm_show_kb   = document.getElementById("show_keyboard"),
+        elm_stop      = document.getElementById("replay_stop"),
+        elm_keyboard  = document.getElementById("keyboard");
     var myHeatmap = h337.create({container: elm_heatmap, radius: RADIUS});
     if (positions.length) myHeatmap.setData({data: positions, max: positions[0].value});
 
@@ -167,6 +170,7 @@ Template arguments:
 
     if (elm_button) elm_button.addEventListener("click", function() {
       if ("Replay" == elm_button.value) {
+        elm_statusdiv.classList.add("playing");
         myHeatmap.setData({data: [], max: 0});
         myHeatmap.setData({data: [], max: {{! 0 if "keyboard" == input else "positions.length ? positions[0].value : 0" }}});
         elm_button.value = "Pause";
@@ -180,7 +184,18 @@ Template arguments:
       };
     });
 
+    if (elm_stop) elm_stop.addEventListener("click", function() {
+      elm_button.value = "Replay";
+      elm_status.innerHTML = "<br />";
+      elm_progress.style.width = 0;
+      elm_statusdiv.classList.remove("playing");
+      resumeFunc = undefined;
+      myHeatmap.setData({data: positions, max: positions.length ? positions[0].value : 0});
+    });
+
     var replay = function(index) {
+      if (!elm_statusdiv.classList.contains("playing")) return;
+
       if (index <= events.length - 1) {
 
         var step = elm_step.value;
@@ -204,6 +219,7 @@ Template arguments:
         myHeatmap.setData({data: positions, max: positions.length ? positions[0].value : 0});
 %end # if "keyboard"
         elm_button.value = "Replay";
+        elm_statusdiv.classList.remove("playing");
       }
     };
 
