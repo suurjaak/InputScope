@@ -12,7 +12,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    21.05.2015
+@modified    24.01.2021
 %"""
 %WEBROOT = get_url("/")
 %period, days = get("period", None), get("days", [])
@@ -96,7 +96,7 @@ Template arguments:
 <div id="footer">
 <div>
   <a href="#" id="overlaylink">database info</a>
-  Mouse and keyboard input visualizer. &copy; 2015 Erki Suurjaak. <a href="{{ conf.HomepageUrl }}" target="_blank">github</a>
+  Mouse and keyboard input visualizer. <a href="{{ conf.HomepageUrl }}" target="_blank">github</a>
 </div>
 </div>
 
