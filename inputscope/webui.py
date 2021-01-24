@@ -25,7 +25,7 @@ app = None   # Bottle application instance
 
 @hook("before_request")
 def before_request():
-    """Set up convenience variables, remove trailing slashes from route."""
+    """Remove trailing slashes from route."""
     request.environ["PATH_INFO"] = request.environ["PATH_INFO"].rstrip("/")
 
 
@@ -37,15 +37,18 @@ def server_static(filepath):
 
 
 @route("/mouse/<table>")
-@route("/mouse/<table>/<day>")
-def mouse(table, day=None):
+@route("/mouse/<table>/<period>")
+def mouse(table, period=None):
     """Handler for showing mouse statistics for specified type and day."""
-    days = db.fetch("counts", order="day", type=table)
-    count, input = sum(v["count"] for v in days if not day or v["day"] == day), "mouse"
-    tabledays = set(x["type"] for x in db.fetch("counts", day=day)) if day else {}
+    days, input = db.fetch("counts", order="day", type=table), "mouse"
+    if period and not any(v["day"][:len(period)] == period for v in days):
+        return bottle.redirect(request.app.get_url("/<input>", input=input))
+        
+    count = sum(v["count"] for v in days if not period or v["day"][:len(period)] == period)
+    tabledays = set(x["type"] for x in db.fetch("counts", day=("LIKE", period + "%"))) if period else {}
 
-    where = (("day", day), ) if day else ()
-    if not day: # Mouse tables can have 100M+ rows, total order takes too long
+    where = (("day", ("LIKE", period + "%")), ) if period else ()
+    if not period: # Mouse tables can have 100M+ rows, total order takes too long
         mydays, mycount = [], 0
         for myday in days:
             mydays, mycount = mydays + [myday["day"]], mycount + myday["count"]
@@ -59,14 +62,17 @@ def mouse(table, day=None):
 
 
 @route("/keyboard/<table>")
-@route("/keyboard/<table>/<day>")
-def keyboard(table, day=None):
+@route("/keyboard/<table>/<period>")
+def keyboard(table, period=None):
     """Handler for showing the keyboard statistics page."""
-    days = db.fetch("counts", order="day", type=table)
-    count, input = sum(v["count"] for v in days if not day or v["day"] == day), "keyboard"
-    tabledays = set(x["type"] for x in db.fetch("counts", day=day)) if day else {}
+    days, input = db.fetch("counts", order="day", type=table), "keyboard"
+    if period and not any(v["day"][:len(period)] == period for v in days):
+        return bottle.redirect(request.app.get_url("/<input>", input=input))
 
-    where = (("day", day),) if day else ()
+    count = sum(v["count"] for v in days if not period or v["day"][:len(period)] == period)
+    tabledays = set(x["type"] for x in db.fetch("counts", day=("LIKE", period + "%"))) if period else {}
+
+    where = (("day", ("LIKE", period + "%")), ) if period else ()
     cols, group = "realkey AS key, COUNT(*) AS count", "realkey"
     counts_display = counts = db.fetch(table, cols, where, group, "count DESC")
     if "combos" == table:
@@ -87,7 +93,14 @@ def inputindex(input):
     tables = ("moves", "clicks", "scrolls") if "mouse" == input else ("keys", "combos")
     for table in tables:
         stats[table] = db.fetchone("counts", countminmax, type=table)
-        stats[table]["days"] = db.fetch("counts", order="day DESC", type=table)
+        periods, month = [], None
+        for data in db.fetch("counts", "day AS period, count, 'day' AS class", order="day DESC", type=table):
+            if not month or month["period"][:7] != data["period"][:7]:
+                month = {"class": "month", "period": data["period"][:7], "count": 0}
+                periods.append(month)
+            month["count"] += data["count"]
+            periods.append(data)
+        stats[table]["periods"] = periods
     dbinfo = stats_db(conf.DbPath)
     return bottle.template("input.tpl", locals(), conf=conf)
 

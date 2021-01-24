@@ -4,6 +4,7 @@ Base template, with site layout and style.
 Template arguments:
   title      page title, if any
   base       main content
+  period     period for events, if any (day like "2020-02-20" or month like "2020-02")
   days       list of available days
   input      "mouse"|"keyboard"
   table      events table shown, moves|clicks|scrolls|keys|combos
@@ -14,7 +15,7 @@ Template arguments:
 @modified    21.05.2015
 %"""
 %WEBROOT = get_url("/")
-%days = get("days", [])
+%period, days = get("period", None), get("days", [])
 <!DOCTYPE html>
 <html>
 <head>
@@ -39,21 +40,38 @@ Template arguments:
 
 %if days:
 <span id="daysection">
-    %dayidx = next((i for i, x in enumerate(days) if x["day"] == day), None)
-    %prevday, nextday = (days[x]["day"] if 0 <= x < len(days) else None for x in [dayidx-1, dayidx+1]) if dayidx is not None else [None]*2
-    %prevday = prevday if day and events else days[-1]["day"]
-  <a href="{{ get_url("/%s/<table>/<day>" % input, table=table, day=prevday) }}">{{ "< %s" % prevday if prevday else "" }}</a>
+    %prevperiod, nextperiod = None, None
+    %if period and len(period) < 8:
+    %    prevperiod = next((x["day"][:7] for x in days[::-1] if x["day"][:7] < period), None)
+    %    nextperiod = next((x["day"][:7] for x in days       if x["day"][:7] > period), None)
+    %else:
+    %    dayidx = next((i for i, x in enumerate(days) if x["day"] == period), None)
+    %    if dayidx is not None:
+    %        prevperiod, nextperiod = (days[i]["day"] if 0 <= i < len(days) else None for i in [dayidx-1, dayidx+1])
+    %    end # if dayidx is not None
+    %    prevperiod = prevperiod or None if period else days[-1]["day"]
+    %end # if period and len(period) < 8
+    %if prevperiod:
+  <a href="{{ get_url("/%s/<table>/<period>" % input, table=table, period=prevperiod) }}">&lt; {{ prevperiod }}</a>
+    %end # if prevperiod
 
   <select id="dayselector">
-    %if not day or not events:
-    <option>- day -</option>
-    %end # if not day
+    %if not period or not events:
+    <option>- period -</option>
+    %end # if not period
+    %prevmonth = None
     %for d in days[::-1]:
-    <option{{! ' selected="selected"' if day == d["day"] else "" }}>{{ d["day"] }}</option>
+        %if prevmonth != d["day"][:7]:
+    <option{{! ' selected="selected"' if period == d["day"][:7] else "" }}>{{ d["day"][:7] }}</option>
+        %end # if prevmonth != d["day"][:7]
+    <option{{! ' selected="selected"' if period == d["day"] else "" }}>{{ d["day"] }}</option>
+        %prevmonth = d["day"][:7]
     %end # for d
   </select>
 
-  <a href="{{ get_url("/%s/<table>/<day>" % input, table=table, day=nextday) }}">{{ "%s >" % nextday if nextday else "" }}</a>
+    %if nextperiod:
+  <a href="{{ get_url("/%s/<table>/<period>" % input, table=table, period=nextperiod) }}">{{ nextperiod }} &gt;</a>
+    %end # if nextperiod
 </span>
 %end # if days
 

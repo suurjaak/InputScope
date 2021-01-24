@@ -217,22 +217,31 @@ label.range_label {
   width: 100%;
 }
 a.toggle {
-  float: right;
-  position: relative;
-  left: 10px;
+  position: absolute;
+  right: 0px;
 }
 a.toggle:hover {
   text-decoration: none !important;
 }
-table.input_index td.days .count {
+table.input_index td.periods {
+  position: relative;
+  padding-right: 20px;
+}
+table.input_index td.periods .count {
   display: none;
 }
-table.input_index td.days.collapsed .count {
+table.input_index td.periods.collapsed .count {
   display: block;
   white-space: nowrap;
 }
-table.input_index td.days.collapsed .days {
+table.input_index td.periods.collapsed .periods {
   display: none;
+}
+table.input_index td.periods .periods a.day {
+  margin-left: 10px;
+}
+table.input_index td.periods .periods span {
+  float: right;
 }
 #overlay {
   display: none;

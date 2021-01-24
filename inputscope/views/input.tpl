@@ -2,7 +2,7 @@
 Index page.
 
 Template arguments:
-  stats      data statistics
+  stats      data statistics as {"count": int, "periods": [{"period", "count", "class"}]}
   input      "mouse"|"keyboard"
   table      "moves"|"clicks"|"scrolls"|"keys"|"combos", if any
 
@@ -25,12 +25,13 @@ Template arguments:
   <tr><th>{{ table }}</th></tr>
   <tr><td>Total:</td><td><a href="{{ get_url("/%s/<table>" % input, table=table) }}">{{ "{:,}".format(data["count"]) }}</a></td></tr>
   <tr><td>Days:</td>
-    <td id="{{ table }}_days" class="days">
+    <td id="{{ table }}_periods" class="periods">
     <a href="javascript:;" class="toggle" data-input="{{ table }}" title="Toggle days">&ndash;</a>
-    <div class="count">{{ len(data["days"]) }}</div>
-    <div class="days">
-    %for item in data["days"]:
-      <a href="{{ get_url("/%s/<table>/<day>" % input, table=table, day=item["day"]) }}">{{ item["day"] }}</a> ({{ "{:,}".format(item["count"])  }})<br />
+    <div class="count">{{ len([v for v in data["periods"] if "day" == v["class"]]) }}</div>
+    <div class="periods">
+    %for item in data["periods"]:
+      <a class="{{ item["class"] }}" href="{{ get_url("/%s/<table>/<period>" % input, table=table, period=item["period"]) }}">{{ item["period"] }}</a>
+      <span>({{ "{:,}".format(item["count"])  }})</span><br />
     %end # for item
     </div>
     </td>
@@ -49,7 +50,7 @@ Template arguments:
         linklist[i].addEventListener("click", function() {
           var on = (this.innerText == "+");
           this.innerHTML = on ? "&ndash;" : "+";
-          document.getElementById(this.dataset.input + "_days").classList.toggle("collapsed");
+          document.getElementById(this.dataset.input + "_periods").classList.toggle("collapsed");
         });
       };
 

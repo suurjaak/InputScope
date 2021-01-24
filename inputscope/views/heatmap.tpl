@@ -3,7 +3,7 @@ Mouse or keyboard heatmap and statistics page.
 
 Template arguments:
   table           events table to show, like "clicks" or "keys"
-  day             day for events, if any
+  period          period for events, if any (day like "2020-02-20" or month like "2020-02")
   days            list of available days
   input           "mouse"|"keyboard"
   count           count of all events
@@ -22,7 +22,7 @@ Template arguments:
 %title = "%s %s" % (input.capitalize(), table)
 %rebase("base.tpl", **locals())
 
-<h3>{{ title }}</h3>{{ ", %s" % day if day else "" }} ({{ "{:,}".format(count) }})
+<h3>{{ title }}</h3>{{ ", %s" % period if period else "" }} ({{ "{:,}".format(count) }})
 
 <span id="replaysection">
   <input type="button" id="button_replay" value="Replay" />
@@ -30,7 +30,7 @@ Template arguments:
     <label for="replay_interval" class="range_label">speed</label>
     <input type="range" id="replay_interval" min="1" max="100" value="50" />
   </span>
-  <span class="range" title="Points in each animation (1..100)">
+  <span class="range" title="Events in each step (1..100)">
     <label for="replay_step" class="range_label">step</label>
     <input type="range" id="replay_step" min="1" max="100" value="1" />
   </span>
@@ -44,13 +44,13 @@ Template arguments:
     %if tbl == table:
   <span>{{ tbl }}</span>
     %else:
-        %if day and tbl not in tabledays:
+        %if period and tbl not in tabledays:
   <span class="inactive">{{ tbl }}</span>
-        %elif day:
-  <a href="{{ get_url("/%s/<table>/<day>" % type, table=tbl, day=day) }}">{{ tbl }}</a>
+        %elif period:
+  <a href="{{ get_url("/%s/<table>/<period>" % type, table=tbl, period=period) }}">{{ tbl }}</a>
         %else:
   <a href="{{ get_url("/%s/<table>" % type, table=tbl) }}">{{ tbl }}</a>
-        %end # if day
+        %end # if period
     %end # if tbl == table
 %end # for type, tbl
 </div>
