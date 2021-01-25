@@ -66,27 +66,37 @@ class Model(threading.Thread):
         signal.signal(signal.SIGBREAK, lambda *a, **kw: self.stop(True))
         signal.signal(signal.SIGINT,   lambda *a, **kw: self.stop(True))
 
+
     def toggle(self, category):
         if category not in conf.InputFlags: return
 
+        # Event input (mouse|keyboard), None if category itself is input
         input = next((k for k, vv in conf.InputEvents.items() if category in vv), None)
         attr = conf.InputFlags[category]
         on = not getattr(conf, attr)
-        if input and not getattr(conf, conf.InputFlags[input]):
-            on = True # Force on, as event checkboxes are always off if input is off
-            # Set other input categories off, as only a single one was enabled
+        if input and not getattr(conf, conf.InputFlags[input]): # Event input itself off
+            on = True # Force on regardless of event flag current state
+            # Set other input events off, as only a single one was explicitly enabled
             for c, flag in ((c, conf.InputFlags[c]) for c in conf.InputEvents[input]):
                 setattr(conf, flag, False)
         setattr(conf, attr, on)
+
+        # Toggle input on when turning event category on
         if input and on: setattr(conf, conf.InputFlags[input], True)
-        elif input and not any(getattr(conf, conf.InputFlags.get(c), False)
-                               for c in conf.InputEvents[input]):
-            # Toggle entire input off if all event categories are now off
-            setattr(conf, conf.InputFlags[input], False)
+        elif not any(getattr(conf, conf.InputFlags.get(c), False)
+                     for c in conf.InputEvents[input or category]): # Not any event on
+            if not input and on: # Turning input on
+                # Toggle all input events on since all were off
+                for c in conf.InputEvents[category]:
+                    setattr(conf, conf.InputFlags[c], True)
+            elif input and not on: # Turning single event off
+                # Toggle entire input off since all input events are now off
+                setattr(conf, conf.InputFlags[input], False)
 
         conf.save()
-        if self.listenerqueue:
-            self.listenerqueue.put("%s_%s" % (category, "start" if on else "stop"))
+        q = self.listenerqueue or self.initialqueue
+        q.put("%s %s" % ("start" if on else "stop", category))
+
 
     def stop(self, exit=False):
         self.running = False
@@ -116,12 +126,8 @@ class Model(threading.Thread):
             self.webui = subprocess.Popen(args("webui.py", "--quiet"))
             self.listenerqueue = QueueLine(self.listener.stdin)
 
-        if conf.MouseEnabled:    self.listenerqueue.put("mouse_start")
-        if conf.KeyboardEnabled: self.listenerqueue.put("keyboard_start")
-        for category, flag in conf.InputFlags.items():
-            if category not in conf.InputEvents \
-            and hasattr(conf, flag) and not getattr(conf, flag):
-                self.listenerqueue.put("%s_stop" % category)
+        if conf.MouseEnabled:    self.listenerqueue.put("start mouse")
+        if conf.KeyboardEnabled: self.listenerqueue.put("start keyboard")
         while not self.initialqueue.empty():
             self.listenerqueue.put(self.initialqueue.get())
 
@@ -198,13 +204,13 @@ class MainApp(getattr(wx, "App", object)):
             m.Bind(wx.EVT_MENU, functools.partial(self.OnClearHistory, period, None),
                    id=item_all.GetId())
             m.Append(item_all)
-            for input, cc in conf.InputEvents.items():
-                item_input = makeitem(m, "  %s inputs" % input.capitalize())
+            for input, cc in conf.InputTables:
+                item_input = makeitem(m, "    %s inputs" % input.capitalize())
                 m.Bind(wx.EVT_MENU, functools.partial(self.OnClearHistory, period, input),
                        id=item_input.GetId())
                 m.Append(item_input)
                 for c in cc:
-                    item_cat = makeitem(m, "    %s" % c)
+                    item_cat = makeitem(m, "        %s" % c)
                     m.Bind(wx.EVT_MENU, functools.partial(self.OnClearHistory, period, c),
                            id=item_cat.GetId())
                     m.Append(item_cat)

@@ -38,55 +38,57 @@ class Listener(threading.Thread):
         self.running = True
         while self.running:
             command = self.inqueue.get()
-            if not command: continue
+            if not command or not self.running: continue # while self.running
 
-            if not any(command.startswith("%s_" % x) for x in conf.InputEvents) \
-            and (command.endswith("_start") or command.endswith("_stop")):
-                category, action = command.split("_")
-                on = ("start" == action)
-                attr = conf.InputFlags.get(category)
-                if hasattr(conf, attr): setattr(conf, attr, on)
+            if command.startswith("start ") or command.startswith("stop "):
+                action, category = command.split()
+                if category not in conf.InputFlags: continue # while self.running
+
+                # Event input (mouse|keyboard), None if category itself is input
                 input = next((k for k, vv in conf.InputEvents.items() if category in vv), None)
-                # Do not toggle input completely off if any other input category still on
-                if not on and any(getattr(conf, conf.InputFlags.get(c), False)
-                                  for c in conf.InputEvents.get(input, ())): on = None
-                if input and on is not None:
-                    command = "%s_%s" % (input, action)
+                attr = conf.InputFlags[category]
+                on = ("start" == action)
+                if input and not getattr(conf, conf.InputFlags[input]): # Event input itself off
+                    on = True # Force on regardless of event flag current state
+                    # Set other input events off, as only a single one was explicitly enabled
+                    for c, flag in ((c, conf.InputFlags[c]) for c in conf.InputEvents[input]):
+                        setattr(conf, flag, False)
+                setattr(conf, attr, on)
 
-            if "exit" == command:
-                self.stop()
-            elif "mouse_start" == command:
-                conf.MouseEnabled = True
-                if not self.mouse_handler:
-                    self.mouse_handler = MouseHandler(self.data_handler.handle)
-            elif "mouse_stop" == command:
-                conf.MouseEnabled = False
-                if self.mouse_handler:
-                    self.mouse_handler = self.mouse_handler.stop()
-            elif "keyboard_start" == command:
-                conf.KeyboardEnabled = True
-                if not self.key_handler:
-                    self.key_handler = KeyHandler(self.data_handler.handle)
-            elif "keyboard_stop" == command:
-                conf.KeyboardEnabled = False
-                if self.key_handler:
-                    self.key_handler = self.key_handler.stop()
-            elif command.startswith("screen_size "):
-                size = list(map(int, command.split()[1:]))
-                if size: db.insert("screen_sizes", x=size[0], y=size[1])
+                # Toggle input on when turning event category on
+                if input and on: setattr(conf, conf.InputFlags[input], True)
+                elif not any(getattr(conf, conf.InputFlags.get(c), False)
+                             for c in conf.InputEvents[input or category]): # Not any event on
+                    if not input and on: # Turning input on
+                        # Toggle all input events on since all were off
+                        for c in conf.InputEvents[category]:
+                            setattr(conf, conf.InputFlags[c], True)
+                    elif input and not on: # Turning single event off
+                        # Toggle entire input off since all input events are now off
+                        setattr(conf, conf.InputFlags[input], False)
+
+                if bool(conf.MouseEnabled) != bool(self.mouse_handler):
+                    if self.mouse_handler: self.mouse_handler = self.mouse_handler.stop()
+                    else: self.mouse_handler = MouseHandler(self.data_handler.handle)
+                if bool(conf.KeyboardEnabled) != bool(self.key_handler):
+                    if self.key_handler: self.key_handler = self.key_handler.stop()
+                    else: self.key_handler = KeyHandler(self.data_handler.handle)
             elif command.startswith("clear "):
                 parts = command.split()[1:]
                 category, dates = parts[0], parts[1:]
                 if "all" == category: tables = sum(conf.InputEvents.values(), ())
                 elif category in conf.InputEvents: tables = conf.InputEvents[category]
                 else: tables = [category]
+                where = [("day", (">=", dates[0])), ("day", ("<=", dates[1]))] if dates else []
                 for table in tables:
-                    where = []
-                    if dates:
-                        where = [("day", (">=", dates[0])), ("day", ("<=", dates[1]))]
                     rows  = db.delete("counts", where=where, type=table)
                     rows += db.delete(table, where=where)
                     if rows: db.execute("VACUUM")
+            elif command.startswith("screen_size "):
+                size = list(map(int, command.split()[1:]))
+                if size: db.insert("screen_sizes", x=size[0], y=size[1])
+            elif "exit" == command:
+                self.stop()
 
     def stop(self):
         self.running = False
@@ -94,6 +96,7 @@ class Listener(threading.Thread):
         self.key_handler and self.key_handler.stop()
         self.data_handler.stop()
         self.inqueue.put(None) # Wake up thread waiting on queue
+        sys.exit()
 
 
 
@@ -127,7 +130,7 @@ class DataHandler(threading.Thread):
                 items.append(data)
                 try: data = self.inqueue.get(block=False)
                 except Queue.Empty: data = None
-            if not items: continue # while self.running
+            if not items or not self.running: continue # while self.running
 
             move0, move1 = None, None
             for data in items:
@@ -341,8 +344,8 @@ def main():
     inqueue = LineQueue(sys.stdin).queue
     outqueue = type("", (), {"put": lambda self, x: print("\r%s" % x, end=" ")})()
     if "--quiet" in sys.argv: outqueue = None
-    if conf.MouseEnabled:    inqueue.put("mouse_start")
-    if conf.KeyboardEnabled: inqueue.put("keyboard_start")
+    if conf.MouseEnabled:    inqueue.put("start mouse")
+    if conf.KeyboardEnabled: inqueue.put("start keyboard")
     start(inqueue, outqueue)
 
 

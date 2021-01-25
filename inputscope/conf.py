@@ -36,7 +36,7 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.3.dev14"
+Version = "1.3.dev15"
 VersionDate = "25.01.2021"
 
 """TCP port of the web user interface."""
@@ -104,7 +104,7 @@ MaxEventsForReplay = 100 * 1000
 """Physical length of a pixel, in meters."""
 PixelLength = 0.00024825
 
-"""Mapping tables to input types."""
+"""Ordered mapping of tables to input types."""
 InputTables = [("mouse", ["moves", "clicks", "scrolls"]), ("keyboard", ["keys", "combos"])]
 
 """Key positions in keyboard heatmap."""
