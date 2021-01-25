@@ -19,6 +19,7 @@ import subprocess
 import sys
 import threading
 import time
+import urllib
 import webbrowser
 try: import win32com.client # For creating startup shortcut
 except ImportError: pass
@@ -364,7 +365,11 @@ def main():
     conf.init()
 
     if wx:
-        app = MainApp(redirect=True) # stdout/stderr directed to wx popup
+        name = urllib.quote_plus("-".join([conf.Title, conf.DbPath]))
+        singlechecker = wx.SingleInstanceChecker(name)
+        if singlechecker.IsAnotherRunning(): sys.exit()
+
+        app = MainApp(redirect=True) # redirect stdout/stderr to wx popup
         locale = wx.Locale(wx.LANGUAGE_ENGLISH) # Avoid dialog buttons in native language
         app.MainLoop() # stdout/stderr directed to wx popup
     else:
