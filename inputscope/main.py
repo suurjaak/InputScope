@@ -5,8 +5,10 @@ command-line echoer otherwise. Launches the event listener and web UI server.
 
 @author      Erki Suurjaak
 @created     05.05.2015
-@modified    24.01.2021
+@modified    25.01.2021
 """
+import calendar
+import datetime
 import errno
 import functools
 import multiprocessing
@@ -95,6 +97,10 @@ class Model(threading.Thread):
         q = self.listenerqueue or self.initialqueue
         q.put("screen_size %s %s" % (size[0], size[1]))
 
+    def clear_history(self, category, dates):
+        cmd = " ".join(["clear", category or "all"] + list(map(str, dates)))
+        (self.listenerqueue or self.initialqueue).put(cmd)
+
     def run(self):
         if conf.Frozen:
             self.listenerqueue = multiprocessing.Queue()
@@ -129,9 +135,10 @@ class MainApp(getattr(wx, "App", object)):
 
         self.frame_console = wx.py.shell.ShellFrame(None)
         self.trayicon = wx.adv.TaskBarIcon()
+        self.icons = None
 
         if os.path.exists(conf.IconPath):
-            icons = wx.IconBundle()
+            icons = self.icons = wx.IconBundle()
             icons.AddIcon(conf.IconPath, wx.BITMAP_TYPE_ICO)
             self.frame_console.SetIcons(icons)
             icon = (icons.GetIconOfExactSize((16, 16))
@@ -166,7 +173,8 @@ class MainApp(getattr(wx, "App", object)):
     def OnOpenMenu(self, event):
         """Creates and opens a popup menu for the tray icon."""
         menu, makeitem = wx.Menu(), lambda m, x, **k: wx.MenuItem(m, -1, x, **k)
-        mousemenu, keyboardmenu = wx.Menu(), wx.Menu()
+        mousemenu, keyboardmenu, histmenu = wx.Menu(), wx.Menu(), wx.Menu()
+        histall_menu, histday_menu, histmon_menu, histdts_menu = wx.Menu(), wx.Menu(), wx.Menu(), wx.Menu()
         on_category = lambda c: functools.partial(self.OnToggleCategory, c)
         item_ui       = makeitem(menu, "&Open statistics")
         item_startup  = makeitem(menu, "Start with &Windows",  kind=wx.ITEM_CHECK) \
@@ -182,9 +190,29 @@ class MainApp(getattr(wx, "App", object)):
         item_keys     = makeitem(keyboardmenu, "Log individual &keys",  kind=wx.ITEM_CHECK)
         item_combos   = makeitem(keyboardmenu, "Log key &combinations", kind=wx.ITEM_CHECK)
 
-        font = item_ui.Font
-        font.SetWeight(wx.FONTWEIGHT_BOLD)
-        item_ui.Font = font
+        for m in histall_menu, histmon_menu, histday_menu, histdts_menu:
+            item_all = makeitem(m, "All inputs")
+            period = "all" if m is histall_menu else "month" if m is histmon_menu else \
+                     "today" if m is histday_menu else "range"
+            m.Bind(wx.EVT_MENU, functools.partial(self.OnClearHistory, period, None),
+                   id=item_all.GetId())
+            m.Append(item_all)
+            for input, cc in conf.InputEvents.items():
+                item_input = makeitem(m, "  %s inputs" % input.capitalize())
+                m.Bind(wx.EVT_MENU, functools.partial(self.OnClearHistory, period, input),
+                       id=item_input.GetId())
+                m.Append(item_input)
+                for c in cc:
+                    item_cat = makeitem(m, "    %s" % c)
+                    m.Bind(wx.EVT_MENU, functools.partial(self.OnClearHistory, period, c),
+                           id=item_cat.GetId())
+                    m.Append(item_cat)
+        histmenu.AppendSubMenu(histall_menu, "Clear &all history")
+        histmenu.AppendSubMenu(histmon_menu, "Clear this &month")
+        histmenu.AppendSubMenu(histday_menu, "Clear &today")
+        histmenu.AppendSubMenu(histdts_menu, "Clear history &from .. to ..")
+
+        item_ui.Font = item_ui.Font.Bold()
 
         mousemenu.Append(item_moves)
         mousemenu.Append(item_clicks)
@@ -196,10 +224,11 @@ class MainApp(getattr(wx, "App", object)):
         menu.Append(item_startup) if item_startup else None
         menu.AppendSeparator()
         menu.Append(item_mouse)
-        menu.AppendSubMenu(mousemenu,    "  Mouse &event categories")
+        menu.AppendSubMenu(mousemenu, "  Mouse &event categories")
         menu.Append(item_keyboard)
-        menu.AppendSubMenu(keyboardmenu, "  Keyboard event &categories")
+        menu.AppendSubMenu(keyboardmenu, "  Keyboard e&vent categories")
         menu.AppendSeparator()
+        menu.AppendSubMenu(histmenu, "Clear events &history")
         menu.Append(item_console)
         menu.Append(item_exit)
 
@@ -226,6 +255,38 @@ class MainApp(getattr(wx, "App", object)):
         menu.Bind(wx.EVT_MENU, self.OnToggleConsole,    id=item_console.GetId())
         menu.Bind(wx.EVT_MENU, self.OnClose,            id=item_exit.GetId())
         self.trayicon.PopupMenu(menu)
+
+
+    def OnClearHistory(self, period, category, event=None):
+        """Handler for clicking a clear menu item, forwards command to listener."""
+        input = next((k for k, vv in conf.InputEvents.items() if category in vv), None)
+        label = "%s %s" % (input, category) if input else "%s inputs" % (category or "all")
+        dates = []
+        if "range" == period:
+            for dtlabel in ("start", "end"):
+                v = ""
+                while not isinstance(v, datetime.date):
+                    dlg = wx.TextEntryDialog(None, "Enter %s date as YYYY-MM-DD:" % dtlabel,
+                                             "Clear %s" % label, value=v, style=wx.OK | wx.CANCEL)
+                    if self.icons: dlg.SetIcons(self.icons)
+                    dlg.CenterOnScreen()
+                    if wx.ID_OK != dlg.ShowModal(): return
+                    v = dlg.GetValue().strip()
+                    try: v = datetime.datetime.strptime(v, "%Y-%m-%d").date()
+                    except Exception: continue # while not isinstance(v, datetime.date)
+                    dates.append(v)
+
+        else:
+            tperiod = "this month's" if "month" == period else "today's" if "today" == period \
+                      else period
+            msg = "Are you sure you want to clear %s history of %s?" % (tperiod, label)
+            if wx.OK != wx.MessageBox(msg, conf.Title, wx.OK | wx.CANCEL | wx.ICON_WARNING): return
+            if "today" == period: dates = [datetime.date.today()] * 2
+            elif "month" == period:
+                day = datetime.date.today()
+                _, last = calendar.monthrange(*day.timetuple()[:2])
+                dates.extend([day.replace(day=1), day.replace(day=last)])
+        self.model.clear_history(category, dates)
 
 
     def OnDisplayChanged(self, event=None):
@@ -303,7 +364,9 @@ def main():
     conf.init()
 
     if wx:
-        MainApp(redirect=True).MainLoop() # stdout/stderr directed to wx popup
+        app = MainApp(redirect=True) # stdout/stderr directed to wx popup
+        locale = wx.Locale(wx.LANGUAGE_ENGLISH) # Avoid dialog buttons in native language
+        app.MainLoop() # stdout/stderr directed to wx popup
     else:
         model = Model()
         if tk:

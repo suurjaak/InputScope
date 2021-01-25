@@ -6,7 +6,7 @@ Mouse and keyboard listener, logs events to database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    24.01.2021
+@modified    25.01.2021
 """
 from __future__ import print_function
 import datetime
@@ -71,9 +71,22 @@ class Listener(threading.Thread):
                 conf.KeyboardEnabled = False
                 if self.key_handler:
                     self.key_handler = self.key_handler.stop()
-            elif command.startswith("screen_size"):
+            elif command.startswith("screen_size "):
                 size = list(map(int, command.split()[1:]))
                 if size: db.insert("screen_sizes", x=size[0], y=size[1])
+            elif command.startswith("clear "):
+                parts = command.split()[1:]
+                category, dates = parts[0], parts[1:]
+                if "all" == category: tables = sum(conf.InputEvents.values(), ())
+                elif category in conf.InputEvents: tables = conf.InputEvents[category]
+                else: tables = [category]
+                for table in tables:
+                    where = []
+                    if dates:
+                        where = [("day", (">=", dates[0])), ("day", ("<=", dates[1]))]
+                    rows  = db.delete("counts", where=where, type=table)
+                    rows += db.delete(table, where=where)
+                    if rows: db.execute("VACUUM")
 
     def stop(self):
         self.running = False

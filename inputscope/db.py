@@ -15,7 +15,7 @@ db.execute("DROP TABLE test")
 
 @author      Erki Suurjaak
 @created     05.03.2014
-@modified    23.01.2021
+@modified    25.01.2021
 """
 import os
 import re
@@ -34,28 +34,32 @@ def fetchone(table, cols="*", where=(), group="", order=(), limit=(), **kwargs):
 
 def insert(table, values=(), **kwargs):
     """Convenience wrapper for database INSERT."""
-    values = dict(values, **kwargs).items()
+    values = list(values.items() if isinstance(values, dict) else values)
+    values += kwargs.items()
     sql, args = makeSQL("INSERT", table, values=values)
     return execute(sql, args).lastrowid
 
 
 def select(table, cols="*", where=(), group="", order=(), limit=(), **kwargs):
     """Convenience wrapper for database SELECT."""
-    where = dict(where, **kwargs).items()
+    where = list(where.items() if isinstance(where, dict) else where)
+    where += kwargs.items()
     sql, args = makeSQL("SELECT", table, cols, where, group, order, limit)
     return execute(sql, args)
 
 
 def update(table, values, where=(), **kwargs):
     """Convenience wrapper for database UPDATE."""
-    where = dict(where, **kwargs).items()
+    where = list(where.items() if isinstance(where, dict) else where)
+    where += kwargs.items()
     sql, args = makeSQL("UPDATE", table, values=values, where=where)
     return execute(sql, args).rowcount
 
 
 def delete(table, where=(), **kwargs):
     """Convenience wrapper for database DELETE."""
-    where = dict(where, **kwargs).items()
+    where = list(where.items() if isinstance(where, dict) else where)
+    where += kwargs.items()
     sql, args = makeSQL("DELETE", table, where=where)
     return execute(sql, args).rowcount
 
@@ -90,10 +94,11 @@ def make_cursor(path, init_statements=(), _connectioncache={}):
 
 def makeSQL(action, table, cols="*", where=(), group="", order=(), limit=(), values=()):
     """Returns (SQL statement string, parameter dict)."""
-    cols  =    cols if isinstance(cols,  basestring) else ", ".join(cols)
-    group =   group if isinstance(group, basestring) else ", ".join(group)
-    order = [order] if isinstance(order, basestring) else order
-    limit = [limit] if isinstance(limit, (basestring, int)) else limit
+    cols   =    cols if isinstance(cols,  basestring) else ", ".join(cols)
+    group  =   group if isinstance(group, basestring) else ", ".join(group)
+    order  = [order] if isinstance(order, basestring) else order
+    limit  = [limit] if isinstance(limit, (basestring, int)) else limit
+    values = values if not isinstance(values, dict) else values.items()
     sql = "SELECT %s FROM %s" % (cols, table) if "SELECT" == action else ""
     sql = "DELETE FROM %s"    % (table)       if "DELETE" == action else sql
     sql = "INSERT INTO %s"    % (table)       if "INSERT" == action else sql
