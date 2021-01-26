@@ -20,7 +20,7 @@ the declared ones in source code. File is deleted if all values are at default.
 
 @author      Erki Suurjaak
 @created     26.03.2015
-@modified    25.01.2021
+@modified    26.01.2021
 ------------------------------------------------------------------------------
 """
 try: import ConfigParser as configparser # Py2
@@ -36,8 +36,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.3.dev16"
-VersionDate = "25.01.2021"
+Version = "1.3.dev17"
+VersionDate = "26.01.2021"
 
 """TCP port of the web user interface."""
 WebHost = "localhost"

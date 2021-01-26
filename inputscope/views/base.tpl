@@ -12,7 +12,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    24.01.2021
+@modified    26.01.2021
 %"""
 %WEBROOT = get_url("/")
 %period, days = get("period", None), get("days", [])
@@ -102,6 +102,7 @@ Template arguments:
 
 <script type="text/javascript">
 window.addEventListener("load", function() {
+  document.location.hash = "";
   var elm_overlay = document.getElementById("overlay");
   var toggleOverlay = function(evt) {
     elm_overlay.classList.toggle("visible");

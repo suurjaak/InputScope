@@ -8,7 +8,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    20.05.2015
+@modified    26.01.2021
 %"""
 %WEBROOT = get_url("/")
 %title = input.capitalize()
@@ -23,14 +23,14 @@ Template arguments:
     %input = "keyboard" if table in ("keys", "combos") else "mouse"
   <tbody>
   <tr><th>{{ table }}</th></tr>
-  <tr><td>Total:</td><td><a href="{{ get_url("/%s/<table>" % input, table=table) }}">{{ "{:,}".format(data["count"]) }}</a></td></tr>
+  <tr><td>Total:</td><td><a href="{{ get_url("/%s/<table>" % input, table=table) }}#{{ data["count"] }}">{{ "{:,}".format(data["count"]) }}</a></td></tr>
   <tr><td>Days:</td>
     <td id="{{ table }}_periods" class="periods">
     <a href="javascript:;" class="toggle" data-input="{{ table }}" title="Toggle days">&ndash;</a>
     <div class="count">{{ len([v for v in data["periods"] if "day" == v["class"]]) }}</div>
     <div class="periods">
     %for item in data["periods"]:
-      <a class="{{ item["class"] }}" href="{{ get_url("/%s/<table>/<period>" % input, table=table, period=item["period"]) }}">{{ item["period"] }}</a>
+      <a class="{{ item["class"] }}" href="{{ get_url("/%s/<table>/<period>" % input, table=table, period=item["period"]) }}#{{ item["count"] }}">{{ item["period"] }}</a>
       <span>({{ "{:,}".format(item["count"])  }})</span><br />
     %end # for item
     </div>
