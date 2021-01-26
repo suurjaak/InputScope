@@ -112,6 +112,9 @@ class Model(threading.Thread):
         cmd = " ".join(["clear", category or "all"] + list(map(str, dates)))
         (self.listenerqueue or self.initialqueue).put(cmd)
 
+    def vacuum(self):
+        (self.listenerqueue or self.initialqueue).put("vacuum")
+
     def run(self):
         if conf.Frozen:
             self.listenerqueue = multiprocessing.Queue()
@@ -197,6 +200,8 @@ class MainApp(getattr(wx, "App", object)):
         item_keys     = makeitem(keyboardmenu, "Log individual &keys",  kind=wx.ITEM_CHECK)
         item_combos   = makeitem(keyboardmenu, "Log key &combinations", kind=wx.ITEM_CHECK)
 
+        item_vacuum   = makeitem(histmenu, "&Repack database to smaller size")
+
         for m in histall_menu, histmon_menu, histday_menu, histdts_menu:
             item_all = makeitem(m, "All inputs")
             period = "all" if m is histall_menu else "month" if m is histmon_menu else \
@@ -218,6 +223,8 @@ class MainApp(getattr(wx, "App", object)):
         histmenu.AppendSubMenu(histmon_menu, "Clear this &month")
         histmenu.AppendSubMenu(histday_menu, "Clear &today")
         histmenu.AppendSubMenu(histdts_menu, "Clear history &from .. to ..")
+        histmenu.AppendSeparator()
+        histmenu.Append(item_vacuum)
 
         item_ui.Font = item_ui.Font.Bold()
 
@@ -250,6 +257,7 @@ class MainApp(getattr(wx, "App", object)):
         item_console .Check(self.frame_console.Shown)
 
         menu.Bind(wx.EVT_MENU, self.OnOpenUI,           id=item_ui.GetId())
+        menu.Bind(wx.EVT_MENU, self.OnVacuum,           id=item_vacuum.GetId())
         menu.Bind(wx.EVT_MENU, self.OnToggleStartup,    id=item_startup.GetId()) \
         if item_startup else None
         menu.Bind(wx.EVT_MENU, on_category("mouse"),    id=item_mouse.GetId())
@@ -286,7 +294,7 @@ class MainApp(getattr(wx, "App", object)):
         else:
             tperiod = "this month's" if "month" == period else "today's" if "today" == period \
                       else period
-            msg = "Are you sure you want to clear %s history of %s?" % (tperiod, label)
+            msg = "Are you sure you want to clear %s history of %s? This may take a while." % (tperiod, label)
             if wx.OK != wx.MessageBox(msg, conf.Title, wx.OK | wx.CANCEL | wx.ICON_WARNING): return
             if "today" == period: dates = [datetime.date.today()] * 2
             elif "month" == period:
@@ -301,6 +309,11 @@ class MainApp(getattr(wx, "App", object)):
 
     def OnOpenUI(self, event):
         webbrowser.open(conf.WebUrl)
+
+    def OnVacuum(self, event):
+        msg = "Are you sure you want to repack the database? This may take a while."
+        if wx.OK != wx.MessageBox(msg, conf.Title, wx.OK | wx.CANCEL | wx.ICON_WARNING): return
+        self.model.vacuum()
 
     def OnToggleStartup(self, event):
         self.startupservice.stop() if self.startupservice.is_started() \

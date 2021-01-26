@@ -14,6 +14,7 @@ import Queue
 import sys
 import threading
 import time
+import traceback
 import pykeyboard
 import pymouse
 
@@ -39,56 +40,62 @@ class Listener(threading.Thread):
         while self.running:
             command = self.inqueue.get()
             if not command or not self.running: continue # while self.running
+            try: self.handle_command(command)
+            except Exception:
+                print("Error handling command %r" % command)
+                traceback.print_exc()
 
-            if command.startswith("start ") or command.startswith("stop "):
-                action, category = command.split()
-                if category not in conf.InputFlags: continue # while self.running
+    def handle_command(self, command):
+        if command.startswith("start ") or command.startswith("stop "):
+            action, category = command.split()
+            if category not in conf.InputFlags: return
 
-                # Event input (mouse|keyboard), None if category itself is input
-                input = next((k for k, vv in conf.InputEvents.items() if category in vv), None)
-                attr = conf.InputFlags[category]
-                on = ("start" == action)
-                if input and not getattr(conf, conf.InputFlags[input]): # Event input itself off
-                    on = True # Force on regardless of event flag current state
-                    # Set other input events off, as only a single one was explicitly enabled
-                    for c, flag in ((c, conf.InputFlags[c]) for c in conf.InputEvents[input]):
-                        setattr(conf, flag, False)
-                setattr(conf, attr, on)
+            # Event input (mouse|keyboard), None if category itself is input
+            input = next((k for k, vv in conf.InputEvents.items() if category in vv), None)
+            attr = conf.InputFlags[category]
+            on = ("start" == action)
+            if input and not getattr(conf, conf.InputFlags[input]): # Event input itself off
+                on = True # Force on regardless of event flag current state
+                # Set other input events off, as only a single one was explicitly enabled
+                for c, flag in ((c, conf.InputFlags[c]) for c in conf.InputEvents[input]):
+                    setattr(conf, flag, False)
+            setattr(conf, attr, on)
 
-                # Toggle input on when turning event category on
-                if input and on: setattr(conf, conf.InputFlags[input], True)
-                elif not any(getattr(conf, conf.InputFlags.get(c), False)
-                             for c in conf.InputEvents[input or category]): # Not any event on
-                    if not input and on: # Turning input on
-                        # Toggle all input events on since all were off
-                        for c in conf.InputEvents[category]:
-                            setattr(conf, conf.InputFlags[c], True)
-                    elif input and not on: # Turning single event off
-                        # Toggle entire input off since all input events are now off
-                        setattr(conf, conf.InputFlags[input], False)
+            # Toggle input on when turning event category on
+            if input and on: setattr(conf, conf.InputFlags[input], True)
+            elif not any(getattr(conf, conf.InputFlags.get(c), False)
+                         for c in conf.InputEvents[input or category]): # Not any event on
+                if not input and on: # Turning input on
+                    # Toggle all input events on since all were off
+                    for c in conf.InputEvents[category]:
+                        setattr(conf, conf.InputFlags[c], True)
+                elif input and not on: # Turning single event off
+                    # Toggle entire input off since all input events are now off
+                    setattr(conf, conf.InputFlags[input], False)
 
-                if bool(conf.MouseEnabled) != bool(self.mouse_handler):
-                    if self.mouse_handler: self.mouse_handler = self.mouse_handler.stop()
-                    else: self.mouse_handler = MouseHandler(self.data_handler.handle)
-                if bool(conf.KeyboardEnabled) != bool(self.key_handler):
-                    if self.key_handler: self.key_handler = self.key_handler.stop()
-                    else: self.key_handler = KeyHandler(self.data_handler.handle)
-            elif command.startswith("clear "):
-                parts = command.split()[1:]
-                category, dates = parts[0], parts[1:]
-                if "all" == category: tables = sum(conf.InputEvents.values(), ())
-                elif category in conf.InputEvents: tables = conf.InputEvents[category]
-                else: tables = [category]
-                where = [("day", (">=", dates[0])), ("day", ("<=", dates[1]))] if dates else []
-                for table in tables:
-                    rows  = db.delete("counts", where=where, type=table)
-                    rows += db.delete(table, where=where)
-                    if rows: db.execute("VACUUM")
-            elif command.startswith("screen_size "):
-                size = list(map(int, command.split()[1:]))
-                if size: db.insert("screen_sizes", x=size[0], y=size[1])
-            elif "exit" == command:
-                self.stop()
+            if bool(conf.MouseEnabled) != bool(self.mouse_handler):
+                if self.mouse_handler: self.mouse_handler = self.mouse_handler.stop()
+                else: self.mouse_handler = MouseHandler(self.data_handler.handle)
+            if bool(conf.KeyboardEnabled) != bool(self.key_handler):
+                if self.key_handler: self.key_handler = self.key_handler.stop()
+                else: self.key_handler = KeyHandler(self.data_handler.handle)
+        elif command.startswith("clear "):
+            parts = command.split()[1:]
+            category, dates = parts[0], parts[1:]
+            if "all" == category: tables = sum(conf.InputEvents.values(), ())
+            elif category in conf.InputEvents: tables = conf.InputEvents[category]
+            else: tables = [category]
+            where = [("day", (">=", dates[0])), ("day", ("<=", dates[1]))] if dates else []
+            for table in tables:
+                db.delete("counts", where=where, type=table)
+                db.delete(table, where=where)
+        elif command.startswith("screen_size "):
+            size = list(map(int, command.split()[1:]))
+            if size: db.insert("screen_sizes", x=size[0], y=size[1])
+        elif "vacuum" == command:
+            db.execute("VACUUM")
+        elif "exit" == command:
+            self.stop()
 
     def stop(self):
         self.running = False
