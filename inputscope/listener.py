@@ -6,7 +6,7 @@ Mouse and keyboard listener, logs events to database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    25.01.2021
+@modified    26.01.2021
 """
 from __future__ import print_function
 import datetime
@@ -32,7 +32,7 @@ class Listener(threading.Thread):
         self.inqueue = inqueue
         self.running = False
         self.mouse_handler = None
-        self.key_handler = None
+        self.key_handler   = None
         self.data_handler = DataHandler(getattr(outqueue, "put", lambda x: x))
 
     def run(self):
@@ -91,7 +91,9 @@ class Listener(threading.Thread):
                 db.delete(table, where=where)
         elif command.startswith("screen_size "):
             size = list(map(int, command.split()[1:]))
-            if size: db.insert("screen_sizes", x=size[0], y=size[1])
+            if size:
+                db.insert("screen_sizes", x=size[0], y=size[1])
+                self.data_handler.screen_size = size
         elif "vacuum" == command:
             db.execute("VACUUM")
         elif "exit" == command:
@@ -116,6 +118,7 @@ class DataHandler(threading.Thread):
         self.output = output
         self.inqueue = Queue.Queue()
         self.lasts = {"moves": None}
+        self.screen_size = conf.DefaultScreenSize
         self.running = False
         self.start()
 
@@ -124,9 +127,15 @@ class DataHandler(threading.Thread):
         dbqueue = [] # Data queued for later after first insert failed
         db.insert("app_events", type="start")
 
+        def rescale(pt):
+            """Remaps point to heatmap size for less granularity."""
+            HS = conf.MouseHeatmapSize
+            SC = [self.screen_size[i] / float(HS[i]) for i in (0, 1)]
+            return [min(int(pt[i] / SC[i]), HS[i]) for i in (0, 1)]
+
         def one_line(pt1, pt2, pt3):
             """Returns whether points more or less fall onto one line."""
-            (x1, y1), (x2, y2), (x3, y3) = pt1, pt2, pt3
+            (x1, y1), (x2, y2), (x3, y3) = map(rescale, (pt1, pt2, pt3))
             if  not (x1 >= x2 >= x3) and not (y1 >= y2 >= y3) \
             and not (x1 <= x2 <= x3) and not (y1 <= y2 <= y3): return False
             return abs((y1 - y2) * (x1 - x3) - (y1 - y3) * (x1 - x2)) <= conf.MouseMoveJoinRadius
@@ -143,7 +152,7 @@ class DataHandler(threading.Thread):
             for data in items:
                 category = data.pop("type")
                 if category in self.lasts: # Skip event if same position as last
-                    pos = data["x"], data["y"]
+                    pos = rescale([data["x"], data["y"]])
                     if self.lasts[category] == pos: continue # for data
                     self.lasts[category] = pos
 

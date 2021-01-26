@@ -36,7 +36,7 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.3.dev17"
+Version = "1.3.dev18"
 VersionDate = "26.01.2021"
 
 """TCP port of the web user interface."""
@@ -89,8 +89,8 @@ KeyboardSessionMaxDelta = 3
 """Fuzz radius for linear move events for event reduction, in seconds."""
 MouseMoveJoinWindow = 0.5
 
-"""Maximum interval between linear move events for event reduction, in pixels."""
-MouseMoveJoinRadius = 10
+"""Maximum interval between linear move events for event reduction, in heatmap pixels."""
+MouseMoveJoinRadius = 5
 
 """Interval between writings events to database, in seconds."""
 EventsWriteInterval = 5
