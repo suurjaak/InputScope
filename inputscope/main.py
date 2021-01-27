@@ -5,7 +5,7 @@ command-line echoer otherwise. Launches the event listener and web UI server.
 
 @author      Erki Suurjaak
 @created     05.05.2015
-@modified    25.01.2021
+@modified    27.01.2021
 """
 import calendar
 import datetime
@@ -104,9 +104,9 @@ class Model(threading.Thread):
         if self.webui: self.webui.terminate()
         if exit: sys.exit()
 
-    def log_resolution(self, size):
+    def log_resolution(self, sizes):
         q = self.listenerqueue or self.initialqueue
-        q.put("screen_size %s %s" % (size[0], size[1]))
+        q.put("screen_size %s" % " ".join(map(str, sizes)))
 
     def clear_history(self, category, dates):
         cmd = " ".join(["clear", category or "all"] + list(map(str, dates)))
@@ -166,7 +166,7 @@ class MainApp(getattr(wx, "App", object)):
 
         def after():
             if not self: return
-            self.model.log_resolution(wx.GetDisplaySize())
+            self.OnDisplayChanged()
             self.model.start()
             msg = "Logging %s." % ("\nand ".join(filter(bool,
                   ["%s inputs (%s)" % (i, ", ".join(c for c in conf.InputEvents[i]
@@ -305,7 +305,9 @@ class MainApp(getattr(wx, "App", object)):
 
 
     def OnDisplayChanged(self, event=None):
-        self.model.log_resolution(wx.GetDisplaySize())
+        sizes = [list(wx.Display(i).Geometry)
+                 for i in range(wx.Display.GetCount())]
+        self.model.log_resolution(sizes)
 
     def OnOpenUI(self, event):
         webbrowser.open(conf.WebUrl)
@@ -395,8 +397,9 @@ def main():
         model = Model()
         if tk:
             widget = tk.Tk() # Use Tkinter instead to get screen size
-            size = widget.winfo_screenwidth(), widget.winfo_screenheight()
-            model.log_resolution(size)
+            size = [0, 0, widget.winfo_screenwidth(), widget.winfo_screenheight()]
+            model.log_resolution([size])
+            widget.destroy()
         print("wxPython not available, using basic command line interface.")
         print("Web interface running at %s" % conf.WebUrl)
         try:

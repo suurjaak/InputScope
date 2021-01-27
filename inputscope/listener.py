@@ -6,7 +6,7 @@ Mouse and keyboard listener, logs events to database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    26.01.2021
+@modified    27.01.2021
 """
 from __future__ import print_function
 import datetime
@@ -90,10 +90,12 @@ class Listener(threading.Thread):
                 db.delete("counts", where=where, type=table)
                 db.delete(table, where=where)
         elif command.startswith("screen_size "):
-            size = list(map(int, command.split()[1:]))
-            if size:
-                db.insert("screen_sizes", x=size[0], y=size[1])
-                self.data_handler.screen_size = size
+            # "screen_size [0, 0, 1920, 1200] [1920, 0, 1000, 800]"
+            sizestrs = filter(bool, map(str.strip, command[12:].replace("[", "").split("]")))
+            sizes = sorted(map(int, s.replace(",", "").split()) for s in sizestrs)
+            for i, size in enumerate(sizes):
+                db.insert("screen_sizes", x=size[0], y=size[1], w=size[2], h=size[3], display=i)
+            self.data_handler.screen_sizes = sizes
         elif "vacuum" == command:
             db.execute("VACUUM")
         elif "exit" == command:
@@ -118,7 +120,7 @@ class DataHandler(threading.Thread):
         self.output = output
         self.inqueue = Queue.Queue()
         self.lasts = {"moves": None}
-        self.screen_size = conf.DefaultScreenSize
+        self.screen_sizes = [[0, 0] + list(conf.DefaultScreenSize)]
         self.running = False
         self.start()
 
@@ -127,10 +129,21 @@ class DataHandler(threading.Thread):
         dbqueue = [] # Data queued for later after first insert failed
         db.insert("app_events", type="start")
 
+        def get_display(pt):
+            """Returns (display index, [x, y, w, h]) for mouse event position."""
+            for i, size in enumerate(self.screen_sizes):
+                if  size[0] <= pt[0] <= size[0] + size[2] \
+                and size[1] <= pt[1] <= size[1] + size[3]: return i, size
+            if pt[0] >= self.screen_sizes[-1][0] + self.screen_sizes[-1][2] \
+            or pt[1] >= self.screen_sizes[-1][1] + self.screen_sizes[-1][3]:
+                return len(self.screen_sizes) - 1, self.screen_sizes[-1]
+            return 0, self.screen_sizes[0]
+
         def rescale(pt):
             """Remaps point to heatmap size for less granularity."""
             HS = conf.MouseHeatmapSize
-            SC = [self.screen_size[i] / float(HS[i]) for i in (0, 1)]
+            _, screen_size = get_display(pt)
+            SC = [screen_size[i + 2] / float(HS[i]) for i in (0, 1)]
             return [min(int(pt[i] / SC[i]), HS[i]) for i in (0, 1)]
 
         def one_line(pt1, pt2, pt3):
@@ -151,6 +164,8 @@ class DataHandler(threading.Thread):
             move0, move1 = None, None
             for data in items:
                 category = data.pop("type")
+                if category in conf.InputEvents["mouse"]:
+                    data["display"], _ = get_display([data["x"], data["y"]])
                 if category in self.lasts: # Skip event if same position as last
                     pos = rescale([data["x"], data["y"]])
                     if self.lasts[category] == pos: continue # for data
@@ -158,7 +173,8 @@ class DataHandler(threading.Thread):
 
                 if "moves" == category:
                     if move0 and move1 and move1["stamp"] - move0["stamp"] < conf.MouseMoveJoinWindow \
-                    and data["stamp"] - move1["stamp"] < conf.MouseMoveJoinWindow:
+                    and data["stamp"] - move1["stamp"] < conf.MouseMoveJoinWindow \
+                    and move0["display"] == move1["display"] == data["display"]:
                         if one_line(*[(v["x"], v["y"]) for v in (move0, move1, data)]):
                             move1.update(data) # Reduce move events
                             continue # for data
@@ -348,6 +364,13 @@ class LineQueue(threading.Thread):
 def start(inqueue, outqueue=None):
     """Starts the listener with incoming and outgoing queues."""
     conf.init(), db.init(conf.DbPath, conf.DbStatements)
+
+    # Carry out db update for tables lacking expected new columns
+    for (table, col), sqls in conf.DbUpdateStatements:
+        if any(col == x["name"] for x in db.execute("PRAGMA table_info(%s)" % table)):
+            continue # for
+        for sql in sqls: db.execute(sql)
+
     try: Listener(inqueue, outqueue).run()
     except KeyboardInterrupt: pass
 

@@ -20,7 +20,7 @@ the declared ones in source code. File is deleted if all values are at default.
 
 @author      Erki Suurjaak
 @created     26.03.2015
-@modified    26.01.2021
+@modified    27.01.2021
 ------------------------------------------------------------------------------
 """
 try: import ConfigParser as configparser # Py2
@@ -36,8 +36,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.3.dev18"
-VersionDate = "26.01.2021"
+Version = "1.3.dev19"
+VersionDate = "27.01.2021"
 
 """TCP port of the web user interface."""
 WebHost = "localhost"
@@ -279,16 +279,32 @@ DayIndexTemplate = "CREATE INDEX IF NOT EXISTS idx_{0}_day ON {0} (day)"
 
 """Statements to execute in database at startup, like CREATE TABLE."""
 DbStatements = (
-  "CREATE TABLE IF NOT EXISTS moves (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, x INTEGER, y INTEGER)",
-  "CREATE TABLE IF NOT EXISTS clicks (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, x INTEGER, y INTEGER, button INTEGER)",
-  "CREATE TABLE IF NOT EXISTS scrolls (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, x INTEGER, y INTEGER, wheel INTEGER)",
-  "CREATE TABLE IF NOT EXISTS keys (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, key TEXT, realkey TEXT)",
-  "CREATE TABLE IF NOT EXISTS combos (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, key TEXT, realkey TEXT)",
-  "CREATE TABLE IF NOT EXISTS app_events (id INTEGER NOT NULL PRIMARY KEY, dt TIMESTAMP DEFAULT (DATETIME('now', 'localtime')), type TEXT)",
-  "CREATE TABLE IF NOT EXISTS screen_sizes (id INTEGER NOT NULL PRIMARY KEY, dt TIMESTAMP DEFAULT (DATETIME('now', 'localtime')), x INTEGER, y INTEGER)",
-  "CREATE TABLE IF NOT EXISTS counts (id INTEGER NOT NULL PRIMARY KEY, type TEXT, day DATETIME, count INTEGER, UNIQUE(type, day))",
+    "CREATE TABLE IF NOT EXISTS moves (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, x INTEGER, y INTEGER, display INTEGER DEFAULT 0)",
+    "CREATE TABLE IF NOT EXISTS clicks (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, x INTEGER, y INTEGER, button INTEGER, display INTEGER DEFAULT 0)",
+    "CREATE TABLE IF NOT EXISTS scrolls (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, x INTEGER, y INTEGER, wheel INTEGER, display INTEGER DEFAULT 0)",
+    "CREATE TABLE IF NOT EXISTS keys (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, key TEXT, realkey TEXT)",
+    "CREATE TABLE IF NOT EXISTS combos (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, key TEXT, realkey TEXT)",
+    "CREATE TABLE IF NOT EXISTS app_events (id INTEGER NOT NULL PRIMARY KEY, dt TIMESTAMP DEFAULT (DATETIME('now', 'localtime')), type TEXT)",
+    "CREATE TABLE IF NOT EXISTS screen_sizes (id INTEGER NOT NULL PRIMARY KEY, dt TIMESTAMP DEFAULT (DATETIME('now', 'localtime')), x INTEGER, y INTEGER, w INTEGER, h INTEGER, display INTEGER)",
+    "CREATE TABLE IF NOT EXISTS counts (id INTEGER NOT NULL PRIMARY KEY, type TEXT, day DATETIME, count INTEGER, UNIQUE(type, day))",
 ) + tuple(TriggerTemplate .format(x) for x in [x for k, vv in InputTables for x in vv]
 ) + tuple(DayIndexTemplate.format(x) for x in [x for k, vv in InputTables for x in vv])
+
+"""
+Statements to update database v<1.3 to new schema,
+as {(table, column to check if exists): [ALTER SQLs]}.
+"""
+DbUpdateStatements = [
+    [("moves",   "display"), ["ALTER TABLE moves ADD COLUMN display INTEGER DEFAULT 0"]],
+    [("clicks",  "display"), ["ALTER TABLE clicks ADD COLUMN display INTEGER DEFAULT 0"]],
+    [("scrolls", "display"), ["ALTER TABLE scrolls ADD COLUMN display INTEGER DEFAULT 0"]],
+    [("screen_sizes", "display"),  [
+        "ALTER TABLE screen_sizes RENAME COLUMN x TO w",
+        "ALTER TABLE screen_sizes RENAME COLUMN y TO h",
+        "ALTER TABLE screen_sizes ADD COLUMN x INTEGER DEFAULT 0",
+        "ALTER TABLE screen_sizes ADD COLUMN y INTEGER DEFAULT 0",
+        "ALTER TABLE screen_sizes ADD COLUMN display INTEGER DEFAULT 0"]],
+]
 
 
 def init(filename=ConfigPath):

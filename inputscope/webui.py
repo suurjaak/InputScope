@@ -6,7 +6,7 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    24.01.2021
+@modified    27.01.2021
 """
 import collections
 import datetime
@@ -62,7 +62,7 @@ def mouse(table, period=None):
     events = db.select(table, where=where, order="stamp", limit=conf.MaxEventsForStats)
     stats, positions, events = stats_mouse(events, table, count)
     dbinfo = stats_db(conf.DbPath)
-    return bottle.template("heatmap.tpl", locals(), conf=conf)
+    return bottle.template("heatmap_mouse.tpl", locals(), conf=conf)
 
 
 @route("/keyboard/<table>")
@@ -89,7 +89,7 @@ def keyboard(table, period=None):
     events = db.select(table, where=where, order="stamp", limit=conf.MaxEventsForStats)
     stats, events = stats_keyboard(events, table, count)
     dbinfo = stats_db(conf.DbPath)
-    return bottle.template("heatmap.tpl", locals(), conf=conf)
+    return bottle.template("heatmap_keyboard.tpl", locals(), conf=conf)
 
 
 @route("/<input>")
@@ -186,39 +186,55 @@ def stats_keyboard(events, table, count):
 
 def stats_mouse(events, table, count):
     """Returns (statistics, positions, max-limited events)."""
-    distance, first, last, totaldelta = 0, None, None, datetime.timedelta()
+    first, last, totaldelta = None, None, datetime.timedelta()
     all_events = []
     HS = conf.MouseHeatmapSize
-    SC = dict(("xy"[i], conf.DefaultScreenSize[i] / float(HS[i])) for i in [0, 1])
-    xymap, counts = collections.defaultdict(int), collections.Counter()
-    sizes = db.fetch("screen_sizes", order=("dt",))
-    sizeidx, sizelen = -1, len(sizes) # Scale by desktop size at event time
+    SC = dict((k, conf.DefaultScreenSize[k]) for k in [0, 1])
+    SC.update(dt=datetime.datetime.min)
+    displayxymap = collections.defaultdict(lambda: collections.defaultdict(int))
+    counts, lasts = collections.Counter(), {} # {display: last event}
+    distances = collections.defaultdict(int)
+    SIZES = {} # Scale by desktop size at event time; {display: [{size}, ]}
+    for row in db.fetch("screen_sizes", order=("dt",)):
+        row.update({0: row["w"], 1: row["h"]})
+        SIZES.setdefault(row["display"], []).append(row)
+    sizeidxs, sizelens = {k: -1 for k in SIZES}, {k: len(SIZES[k]) for k in SIZES}
     for e in events:
         e.pop("id") # Decrease memory overhead
         e["dt"] = datetime.datetime.fromtimestamp(e.pop("stamp"))
         if not first: first = e
-        if last:
-            totaldelta += e["dt"] - last["dt"]
-            distance += math.sqrt(sum(abs(e[k] - last[k])**2 for k in "xy"))
-        last = dict(e) # Copy, as we modify coordinates for heatmap size
+        if e["display"] in lasts:
+            mylast = lasts[e["display"]]
+            totaldelta += e["dt"] - mylast["dt"]
+            distances[e["display"]] += math.sqrt(sum(abs(e[k] - mylast[k])**2 for k in "xy"))
+        last = lasts[e["display"]] = dict(e) # Copy, as we modify coordinates for heatmap size
+
+        if e["display"] in SIZES:
+            sizeidx, sizelen, sizes = (m[e["display"]] for m in (sizeidxs, sizelens, SIZES))
+        else: sizeidx, sizelen, sizes = -1, 1, [SC]
+
         if sizeidx < 0: # Find latest size from before event
             for i, size in reversed(list(enumerate(sizes))):
                 if e["dt"] >= size["dt"]:
-                    SC = dict((k, size[k] / float(HS["y" == k])) for k in "xy")
+                    sc = [size[k] / float(HS[k]) for k in [0, 1]]
                     sizeidx = i
                     break # for i, size
         else: # Find next size from before event
             while sizeidx < sizelen - 2 and e["dt"] >= sizes[sizeidx + 1]["dt"]:
                 sizeidx += 1
             if sizeidx < sizelen - 1 and e["dt"] >= sizes[sizeidx]["dt"]:
-                SC = dict((k, sizes[sizeidx][k] / float(HS["y" == k]))
-                          for k in "xy")
-        e["x"], e["y"] = tuple(min(int(e[k] / SC[k]), HS["y" == k]) for k in "xy")
-        xymap[(e["x"], e["y"])] += 1
+                sc = [sizes[sizeidx][k] / float(HS[k]) for k in [0, 1]]
+        sc = sc or [SC[k] / float(HS[k]) for k in [0, 1]]
+        e["x"], e["y"] = [max(0, min(int(e["xy"[k]] / sc[k]), HS[k])) for k in [0, 1]]
+
+        displayxymap[e["display"]][(e["x"], e["y"])] += 1
         if "moves" != table: counts.update([e["button" if "clicks" == table else "wheel"]])
+        if e["display"] in SIZES: sizeidxs[e["display"]] = sizeidx
         if len(all_events) < conf.MaxEventsForReplay: all_events.append(e)
 
-    stats, positions = [], [dict(x=x, y=y, count=v) for (x, y), v in xymap.items()]
+    positions = {i: [dict(x=x, y=y, count=v) for (x, y), v in displayxymap[i].items()]
+                 for i in sorted(displayxymap)}
+    stats, distance = [], sum(distances.values())
     if "moves" == table and count:
         px = re.sub(r"(\d)(?=(\d{3})+(?!\d))", r"\1,", "%d" % math.ceil(distance))
         seconds = timedelta_seconds(last["dt"] - first["dt"])
