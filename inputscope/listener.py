@@ -6,7 +6,7 @@ Mouse and keyboard listener, logs events to database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    27.01.2021
+@modified    28.01.2021
 """
 from __future__ import print_function
 import datetime
@@ -132,12 +132,18 @@ class DataHandler(threading.Thread):
         def get_display(pt):
             """Returns (display index, [x, y, w, h]) for mouse event position."""
             for i, size in enumerate(self.screen_sizes):
+                # Point falls exactly into display
                 if  size[0] <= pt[0] <= size[0] + size[2] \
                 and size[1] <= pt[1] <= size[1] + size[3]: return i, size
             if pt[0] >= self.screen_sizes[-1][0] + self.screen_sizes[-1][2] \
             or pt[1] >= self.screen_sizes[-1][1] + self.screen_sizes[-1][3]:
+                # Point is beyond the last display
                 return len(self.screen_sizes) - 1, self.screen_sizes[-1]
-            return 0, self.screen_sizes[0]
+            for i, size in enumerate(self.screen_sizes):
+                # One coordinate falls into display, other is off screen
+                if size[0] <= pt[0] <= size[0] + size[2] \
+                or size[1] <= pt[1] <= size[1] + size[3]: return i, size
+            return 0, self.screen_sizes[0] # Fall back to first display
 
         def rescale(pt):
             """Remaps point to heatmap size for less granularity."""
