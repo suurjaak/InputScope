@@ -6,7 +6,7 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    27.01.2021
+@modified    29.01.2021
 """
 import collections
 import datetime
@@ -318,6 +318,8 @@ def init():
     global app
     if app: return app
     conf.init(), db.init(conf.DbPath, conf.DbStatements)
+    try: db.execute("PRAGMA journal_mode = WAL")
+    except Exception: pass
 
     bottle.TEMPLATE_PATH.insert(0, conf.TemplatePath)
     app = bottle.default_app()

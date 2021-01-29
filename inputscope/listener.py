@@ -6,7 +6,7 @@ Mouse and keyboard listener, logs events to database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    28.01.2021
+@modified    29.01.2021
 """
 from __future__ import print_function
 import datetime
@@ -107,6 +107,7 @@ class Listener(threading.Thread):
         self.key_handler and self.key_handler.stop()
         self.data_handler.stop()
         self.inqueue.put(None) # Wake up thread waiting on queue
+        db.close()
         sys.exit()
 
 
