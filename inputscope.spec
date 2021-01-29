@@ -4,7 +4,7 @@ Pyinstaller spec file for InputScope, produces a Windows executable.
 
 @author    Erki Suurjaak
 @created   13.04.2015
-@modified  21.05.2015
+@modified  29.01.2021
 """
 import os
 import sys
@@ -13,17 +13,27 @@ APPPATH = os.path.join(os.path.dirname(os.path.abspath(SPEC)), "inputscope")
 sys.path.append(APPPATH)
 import conf
 
-a = Analysis([(os.path.join(APPPATH, "main.py"))],)
-# Workaround for PyInstaller 2.1 buggy warning about existing pyconfig.h
-for d in a.datas:
-    if "pyconfig" in d[0]: 
-        a.datas.remove(d)
-        break
-a.datas += [(os.path.join(*x), os.path.join(APPPATH, *x), "DATA") for x in
-            (["static", "icon.ico"], ["static", "site.css"],
-             ["static", "heatmap.min.js"], ["static", "keyboard.svg"],
-             ["views", "base.tpl"], ["views", "heatmap.tpl"],
-             ["views", "index.tpl"], ["views", "input.tpl"])]
+
+APP_INCLUDES = [("static", "icon.ico"),       ("static", "site.css"),
+                ("static", "heatmap.min.js"), ("static", "keyboard.svg"),
+                ("views", "index.tpl"),       ("views", "heatmap_keyboard.tpl"),
+                ("views", "input.tpl"),       ("views", "heatmap_mouse.tpl"),
+                ("views", "base.tpl"), ]
+DATA_EXCLUDES = ["Include\\pyconfig.h"] # Workaround for PyInstaller 2.1 buggy warning about existing pyconfig.h
+MODULE_EXCLUDES = ["_gtkagg", "_tkagg", "_tkinter", "bsddb", "bz2", "cherrypy",
+                   "colorama", "curses", "distutils", "doctest", "FixTk", "gevent",
+                   "html", "jinja2", "mako", "numpy", "OpenSSL", "os2emxpath",
+                   "paste", "PIL", "pygments", "pywin", "servicemanager",
+                   "setuptools", "sitecustomize", "tarfile", "tcl", "tk",
+                   "Tkconstants", "tkinter", "Tkinter", "tornado", "unittest",
+                   "urllib2", "win32ui", "wx.html", "xml", "xml.parsers.expat", ]
+BINARY_EXCLUDES = ["_ssl", "_testcapi"]
+
+a = Analysis([(os.path.join(APPPATH, "main.py"))], excludes=MODULE_EXCLUDES)
+a.datas -= [(n, None, "DATA") for n in DATA_EXCLUDES] # entry=(name, path, typecode)
+a.datas += [(os.path.join(*x), os.path.join(APPPATH, *x), "DATA")
+            for x in APP_INCLUDES]
+a.binaries -= [(n, None, None) for n in BINARY_EXCLUDES]
 pyz = PYZ(a.pure)
 
 exename = "%s_%s.exe" % (conf.Title, conf.Version)
