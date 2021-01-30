@@ -6,7 +6,7 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    29.01.2021
+@modified    30.01.2021
 """
 import collections
 import datetime
@@ -189,48 +189,41 @@ def stats_mouse(events, table, count):
     first, last, totaldelta = None, None, datetime.timedelta()
     all_events = []
     HS = conf.MouseHeatmapSize
-    SC = dict((k, conf.DefaultScreenSize[k]) for k in [0, 1])
-    SC.update(dt=datetime.datetime.min)
-    displayxymap = collections.defaultdict(lambda: collections.defaultdict(int))
+    SZ = dict((k + 2, conf.DefaultScreenSize[k] / float(HS[k])) for k in [0, 1])
+    SZ.update({"dt": datetime.datetime.min, 0: 0, 1: 0}) # {0,1,2,3: x,y,w,h}
+    displayxymap  = collections.defaultdict(lambda: collections.defaultdict(int))
     counts, lasts = collections.Counter(), {} # {display: last event}
-    distances = collections.defaultdict(int)
+    distances     = collections.defaultdict(int)
     SIZES = {} # Scale by desktop size at event time; {display: [{size}, ]}
     for row in db.fetch("screen_sizes", order=("dt",)):
-        row.update({0: row["w"], 1: row["h"]})
+        row.update({0: row["x"], 2: row["w"] / float(HS[0]),
+                    1: row["y"], 3: row["h"] / float(HS[1])})
         SIZES.setdefault(row["display"], []).append(row)
-    sizeidxs, sizelens = {k: -1 for k in SIZES}, {k: len(SIZES[k]) for k in SIZES}
+    cursizes = {k: None for k in SIZES}
     for e in events:
-        e.pop("id") # Decrease memory overhead
         e["dt"] = datetime.datetime.fromtimestamp(e.pop("stamp"))
         if not first: first = e
         if e["display"] in lasts:
             mylast = lasts[e["display"]]
             totaldelta += e["dt"] - mylast["dt"]
             distances[e["display"]] += math.sqrt(sum(abs(e[k] - mylast[k])**2 for k in "xy"))
-        last = lasts[e["display"]] = dict(e) # Copy, as we modify coordinates for heatmap size
+        last = lasts[e["display"]] = dict(e) # Copy, as we modify coordinates for heatmap
 
-        if e["display"] in SIZES:
-            sizeidx, sizelen, sizes = (m[e["display"]] for m in (sizeidxs, sizelens, SIZES))
-        else: sizeidx, sizelen, sizes = -1, 1, [SC]
+        sz, sizes = cursizes.get(e["display"]), SIZES.get(e["display"], [SZ])
+        if not sz or sz["dt"] > e["dt"]:
+            # Find latest size from before event, fallback to first size recorded
+            sz = next((s for s in sizes[::-1] if e["dt"] >= s["dt"]), sizes[0])
+            cursizes[e["display"]] = sz
 
-        if sizeidx < 0: # Find latest size from before event
-            for i, size in reversed(list(enumerate(sizes))):
-                if e["dt"] >= size["dt"]:
-                    sc = [size[k] / float(HS[k]) for k in [0, 1]]
-                    sizeidx = i
-                    break # for i, size
-        else: # Find next size from before event
-            while sizeidx < sizelen - 2 and e["dt"] >= sizes[sizeidx + 1]["dt"]:
-                sizeidx += 1
-            if sizeidx < sizelen - 1 and e["dt"] >= sizes[sizeidx]["dt"]:
-                sc = [sizes[sizeidx][k] / float(HS[k]) for k in [0, 1]]
-        sc = sc or [SC[k] / float(HS[k]) for k in [0, 1]]
-        e["x"], e["y"] = [max(0, min(int(e["xy"[k]] / sc[k]), HS[k])) for k in [0, 1]]
-
+        # Make heatmap coordinates, scaling event to screen size at event time
+        e["x"], e["y"] = [int((e["xy"[k]] - sz[k]) / sz[k + 2]) for k in [0, 1]]
+        # Constraint within heatmap, events at edges can have off-screen coordinates
+        e["x"], e["y"] = [max(0, min(e["xy"[k]], HS[k])) for k in [0, 1]]
         displayxymap[e["display"]][(e["x"], e["y"])] += 1
         if "moves" != table: counts.update([e["button" if "clicks" == table else "wheel"]])
-        if e["display"] in SIZES: sizeidxs[e["display"]] = sizeidx
-        if len(all_events) < conf.MaxEventsForReplay: all_events.append(e)
+        if len(all_events) < conf.MaxEventsForReplay:
+            for k in ("id", "day", "button", "wheel"): e.pop(k, None)
+            all_events.append(e)
 
     positions = {i: [dict(x=x, y=y, count=v) for (x, y), v in displayxymap[i].items()]
                  for i in sorted(displayxymap)}
@@ -266,19 +259,15 @@ def stats_mouse(events, table, count):
 
 def stats_db(filename):
     """Returns database information as [(label, value), ]."""
-    conf.InputTables
     result = [("Database", filename),
               ("Created", datetime.datetime.fromtimestamp(os.path.getctime(filename))),
               ("Last modified", datetime.datetime.fromtimestamp(os.path.getmtime(filename))),
               ("Size", format_bytes(os.path.getsize(filename))), ]
-    cmap = dict((x["type"], x["count"]) for x in db.fetch("counts", "type, SUM(count) AS count", group="type"))
+    counts = db.fetch("counts", "type, SUM(count) AS count", group="type")
+    cmap = dict((x["type"], x["count"]) for x in counts)
     for name, tables in conf.InputTables:
-        #total = sum(db.fetchone(t, "COUNT(*) AS c")["c"] for t in tables[:1])
-        """total = 0
-        for t in tables:
-            print datetime.datetime.now(), t
-            total += db.fetchone(t, "COUNT(*) AS c")["c"]"""
-        result += [("%s events" % name.capitalize(), "{:,}".format(sum(cmap.get(t) or 0 for t in tables)))]
+        countstr = "{:,}".format(sum(cmap.get(t) or 0 for t in tables))
+        result += [("%s events" % name.capitalize(), countstr)]
     return result
 
 
