@@ -221,13 +221,13 @@ class MouseHandler(pymouse.PyMouseEvent):
         self._output = output
         self.start()
 
-    def click(self, x, y, button, press):
+    def click(self, x, y, button, press, *a, **kw):
         if press: self._output(type="clicks", x=x, y=y, button=button)
 
-    def move(self, x, y):
+    def move(self, x, y, *a, **kw):
         self._output(type="moves", x=x, y=y)
 
-    def scroll(self, x, y, wheel):
+    def scroll(self, x, y, wheel, *a, **kw):
         self._output(type="scrolls", x=x, y=y, wheel=wheel)
 
 

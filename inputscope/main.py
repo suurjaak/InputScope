@@ -5,7 +5,7 @@ command-line echoer otherwise. Launches the event listener and web UI server.
 
 @author      Erki Suurjaak
 @created     05.05.2015
-@modified    27.01.2021
+@modified    31.01.2021
 """
 import calendar
 import datetime
@@ -63,8 +63,9 @@ class Model(threading.Thread):
         self.listener = None
         self.webui = None
         # Avoid leaving zombie child processes on Ctrl-Break/C etc
-        signal.signal(signal.SIGBREAK, lambda *a, **kw: self.stop(True))
         signal.signal(signal.SIGINT,   lambda *a, **kw: self.stop(True))
+        if hasattr(signal, "SIGBREAK"):
+            signal.signal(signal.SIGBREAK, lambda *a, **kw: self.stop(True))
 
 
     def toggle(self, category):
@@ -174,7 +175,7 @@ class MainApp(getattr(wx, "App", object)):
                   for i in conf.InputEvents if getattr(conf, conf.InputFlags[i])]))
                   if conf.MouseEnabled or conf.KeyboardEnabled else "no inputs")
             self.trayicon.ShowBalloon(conf.Title, msg)
-            
+
 
         wx.CallAfter(after)
         return True # App.OnInit returns whether processing should continue
