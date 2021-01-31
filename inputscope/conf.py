@@ -20,7 +20,7 @@ the declared ones in source code. File is deleted if all values are at default.
 
 @author      Erki Suurjaak
 @created     26.03.2015
-@modified    30.01.2021
+@modified    31.01.2021
 ------------------------------------------------------------------------------
 """
 try: import ConfigParser as configparser # Py2
@@ -36,8 +36,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.3.dev22"
-VersionDate = "30.01.2021"
+Version = "1.3.dev23"
+VersionDate = "31.01.2021"
 
 """TCP port of the web user interface."""
 WebHost = "localhost"
@@ -86,10 +86,10 @@ InputFlags = {
 """Maximum keypress interval to count as one typing session, in seconds."""
 KeyboardSessionMaxDelta = 3
 
-"""Fuzz radius for linear move events for event reduction, in seconds."""
-MouseMoveJoinWindow = 0.5
+"""Maximum interval between linear move events for event reduction, in seconds."""
+MouseMoveJoinInterval = 0.5
 
-"""Maximum interval between linear move events for event reduction, in heatmap pixels."""
+"""Fuzz radius for linear move events for event reduction, in heatmap pixels."""
 MouseMoveJoinRadius = 5
 
 """Interval between writings events to database, in seconds."""
@@ -336,7 +336,9 @@ def save(filename=ConfigPath):
         save_types = basestring, int, float, tuple, list, dict, type(None)
         for k, v in sorted(globals().items()):
             if not isinstance(v, save_types) or k.startswith("_") \
-            or default_values.get(k, parser) == v: continue # for k, v
+            or k not in default_values or default_values[k] == v \
+            or isinstance(default_values[k], tuple) and isinstance(v, list) \
+            and default_values[k] == tuple(v): continue # for k, v
             try: parser.set("DEFAULT", k, json.dumps(v))
             except Exception: pass
         if parser.defaults():

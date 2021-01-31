@@ -6,7 +6,7 @@ Mouse and keyboard listener, logs events to database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    29.01.2021
+@modified    30.01.2021
 """
 from __future__ import print_function
 import datetime
@@ -179,8 +179,8 @@ class DataHandler(threading.Thread):
                     self.lasts[category] = pos
 
                 if "moves" == category:
-                    if move0 and move1 and move1["stamp"] - move0["stamp"] < conf.MouseMoveJoinWindow \
-                    and data["stamp"] - move1["stamp"] < conf.MouseMoveJoinWindow \
+                    if move0 and move1 and move1["stamp"] - move0["stamp"] < conf.MouseMoveJoinInterval \
+                    and data["stamp"] - move1["stamp"] < conf.MouseMoveJoinInterval \
                     and move0["display"] == move1["display"] == data["display"]:
                         if one_line(*[(v["x"], v["y"]) for v in (move0, move1, data)]):
                             move1.update(data) # Reduce move events
