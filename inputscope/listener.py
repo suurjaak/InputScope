@@ -6,7 +6,7 @@ Mouse and keyboard listener, logs events to database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    30.01.2021
+@modified    31.01.2021
 """
 from __future__ import print_function
 import datetime
@@ -242,6 +242,7 @@ class KeyHandler(pykeyboard.PyKeyboardEvent):
     KEYS_UP   = (0x0101, 0x0105) # [WM_KEYUP, WM_SYSKEYUP]
     ALT_GRS   = (36, 64, 91, 92, 93, 123, 124, 125, 128, 163, 208, 222, 240, 254) # $@[\]{|}€£ŠŽšž
     OEM_KEYS  = {34: "Oem_3", 35: "Oem_5", 47: "Oem_1", 48: "Oem_2", 51: "Oem_5", 59: "Oem_Comma", 60: "Oem_Period", 61: "Oem_6", 94: "Oem_102"}
+    STICKY_KEYS = ["Lcontrol", "Rcontrol", "Lshift", "Rshift", "Alt", "AltGr", "Lwin", "Rwin", "ScrollLock", "CapsLock", "NumLock"]
 
 
 
@@ -254,6 +255,7 @@ class KeyHandler(pykeyboard.PyKeyboardEvent):
         setattr(self, NAMES[sys.platform], HANDLERS[sys.platform])
         self._modifiers = dict((x, False) for x in self.MODIFIERNAMES.values())
         self._realmodifiers = dict((x, False) for x in self.MODIFIERNAMES)
+        self._downs = {} # {key name: bool}
         self.start()
 
 
@@ -274,16 +276,11 @@ class KeyHandler(pykeyboard.PyKeyboardEvent):
 
     def _handle_windows(self, event):
         """Windows key event handler."""
-        if not conf.KeyboardEnabled: return
-        vkey = self._keyname(event.GetKey())
-        if event.Message in self.KEYS_UP + self.KEYS_DOWN:
-            if vkey in self.MODIFIERNAMES:
-                self._realmodifiers[vkey] = event.Message in self.KEYS_DOWN
-                self._modifiers[self.MODIFIERNAMES[vkey]] = self._realmodifiers[vkey]
-        if event.Message not in self.KEYS_DOWN:
-            return True
-
-        is_altgr = False
+        if event.Message not in self.KEYS_UP + self.KEYS_DOWN: return True
+        vkey, is_altgr = self._keyname(event.GetKey()), False
+        if vkey in self.MODIFIERNAMES:
+            self._realmodifiers[vkey] = event.Message in self.KEYS_DOWN
+            self._modifiers[self.MODIFIERNAMES[vkey]] = self._realmodifiers[vkey]
         if (vkey, event.IsExtended()) in self.NUMPAD_SPECIALS:
             key = vkey = "Numpad-" + vkey
         elif not event.Ascii or vkey.startswith("Numpad"):
@@ -291,6 +288,14 @@ class KeyHandler(pykeyboard.PyKeyboardEvent):
         else:
             is_altgr = event.Ascii in self.ALT_GRS
             key = self._keyname(unichr(event.Ascii))
+
+        if vkey in self.STICKY_KEYS \
+        and self._downs.get(vkey) == (event.Message in self.KEYS_DOWN):
+            return True # Avoid multiple events on holding down Shift etc
+        self._downs[vkey] = event.Message in self.KEYS_DOWN
+        if not conf.KeyboardEnabled: return True
+        if event.Message not in self.KEYS_DOWN:
+            return True
 
         if DEBUG: print("Adding key %s (real %s)" % (key.encode("utf-8"), vkey.encode("utf-8")))
         self._output(type="keys", key=key, realkey=vkey)
