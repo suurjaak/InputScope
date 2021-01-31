@@ -4,7 +4,7 @@ Setup.py for InputScope.
 
 @author      Erki Suurjaak
 @created     29.04.2015
-@modified    21.01.2021
+@modified    31.01.2021
 ------------------------------------------------------------------------------
 """
 import setuptools
@@ -44,6 +44,7 @@ setuptools.setup(
         "Programming Language :: Python :: 2.7",
     ],
 
+    long_description_content_type="text/markdown",
     long_description=
 """Mouse and keyboard input heatmap visualizer and statistics.
 
