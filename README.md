@@ -4,17 +4,10 @@ InputScope
 Mouse and keyboard input heatmap visualizer and statistics.
 
 Keypresses are logged as physical keys, ignoring Unicode mappings.
-Keyboard logging can interfere with remote control desktop, 
+Note: keyboard logging can interfere with remote control desktop, 
 UI automation scripts, and sticky keys.
 
-Three components:
-* main - wxPython desktop tray program, runs listener and webui
-* listener - logs mouse and keyboard input, can run individually
-* webui - web frontend for statistics and heatmaps, can run individually
-
-Listener and web-UI components can be run separately.
-
-Data is kept in an SQLite database, under inputscope/var.
+Data is kept in an SQLite database.
 
 [![Mouse clicks heatmap](https://raw.githubusercontent.com/suurjaak/InputScope/media/th_clicks.png)](https://raw.githubusercontent.com/suurjaak/InputScope/media/clicks.png)
 [![Mouse moves heatmap](https://raw.githubusercontent.com/suurjaak/InputScope/media/th_moves.png)](https://raw.githubusercontent.com/suurjaak/InputScope/media/moves.png)
@@ -33,6 +26,15 @@ http://github.com/suurjaak/InputScope/releases.
 Or:
 `pip install inputscope`
 
+Three components in source code form:
+* main - wxPython desktop tray program, runs listener and webui
+* listener - logs mouse and keyboard input, can run individually
+* webui - web frontend for statistics and heatmaps, can run individually
+
+Listener and web-UI components can be run separately.
+
+In source code form, data and configuration is kept under inputscope/var.
+
 The pip installation will add commands `inputscope`, `inputscope-listener` 
 and `inputscope-webui` to path.
 
@@ -40,7 +42,7 @@ and `inputscope-webui` to path.
 Dependencies
 ------------
 
-* Python 2.6 or 2.7
+* Python 2.7
 * bottle
 * PyUserInput
 * wxPython (optional)
