@@ -16,9 +16,9 @@ import conf
 
 APP_INCLUDES = [("static", "icon.ico"),       ("static", "site.css"),
                 ("static", "heatmap.min.js"), ("static", "keyboard.svg"),
-                ("views", "index.tpl"),       ("views", "heatmap_keyboard.tpl"),
-                ("views", "input.tpl"),       ("views", "heatmap_mouse.tpl"),
-                ("views", "base.tpl"), ]
+                ("views",  "index.tpl"),      ("views",  "heatmap_keyboard.tpl"),
+                ("views",  "input.tpl"),      ("views",  "heatmap_mouse.tpl"),
+                ("views",  "base.tpl"), ]
 DATA_EXCLUDES = ["Include\\pyconfig.h"] # PyInstaller 2.1 bug: warning about existing pyconfig.h
 MODULE_EXCLUDES = ["_gtkagg", "_tkagg", "_tkinter", "backports", "bsddb", "bz2",
                    "cherrypy", "colorama", "contextlib", "curses", "distutils",
@@ -34,8 +34,8 @@ MODULE_EXCLUDES = ["_gtkagg", "_tkagg", "_tkinter", "backports", "bsddb", "bz2",
                    "pyreadline", "pywin", "servicemanager", "setuptools",
                    "sitecustomize", "sre", "tarfile", "tcl", "tk", "Tkconstants",
                    "tkinter", "Tkinter", "tornado", "unittest", "urllib2",
-                   "win32com.client", "win32com.server", "win32ui", "wx.html",
-                   "xml", "xml.parsers.expat", "xmllib", "xmlrpclib", "zipfile", ]
+                   "win32com.server", "win32ui", "wx.html", "xml",
+                   "xml.parsers.expat", "xmllib", "xmlrpclib", "zipfile", ]
 BINARY_EXCLUDES = ["_ssl", "_testcapi"]
 PURE_RETAINS = {"encodings.": [
     "encodings.aliases", "encodings.ascii", "encodings.base64_codec",
