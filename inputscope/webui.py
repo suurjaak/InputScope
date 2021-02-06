@@ -6,7 +6,7 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    30.01.2021
+@modified    06.02.2021
 """
 import collections
 import datetime
@@ -220,9 +220,12 @@ def stats_mouse(events, table, count):
         # Constraint within heatmap, events at edges can have off-screen coordinates
         e["x"], e["y"] = [max(0, min(e["xy"[k]], HS[k])) for k in [0, 1]]
         displayxymap[e["display"]][(e["x"], e["y"])] += 1
-        if "moves" != table: counts.update([e["button" if "clicks" == table else "wheel"]])
+        if "clicks" == table: counts.update(e["button"])
+        elif "scrolls" == table: counts.update({
+            ("-" if e[k] < 0 else "") + k: bool(e[k]) for k in ("dx", "dy")
+        })
         if len(all_events) < conf.MaxEventsForReplay:
-            for k in ("id", "day", "button", "wheel"): e.pop(k, None)
+            for k in ("id", "day", "button", "dx", "dy"): e.pop(k, None)
             all_events.append(e)
 
     positions = {i: [dict(x=x, y=y, count=v) for (x, y), v in displayxymap[i].items()]
@@ -238,11 +241,13 @@ def stats_mouse(events, table, count):
                  ("", "%.4f meters per second" %
                   (distance * conf.PixelLength / (seconds or 1))), ]
     elif "scrolls" == table and count:
-        stats = [("Scrolls per hour", 
+        stats = filter(bool, [("Scrolls per hour", 
                   int(count / (timedelta_seconds(last["dt"] - first["dt"]) / 3600 or 1))),
                  ("Average interval", totaldelta / (count or 1)),
-                 ("Scrolls down", counts[-1]),
-                 ("Scrolls up", counts[1]), ]
+                 ("Scrolls down",  counts["-dy"]),
+                 ("Scrolls up",    counts["dy"]), 
+                 ("Scrolls left",  counts["dx"])  if counts["dx"]  else None, 
+                 ("Scrolls right", counts["-dx"]) if counts["-dx"] else None, ])
     elif "clicks" == table and count:
         NAMES = {1: "Left", 2: "Right", 3: "Middle"}
         stats = [("Clicks per hour", 

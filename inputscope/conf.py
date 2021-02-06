@@ -20,7 +20,7 @@ the declared ones in source code. File is deleted if all values are at default.
 
 @author      Erki Suurjaak
 @created     26.03.2015
-@modified    31.01.2021
+@modified    06.02.2021
 ------------------------------------------------------------------------------
 """
 try: import ConfigParser as configparser # Py2
@@ -36,8 +36,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.3.dev25"
-VersionDate = "31.01.2021"
+Version = "1.4.dev0"
+VersionDate = "06.02.2021"
 
 """TCP port of the web user interface."""
 WebHost = "localhost"
@@ -91,6 +91,9 @@ MouseMoveJoinInterval = 0.5
 
 """Fuzz radius for linear move events for event reduction, in heatmap pixels."""
 MouseMoveJoinRadius = 5
+
+"""Maximum interval between scroll events for event reduction, in seconds."""
+MouseScrollJoinInterval = 0.5
 
 """Interval between writings events to database, in seconds."""
 EventsWriteInterval = 5
@@ -281,7 +284,7 @@ DayIndexTemplate = "CREATE INDEX IF NOT EXISTS idx_{0}_day ON {0} (day)"
 DbStatements = (
     "CREATE TABLE IF NOT EXISTS moves (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, x INTEGER, y INTEGER, display INTEGER DEFAULT 0)",
     "CREATE TABLE IF NOT EXISTS clicks (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, x INTEGER, y INTEGER, button INTEGER, display INTEGER DEFAULT 0)",
-    "CREATE TABLE IF NOT EXISTS scrolls (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, x INTEGER, y INTEGER, wheel INTEGER, display INTEGER DEFAULT 0)",
+    "CREATE TABLE IF NOT EXISTS scrolls (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, x INTEGER, y INTEGER, dx INTEGER DEFAULT 0, dy INTEGER DEFAULT 0, display INTEGER DEFAULT 0)",
     "CREATE TABLE IF NOT EXISTS keys (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, key TEXT, realkey TEXT)",
     "CREATE TABLE IF NOT EXISTS combos (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, key TEXT, realkey TEXT)",
     "CREATE TABLE IF NOT EXISTS app_events (id INTEGER NOT NULL PRIMARY KEY, dt TIMESTAMP DEFAULT (DATETIME('now', 'localtime')), type TEXT)",
@@ -304,6 +307,9 @@ DbUpdateStatements = [
         "ALTER TABLE screen_sizes ADD COLUMN x INTEGER DEFAULT 0",
         "ALTER TABLE screen_sizes ADD COLUMN y INTEGER DEFAULT 0",
         "ALTER TABLE screen_sizes ADD COLUMN display INTEGER DEFAULT 0"]],
+    [("scrolls", "dy"),  [
+        "ALTER TABLE scrolls RENAME COLUMN wheel TO dy",
+        "ALTER TABLE screen_sizes ADD COLUMN dx INTEGER DEFAULT 0"]],
 ]
 
 

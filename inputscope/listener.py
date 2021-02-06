@@ -15,8 +15,9 @@ import sys
 import threading
 import time
 import traceback
+
 import pykeyboard
-import pymouse
+import pynput
 
 import conf
 import db
@@ -160,6 +161,9 @@ class DataHandler(threading.Thread):
             and not (x1 <= x2 <= x3) and not (y1 <= y2 <= y3): return False
             return abs((y1 - y2) * (x1 - x3) - (y1 - y3) * (x1 - x2)) <= conf.MouseMoveJoinRadius
 
+        def sign(v): return -1 if v < 0 else 1 if v > 0 else 0
+
+
         while self.running:
             data, items = self.inqueue.get(), []
             while data:
@@ -168,7 +172,7 @@ class DataHandler(threading.Thread):
                 except Queue.Empty: data = None
             if not items or not self.running: continue # while self.running
 
-            move0, move1 = None, None
+            move0, move1, scroll0 = None, None, None
             for data in items:
                 category = data.pop("type")
                 if category in conf.InputEvents["mouse"]:
@@ -178,14 +182,23 @@ class DataHandler(threading.Thread):
                     if self.lasts[category] == pos: continue # for data
                     self.lasts[category] = pos
 
-                if "moves" == category:
+                if "moves" == category: # Reduce move events
                     if move0 and move1 and move1["stamp"] - move0["stamp"] < conf.MouseMoveJoinInterval \
                     and data["stamp"] - move1["stamp"] < conf.MouseMoveJoinInterval \
                     and move0["display"] == move1["display"] == data["display"]:
                         if one_line(*[(v["x"], v["y"]) for v in (move0, move1, data)]):
-                            move1.update(data) # Reduce move events
+                            move1.update(data)
                             continue # for data
                     move0, move1 = move1, data
+                elif "scrolls" == category: # Reduce scroll events
+                    if scroll0 and scroll0["display"] == data["display"] \
+                    and sign(scroll0["dx"]) == sign(data["dx"]) \
+                    and sign(scroll0["dy"]) == sign(data["dy"]) \
+                    and data["stamp"] - scroll0["stamp"] < conf.MouseScrollJoinInterval:
+                        for k in ("dx", "dy"):        scroll0[k] += data[k]
+                        for k in ("stamp", "x", "y"): scroll0[k]  = data[k]
+                        continue # for data
+                    scroll0 = data
 
                 if category not in self.counts: self.counts[category] = 0
                 self.counts[category] += 1
@@ -213,22 +226,30 @@ class DataHandler(threading.Thread):
 
 
 
-class MouseHandler(pymouse.PyMouseEvent):
+class MouseHandler(pynput.mouse.Listener):
     """Listens to mouse events and forwards to output."""
 
     def __init__(self, output):
-        pymouse.PyMouseEvent.__init__(self)
+        super(MouseHandler, self).__init__(
+            on_move=self.move, on_click=self.click, on_scroll=self.scroll
+        )
         self._output = output
+        self._buttons = {"left": 1, "right": 2, "middle": 3, "unknown": 0}
+        for b in pynput.mouse.Button:
+            if b.name not in self._buttons:
+                self._buttons[b.name] = len(self._buttons)
         self.start()
 
-    def click(self, x, y, button, press, *a, **kw):
-        if press: self._output(type="clicks", x=x, y=y, button=button)
+    def click(self, x, y, button, pressed, *a, **kw):
+        if pressed:
+            buttonindex = self._buttons.get(button.name, 0)
+            self._output(type="clicks", x=x, y=y, button=buttonindex)
 
     def move(self, x, y, *a, **kw):
         self._output(type="moves", x=x, y=y)
 
-    def scroll(self, x, y, wheel, *a, **kw):
-        self._output(type="scrolls", x=x, y=y, wheel=wheel)
+    def scroll(self, x, y, dx, dy, *a, **kw):
+        self._output(type="scrolls", x=x, y=y, dx=dx, dy=dy)
 
 
 
