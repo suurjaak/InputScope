@@ -4,7 +4,7 @@ Pyinstaller spec file for InputScope, produces a Windows executable.
 
 @author    Erki Suurjaak
 @created   13.04.2015
-@modified  31.01.2021
+@modified  11.02.2021
 """
 import os
 import sys
@@ -21,7 +21,7 @@ APP_INCLUDES = [("static", "icon.ico"),       ("static", "site.css"),
                 ("views",  "base.tpl"), ]
 DATA_EXCLUDES = ["Include\\pyconfig.h"] # PyInstaller 2.1 bug: warning about existing pyconfig.h
 MODULE_EXCLUDES = ["_gtkagg", "_tkagg", "_tkinter", "backports", "bsddb", "bz2",
-                   "cherrypy", "colorama", "contextlib", "curses", "distutils",
+                   "cherrypy", "colorama", "curses", "distutils",
                    "doctest", "email.errors", "email.feedparser", "email.header",
                    "email.message", "email.parser", "FixTk", "ftplib",
                    "future.backports", "future.builtins", "future.moves",
@@ -36,6 +36,7 @@ MODULE_EXCLUDES = ["_gtkagg", "_tkagg", "_tkinter", "backports", "bsddb", "bz2",
                    "tkinter", "Tkinter", "tornado", "unittest", "urllib2",
                    "win32com.server", "win32ui", "wx.html", "xml",
                    "xml.parsers.expat", "xmllib", "xmlrpclib", "zipfile", ]
+MODULE_INCLUDES = ["pynput.mouse._win32", "pynput.keyboard._win32"]
 BINARY_EXCLUDES = ["_ssl", "_testcapi"]
 PURE_RETAINS = {"encodings.": [
     "encodings.aliases", "encodings.ascii", "encodings.base64_codec",
@@ -44,7 +45,8 @@ PURE_RETAINS = {"encodings.": [
 ]}
 
 
-a = Analysis([(os.path.join(APPPATH, "main.py"))], excludes=MODULE_EXCLUDES)
+a = Analysis([(os.path.join(APPPATH, "main.py"))], excludes=MODULE_EXCLUDES,
+            hiddenimports=MODULE_INCLUDES)
 a.datas -= [(n, None, "DATA") for n in DATA_EXCLUDES] # entry=(name, path, typecode)
 a.datas += [(os.path.join(*x), os.path.join(APPPATH, *x), "DATA")
             for x in APP_INCLUDES]
