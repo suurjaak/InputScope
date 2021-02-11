@@ -44,7 +44,7 @@ Dependencies
 
 * Python 2.7
 * bottle
-* PyUserInput
+* pynput
 * wxPython (optional)
 
 

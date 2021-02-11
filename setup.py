@@ -4,7 +4,7 @@ Setup.py for InputScope.
 
 @author      Erki Suurjaak
 @created     29.04.2015
-@modified    31.01.2021
+@modified    10.02.2021
 ------------------------------------------------------------------------------
 """
 import setuptools
@@ -23,7 +23,7 @@ setuptools.setup(
     platforms=["any"],
     keywords="mouse keyboard logging heatmap",
 
-    install_requires=["bottle", "PyUserInput", "wxPython>=4.0"],
+    install_requires=["bottle", "pynput", "wxPython>=4.0"],
     entry_points={"gui_scripts": ["inputscope = inputscope.main:main"],
                   "console_scripts": ["inputscope-listener = inputscope.listener:main",
                                       "inputscope-webui = inputscope.webui:main"]},

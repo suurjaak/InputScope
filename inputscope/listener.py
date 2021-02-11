@@ -6,17 +6,18 @@ Mouse and keyboard listener, logs events to database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    31.01.2021
+@modified    10.02.2021
 """
 from __future__ import print_function
 import datetime
+import math
 import Queue
 import sys
 import threading
 import time
 import traceback
-import pykeyboard
-import pymouse
+
+import pynput
 
 import conf
 import db
@@ -160,6 +161,9 @@ class DataHandler(threading.Thread):
             and not (x1 <= x2 <= x3) and not (y1 <= y2 <= y3): return False
             return abs((y1 - y2) * (x1 - x3) - (y1 - y3) * (x1 - x2)) <= conf.MouseMoveJoinRadius
 
+        def sign(v): return -1 if v < 0 else 1 if v > 0 else 0
+
+
         while self.running:
             data, items = self.inqueue.get(), []
             while data:
@@ -168,7 +172,7 @@ class DataHandler(threading.Thread):
                 except Queue.Empty: data = None
             if not items or not self.running: continue # while self.running
 
-            move0, move1 = None, None
+            move0, move1, scroll0 = None, None, None
             for data in items:
                 category = data.pop("type")
                 if category in conf.InputEvents["mouse"]:
@@ -178,14 +182,23 @@ class DataHandler(threading.Thread):
                     if self.lasts[category] == pos: continue # for data
                     self.lasts[category] = pos
 
-                if "moves" == category:
+                if "moves" == category: # Reduce move events
                     if move0 and move1 and move1["stamp"] - move0["stamp"] < conf.MouseMoveJoinInterval \
                     and data["stamp"] - move1["stamp"] < conf.MouseMoveJoinInterval \
                     and move0["display"] == move1["display"] == data["display"]:
                         if one_line(*[(v["x"], v["y"]) for v in (move0, move1, data)]):
-                            move1.update(data) # Reduce move events
+                            move1.update(data)
                             continue # for data
                     move0, move1 = move1, data
+                elif "scrolls" == category: # Reduce scroll events
+                    if scroll0 and scroll0["display"] == data["display"] \
+                    and sign(scroll0["dx"]) == sign(data["dx"]) \
+                    and sign(scroll0["dy"]) == sign(data["dy"]) \
+                    and data["stamp"] - scroll0["stamp"] < conf.MouseScrollJoinInterval:
+                        for k in ("dx", "dy"):        scroll0[k] += data[k]
+                        for k in ("stamp", "x", "y"): scroll0[k]  = data[k]
+                        continue # for data
+                    scroll0 = data
 
                 if category not in self.counts: self.counts[category] = 0
                 self.counts[category] += 1
@@ -213,150 +226,202 @@ class DataHandler(threading.Thread):
 
 
 
-class MouseHandler(pymouse.PyMouseEvent):
+class MouseHandler(object):
     """Listens to mouse events and forwards to output."""
 
     def __init__(self, output):
-        pymouse.PyMouseEvent.__init__(self)
         self._output = output
-        self.start()
+        self._buttons = {"left": 1, "right": 2, "middle": 3, "unknown": 0}
+        for b in pynput.mouse.Button:
+            if b.name not in self._buttons:
+                self._buttons[b.name] = len(self._buttons)
+        self._listener = pynput.mouse.Listener(
+            on_move=self.move, on_click=self.click, on_scroll=self.scroll
+        )
+        self._listener.start()
 
-    def click(self, x, y, button, press, *a, **kw):
-        if press: self._output(type="clicks", x=x, y=y, button=button)
+    def click(self, x, y, button, pressed, *a, **kw):
+        if pressed:
+            buttonindex = self._buttons.get(button.name, 0)
+            self._output(type="clicks", x=x, y=y, button=buttonindex)
 
     def move(self, x, y, *a, **kw):
         self._output(type="moves", x=x, y=y)
 
-    def scroll(self, x, y, wheel, *a, **kw):
-        self._output(type="scrolls", x=x, y=y, wheel=wheel)
+    def scroll(self, x, y, dx, dy, *a, **kw):
+        self._output(type="scrolls", x=x, y=y, dx=dx, dy=dy)
+
+    def stop(self): self._listener.stop()
+        
 
 
-
-class KeyHandler(pykeyboard.PyKeyboardEvent):
+class KeyHandler(object):
     """Listens to keyboard events and forwards to output."""
     CONTROLCODES = {"\x00": "Nul", "\x01": "Start-Of-Header", "\x02": "Start-Of-Text", "\x03": "Break", "\x04": "End-Of-Transmission", "\x05": "Enquiry", "\x06": "Ack", "\x07": "Bell", "\x08": "Backspace", "\x09": "Tab", "\x0a": "Linefeed", "\x0b": "Vertical-Tab", "\x0c": "Form-Fe", "\x0d": "Enter", "\x0e": "Shift-In", "\x0f": "Shift-Out", "\x10": "Data-Link-Escape", "\x11": "Devicecontrol1", "\x12": "Devicecontrol2", "\x13": "Devicecontrol3", "\x14": "Devicecontrol4", "\x15": "Nak", "\x16": "Syn", "\x17": "End-Of-Transmission-Block", "\x18": "Break", "\x19": "End-Of-Medium", "\x1a": "Substitute", "\x1b": "Escape", "\x1c": "File-Separator", "\x1d": "Group-Separator", "\x1e": "Record-Separator", "\x1f": "Unit-Separator", "\x20": "Space", "\x7f": "Del", "\xa0": "Non-Breaking Space"}
     NUMPAD_SPECIALS = [("Insert", False), ("Delete", False), ("Home", False), ("End", False), ("PageUp", False), ("PageDown", False), ("Up", False), ("Down", False), ("Left", False), ("Right", False), ("Clear", False), ("Enter", True)]
-    MODIFIERNAMES = {"Lcontrol": "Ctrl", "Rcontrol": "Ctrl", "Lshift": "Shift", "Rshift": "Shift", "Alt": "Alt", "AltGr": "Alt", "Lwin": "Win", "Rwin": "Win"}
+    NUMPAD_CHARS = {"0": "Numpad0", "1": "Numpad1", "2": "Numpad2", "3": "Numpad3", "4": "Numpad4", "5": "Numpad5", "6": "Numpad6", "7": "Numpad7", "8": "Numpad8", "9": "Numpad9", "/": "Numpad-Divide", "*": "Numpad-Multiply", "-": "Numpad-Subtract", "+": "Numpad-Add", }
+    MODIFIERNAMES = {"Lcontrol": "Ctrl", "Rcontrol": "Ctrl", "Lshift": "Shift", "Rshift": "Shift", "Alt": "Alt", "Lwin": "Win", "Rwin": "Win", "AltGr": "AltGr"}
     RENAMES = {"Prior": "PageUp", "Next": "PageDown", "Lmenu": "Alt", "Rmenu": "AltGr", "Apps": "Menu", "Return": "Enter", "Back": "Backspace", "Capital": "CapsLock", "Numlock": "NumLock", "Snapshot": "PrintScreen", "Scroll": "ScrollLock", "Decimal": "Numpad-Decimal", "Divide": "Numpad-Divide", "Subtract": "Numpad-Subtract", "Multiply": "Numpad-Multiply", "Add": "Numpad-Add", "Cancel": "Break", "Control_L": "Lcontrol", "Control_R": "Rcontrol", "Alt_L": "Alt", "Shift_L": "Lshift", "Shift_R": "Rshift", "Super_L": "Lwin", "Super_R": "Rwin", "BackSpace": "Backspace", "L1": "F11", "L2": "F12", "Page_Up": "PageUp", "Print": "PrintScreen", "Scroll_Lock": "ScrollLock", "Caps_Lock": "CapsLock", "Num_Lock": "NumLock", "Begin": "Clear", "Super": "Win", "Mode_switch": "AltGr"}
-    KEYS_DOWN = (0x0100, 0x0104) # [WM_KEYDOWN, WM_SYSKEYDOWN]
-    KEYS_UP   = (0x0101, 0x0105) # [WM_KEYUP, WM_SYSKEYUP]
-    ALT_GRS   = (36, 64, 91, 92, 93, 123, 124, 125, 128, 163, 208, 222, 240, 254) # $@[\]{|}€£ŠŽšž
-    OEM_KEYS  = {34: "Oem_3", 35: "Oem_5", 47: "Oem_1", 48: "Oem_2", 51: "Oem_5", 59: "Oem_Comma", 60: "Oem_Period", 61: "Oem_6", 94: "Oem_102"}
     STICKY_KEYS = ["Lcontrol", "Rcontrol", "Lshift", "Rshift", "Alt", "AltGr", "Lwin", "Rwin", "ScrollLock", "CapsLock", "NumLock"]
+    PYNPUT_NAMES = {"alt_l": "Alt", "alt_r": "AltGr", "cmd": "Lwin", "cmd_l": "Lwin", "cmd_r": "Rwin", "ctrl": "Lcontrol", "ctrl_l": "Lcontrol", "ctrl_r": "Rcontrol", "esc": "Escape", "shift": "Lshift", "shift_l": "Lshift", "shift_r": "Rshift", "pause": "Break"}
+    VK_NAMES = { # Virtual keycode values on Windows
+        226: "Oem_102",    # Right from Lshift
+        188: "Oem_Comma",  # Right from M
+        190: "Oem_Period", # Right from Oem_Comma
+        221: "Oem_6",      # Left from Rshift
 
+        186: "Oem_1",      # Right from L
+        191: "Oem_2",      # Right from Oem_1
+        220: "Oem_5",      # Right from Oem_2
+
+        192: "Oem_3",      # Right from P
+        219: "Oem_4",      # Right from Oem_3
+
+        222: "Oem_7",      # Left  from 1
+        189: "Oem_Minus",  # Right from 0
+        187: "Oem_Plus",   # Left  from Backspace
+
+         96: "Numpad0",
+         97: "Numpad1",
+         98: "Numpad2",
+         99: "Numpad3",
+        100: "Numpad4",
+        101: "Numpad5",
+        102: "Numpad6",
+        103: "Numpad7",
+        104: "Numpad8",
+        105: "Numpad9",
+
+         12: "Numpad-Clear", # Numpad5 without NumLock
+        111: "Numpad-Divide",
+        106: "Numpad-Multiply",
+        109: "Numpad-Subtract",
+        107: "Numpad-Add",
+
+        172: "Web/Home", # Extra top keys
+        180: "Email",
+        181: "Media",
+        183: "Calculator",
+    }
+    OTHER_VK_NAMES = { # Not Windows
+        65027:     "AltGr",
+        65437:     "Numpad-Clear", # Numpad5 without NumLock
+        269025041: "MediaVolumeDown",
+        269025042: "MediaVolumeMute",
+        269025043: "MediaVolumeUp",
+        269025044: "MediaPlayPause",
+        269025048: "Web/Home",
+        269025049: "Email",
+        269025053: "Calculator",
+        269025074: "Media",
+    }
 
 
     def __init__(self, output):
-        pykeyboard.PyKeyboardEvent.__init__(self)
+        self.KEYNAMES = {k: v for k, v in self.PYNPUT_NAMES.items()} # pynput.Key.xyz.name: label
+        for key in pynput.keyboard.Key:
+            if key.name not in self.KEYNAMES:
+                self.KEYNAMES[key.name] = self.nicename(key.name)
+
         self._output = output
-        NAMES = {"win32": "handler", "linux2": "tap", "darwin": "keypress"}
-        HANDLERS = {"win32": self._handle_windows, "linux2": self._handle_linux,
-                    "darwin": self._handle_mac}
-        setattr(self, NAMES[sys.platform], HANDLERS[sys.platform])
-        self._modifiers = dict((x, False) for x in self.MODIFIERNAMES.values())
+        self._downs  = {} # {key name: bool}
+        self._modifiers     = dict((x, False) for x in self.MODIFIERNAMES.values())
         self._realmodifiers = dict((x, False) for x in self.MODIFIERNAMES)
-        self._downs = {} # {key name: bool}
-        self.start()
+        # Extended keys: AltGr, Rcontrol; clustered Insert/Delete/navigation and arrows;
+        # NumLock; Break; PrintScreen; Numpad-Divide, Numpad-Enter
+        self._is_extended = None # Current key is extended key
+
+        args = dict(on_press=  lambda k, *a, **kw: self.on_event(True,  k),
+                    on_release=lambda k, *a, **kw: self.on_event(False, k))
+        if "win32" == sys.platform:
+            args.update(win32_event_filter=self.win32_filter)
+        # Cannot inherit from pynput.keyboard.Listener directly,
+        # as it does hacky magic dependant on self.__class__.__module__
+        self._listener  = pynput.keyboard.Listener(**args)
+        self._listener.start()
 
 
-    def _keyname(self, key, keycode=None):
-        if keycode in self.OEM_KEYS:
-            key = self.OEM_KEYS[keycode]
-        elif key.startswith("KP_"): # Linux numpad
-            if 4 == len(key):
-                key = key.replace("KP_", "Numpad")
-            else:
-                key = key.replace("KP_", "")
-                key = "Numpad-" + self.RENAMES.get(key, key).replace("Numpad-", "")
-        else:
-            key = self.CONTROLCODES.get(key, key)
-            key = self.RENAMES.get(key, key)
-        return key.upper() if 1 == len(key) else key
+    def on_event(self, pressed, key):
+        """Handler for key event."""
+        mykey, realkey = self.extract(key)
+        if not mykey and not realkey: return
 
+        if realkey in self.MODIFIERNAMES:
+            self._modifiers[self.MODIFIERNAMES[realkey]] = pressed
+            self._realmodifiers[realkey] = pressed
 
-    def _handle_windows(self, event):
-        """Windows key event handler."""
-        if event.Message not in self.KEYS_UP + self.KEYS_DOWN: return True
-        vkey, is_altgr = self._keyname(event.GetKey()), False
-        if vkey in self.MODIFIERNAMES:
-            self._realmodifiers[vkey] = event.Message in self.KEYS_DOWN
-            self._modifiers[self.MODIFIERNAMES[vkey]] = self._realmodifiers[vkey]
-        if (vkey, event.IsExtended()) in self.NUMPAD_SPECIALS:
-            key = vkey = "Numpad-" + vkey
-        elif not event.Ascii or vkey.startswith("Numpad"):
-            key = vkey
-        else:
-            is_altgr = event.Ascii in self.ALT_GRS
-            key = self._keyname(unichr(event.Ascii))
+        if realkey in self.STICKY_KEYS and self._downs.get(realkey) == pressed:
+            return # Avoid multiple events on holding down Shift etc
+        self._downs[realkey] = pressed
+        if not conf.KeyboardEnabled or not pressed: return
 
-        if vkey in self.STICKY_KEYS \
-        and self._downs.get(vkey) == (event.Message in self.KEYS_DOWN):
-            return True # Avoid multiple events on holding down Shift etc
-        self._downs[vkey] = event.Message in self.KEYS_DOWN
-        if not conf.KeyboardEnabled: return True
-        if event.Message not in self.KEYS_DOWN:
-            return True
+        if DEBUG: print("Adding key %s (real %s)" % (mykey.encode("utf-8"), realkey.encode("utf-8")))
+        self._output(type="keys", key=mykey, realkey=realkey)
 
-        if DEBUG: print("Adding key %s (real %s)" % (key.encode("utf-8"), vkey.encode("utf-8")))
-        self._output(type="keys", key=key, realkey=vkey)
-
-        if vkey not in self.MODIFIERNAMES and not is_altgr and conf.KeyboardCombosEnabled:
-            modifier = "-".join(k for k in ["Ctrl", "Alt", "Shift", "Win"]
+        if mykey not in self.MODIFIERNAMES and conf.KeyboardCombosEnabled:
+            modifier = "-".join(k for k in ["Ctrl", "Alt", "AltGr", "Shift", "Win"]
                                 if self._modifiers[k])
             if modifier and modifier != "Shift": # Shift-X is not a combo
-                if self._modifiers["Ctrl"] and event.Ascii:
-                    key = self._keyname(unichr(event.KeyID))
+                mykey = "%s-%s" % (modifier, realkey)
                 realmodifier = "-".join(k for k, v in self._realmodifiers.items() if v)
-                realkey = "%s-%s" % (realmodifier, key)
-                key = "%s-%s" % (modifier, key)
-                if DEBUG: print("Adding combo %s (real %s)" % (key.encode("utf-8"), realkey.encode("utf-8")))
-                self._output(type="combos", key=key, realkey=realkey)
-
-        if DEBUG:
-            print("CHARACTER: %r" % key)
-            print('GetKey: {0}'.format(event.GetKey()))  # Name of the virtual keycode, str
-            print('IsAlt: {0}'.format(event.IsAlt()))  # Was the alt key depressed?, bool
-            print('IsExtended: {0}'.format(event.IsExtended()))  # Is this an extended key?, bool
-            print('IsInjected: {0}'.format(event.IsInjected()))  # Was this event generated programmatically?, bool
-            print('IsTransition: {0}'.format(event.IsTransition()))  #Is this a transition from up to down or vice versa?, bool
-            print('ASCII: {0}'.format(event.Ascii))  # ASCII value, if one exists, str
-            print('KeyID: {0}'.format(event.KeyID))  # Virtual key code, int
-            print('ScanCode: {0}'.format(event.ScanCode))  # Scan code, int
-            print('Message: {0}'.format(event.Message))  # Name of the virtual keycode, str
-            print()
-        return True
+                realkey = "%s-%s" % (realmodifier, realkey)
+                if DEBUG: print("Adding combo %s (real %s)" % (mykey.encode("utf-8"), realkey.encode("utf-8")))
+                self._output(type="combos", key=mykey, realkey=realkey)
 
 
-    def _handle_mac(self, keycode):
-        """Mac key event handler"""
-        if not conf.KeyboardEnabled: return
-        key = self._keyname(unichr(keycode))
-        self._output(type="keys", key=key, realkey=key)
+    def extract(self, key):
+        """Returns (key name or uppercase char, realkey name) for pynput event."""
+        if isinstance(key, pynput.keyboard.Key):
+            name, char, vk = key.name, key.value.char, key.value.vk
+        else: # pynput.keyboard.KeyCode
+            name, char, vk = None, key.char, key.vk
 
-    def _handle_linux(self, keycode, character, press):
-        """Linux key event handler."""
-        if not conf.KeyboardEnabled: return
-        if character is None: return
-        key = self._keyname(character, keycode)
-        if key in self.MODIFIERNAMES:
-            self._modifiers[self.MODIFIERNAMES[key]] = press
-            self._realmodifiers[key] = press
-        if press:
-            self._output(type="keys", key=key, realkey=key)
-        if press and key not in self.MODIFIERNAMES and conf.KeyboardCombosEnabled:
-            modifier = "-".join(k for k in ["Ctrl", "Alt", "Shift", "Win"]
-                                if self._modifiers[k])
-            if modifier and modifier != "Shift": # Shift-X is not a combo
-                realmodifier = "-".join(k for k, v in self._realmodifiers.items() if v)
-                realkey = "%s-%s" % (realmodifier, key)
-                key = "%s-%s" % (modifier, key)
-                if DEBUG: print("Adding combo %s (real %s)" % (key.encode("utf-8"), realkey.encode("utf-8")))
-                self._output(type="combos", key=key, realkey=realkey)
+        if name:
+            name = self.KEYNAMES.get(name) or self.nicename(name)
+            name = realname = self.RENAMES.get(name, name)
+            if vk and (name, self._is_extended) in self.NUMPAD_SPECIALS:
+                name = realname = "Numpad-" + name
+        elif ord("A") <= vk <= ord("Z"): # Common A..Z keys, whatever the chars
+            name, realname = char.upper() if char else chr(vk), chr(vk)
+
+        if not name and "win32" != sys.platform:
+            if   char and vk:               name = char.upper()
+            elif char in self.NUMPAD_CHARS: name = self.NUMPAD_CHARS[char]
+            elif vk in self.OTHER_VK_NAMES: name = self.OTHER_VK_NAMES[vk]
+            else: name = char.upper() if char else zhex(vk) if vk else None
+            realname = name
+        elif vk in self.VK_NAMES: # Numpad and extra keys
+            realname = self.VK_NAMES[vk]
+            name = char.upper() if char and "Oem_" in realname else realname
+        elif name: pass
+        elif char and vk:
+            name = char.upper()
+            realname = chr(vk) if ord("0") <= vk <= ord("9") else zhex(vk)
+        else: realname = None
+
+        if name in self.CONTROLCODES:
+            realname = self.CONTROLCODES.get(realname, realname)
+            # Combos can also produce control codes, e.g. Ctrl-Y: End-of-Medium
+            if self._modifiers["Ctrl"]: name = realname
+            else: name = self.CONTROLCODES[name]
+
+        return name, realname
 
 
-    def escape(self, event):
-        """Override PyKeyboardEvent.escape to not quit on Escape."""
-        return False
+    def win32_filter(self, msg, data):
+        """Stores extended-key bit for upcoming press/release event."""
+        # Pressing AltGr generates a dummy Lcontrol event: skip on_event()
+        if 541 == data.scanCode and 162 == data.vkCode: return False
+        # KBDLLHOOKSTRUCT.flags bit 0 is LLKHF_EXTENDED
+        self._is_extended = data.flags & 0x01
+
+
+    def nicename(self, s):
+        """Transforms snake case like "alt_gr" to Pascal case like "AltGr"."""
+        return "".join(x.capitalize() for x in s.split("_"))
+
+
+    def stop(self): self._listener.stop()
 
 
 
@@ -372,6 +437,12 @@ class LineQueue(threading.Thread):
         for line in iter(self.input.readline, ""):
             self.queue.put(line.strip())
 
+def zhex(v):
+    """Returns number as zero-padded hex, e.g. "0x0C" for 12 and "0x0100" for 256."""
+    if not v: return "0x00"
+    sign, v = ("-" if v < 0 else ""), abs(v)
+    return "%s0x%0*X" % (sign, 2 * int(1 + math.log(v) / math.log(2) // 8), v)
+
 
 def start(inqueue, outqueue=None):
     """Starts the listener with incoming and outgoing queues."""
@@ -383,15 +454,16 @@ def start(inqueue, outqueue=None):
             continue # for
         for sql in sqls: db.execute(sql)
 
+    try: db.execute("PRAGMA journal_mode = WAL")
+    except Exception: pass
+
     try: Listener(inqueue, outqueue).run()
     except KeyboardInterrupt: pass
 
 
 def main():
     """Entry point for stand-alone execution."""
-    conf.init(), db.init(conf.DbPath)
-    try: db.execute("PRAGMA journal_mode = WAL")
-    except Exception: pass
+    conf.init()
     inqueue = LineQueue(sys.stdin).queue
     outqueue = type("", (), {"put": lambda self, x: print("\r%s" % x, end=" ")})()
     if "--quiet" in sys.argv: outqueue = None
