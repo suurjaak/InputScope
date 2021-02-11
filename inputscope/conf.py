@@ -20,7 +20,7 @@ the declared ones in source code. File is deleted if all values are at default.
 
 @author      Erki Suurjaak
 @created     26.03.2015
-@modified    10.02.2021
+@modified    11.02.2021
 ------------------------------------------------------------------------------
 """
 try: import ConfigParser as configparser # Py2
@@ -36,8 +36,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.4.dev1"
-VersionDate = "10.02.2021"
+Version = "1.4.dev2"
+VersionDate = "11.02.2021"
 
 """TCP port of the web user interface."""
 WebHost = "localhost"
@@ -97,6 +97,9 @@ MouseScrollJoinInterval = 0.5
 
 """Interval between writings events to database, in seconds."""
 EventsWriteInterval = 5
+
+"""Interval between checking and saving screen size, in seconds."""
+ScreenSizeInterval = 10
 
 """Maximum number of events to use for statistics page."""
 MaxEventsForStats = 1000 * 1000

@@ -5,7 +5,7 @@ command-line echoer otherwise. Launches the event listener and web UI server.
 
 @author      Erki Suurjaak
 @created     05.05.2015
-@modified    31.01.2021
+@modified    11.02.2021
 """
 import calendar
 import datetime
@@ -58,6 +58,7 @@ class Model(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.running = False
+        self.sizes = None # [[x, y, w, h], ]
         self.initialqueue = multiprocessing.Queue()
         self.listenerqueue = None
         self.listener = None
@@ -106,8 +107,10 @@ class Model(threading.Thread):
         if exit: sys.exit()
 
     def log_resolution(self, sizes):
+        if sizes == self.sizes: return
         q = self.listenerqueue or self.initialqueue
         q.put("screen_size %s" % " ".join(map(str, sizes)))
+        self.sizes = sizes
 
     def clear_history(self, category, dates):
         cmd = " ".join(["clear", category or "all"] + list(map(str, dates)))
@@ -140,6 +143,7 @@ class Model(threading.Thread):
 
 
 class MainApp(getattr(wx, "App", object)):
+
     def OnInit(self):
         self.model = Model()
         self.startupservice = StartupService()
@@ -147,6 +151,7 @@ class MainApp(getattr(wx, "App", object)):
         self.frame_console = wx.py.shell.ShellFrame(None)
         self.trayicon = wx.adv.TaskBarIcon()
         self.icons = None
+        self.sizetimer = wx.Timer(self)
 
         if os.path.exists(conf.IconPath):
             icons = self.icons = wx.IconBundle()
@@ -158,16 +163,16 @@ class MainApp(getattr(wx, "App", object)):
 
         self.frame_console.Title = "%s Console" % conf.Title
 
-        self.Bind(wx.EVT_CLOSE, self.OnClose)
-        self.Bind(wx.EVT_DISPLAY_CHANGED, self.OnDisplayChanged)
+        self.Bind(wx.EVT_CLOSE,                            self.OnClose)
+        self.Bind(wx.EVT_DISPLAY_CHANGED,                  self.OnLogResolution)
+        self.Bind(wx.EVT_TIMER,                            self.OnLogResolution)
         self.trayicon.Bind(wx.adv.EVT_TASKBAR_LEFT_DCLICK, self.OnOpenUI)
-        self.trayicon.Bind(wx.adv.EVT_TASKBAR_RIGHT_DOWN, self.OnOpenMenu)
-        self.frame_console.Bind(wx.EVT_CLOSE, self.OnToggleConsole)
-
+        self.trayicon.Bind(wx.adv.EVT_TASKBAR_RIGHT_DOWN,  self.OnOpenMenu)
+        self.frame_console.Bind(wx.EVT_CLOSE,              self.OnToggleConsole)
 
         def after():
             if not self: return
-            self.OnDisplayChanged()
+            self.OnLogResolution()
             self.model.start()
             msg = "Logging %s." % ("\nand ".join(filter(bool,
                   ["%s inputs (%s)" % (i, ", ".join(c for c in conf.InputEvents[i]
@@ -175,6 +180,7 @@ class MainApp(getattr(wx, "App", object)):
                   for i in conf.InputEvents if getattr(conf, conf.InputFlags[i])]))
                   if conf.MouseEnabled or conf.KeyboardEnabled else "no inputs")
             self.trayicon.ShowBalloon(conf.Title, msg)
+            self.sizetimer.Start(conf.ScreenSizeInterval * 1000)
 
 
         wx.CallAfter(after)
@@ -305,7 +311,8 @@ class MainApp(getattr(wx, "App", object)):
         self.model.clear_history(category, dates)
 
 
-    def OnDisplayChanged(self, event=None):
+    def OnLogResolution(self, event=None):
+        if not self: return
         sizes = [list(wx.Display(i).Geometry)
                  for i in range(wx.Display.GetCount())]
         self.model.log_resolution(sizes)
