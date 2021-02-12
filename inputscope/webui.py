@@ -6,7 +6,7 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    10.02.2021
+@modified    12.02.2021
 """
 import collections
 import datetime
@@ -222,7 +222,7 @@ def stats_mouse(events, table, count):
         displayxymap[e["display"]][(e["x"], e["y"])] += 1
         if "clicks" == table: counts.update(str(e["button"]))
         elif "scrolls" == table: counts.update({
-            ("-" if e[k] < 0 else "") + k: bool(e[k]) for k in ("dx", "dy")
+            ("-" if e[k] < 0 else "") + k: abs(e[k]) for k in ("dx", "dy")
         })
         if len(all_events) < conf.MaxEventsForReplay:
             for k in ("id", "day", "button", "dx", "dy"): e.pop(k, None)
