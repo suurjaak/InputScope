@@ -36,7 +36,7 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.4.1.dev0"
+Version = "1.4.1"
 VersionDate = "12.02.2021"
 
 """TCP port of the web user interface."""
