@@ -20,7 +20,7 @@ the declared ones in source code. File is deleted if all values are at default.
 
 @author      Erki Suurjaak
 @created     26.03.2015
-@modified    11.02.2021
+@modified    12.02.2021
 ------------------------------------------------------------------------------
 """
 try: import ConfigParser as configparser # Py2
@@ -36,8 +36,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.4"
-VersionDate = "11.02.2021"
+Version = "1.4.1.dev0"
+VersionDate = "12.02.2021"
 
 """TCP port of the web user interface."""
 WebHost = "localhost"
@@ -311,8 +311,9 @@ DbUpdateStatements = [
         "ALTER TABLE screen_sizes ADD COLUMN y INTEGER DEFAULT 0",
         "ALTER TABLE screen_sizes ADD COLUMN display INTEGER DEFAULT 0"]],
     [("scrolls", "dy"),  [
-        "ALTER TABLE scrolls RENAME COLUMN wheel TO dy",
-        "ALTER TABLE screen_sizes ADD COLUMN dx INTEGER DEFAULT 0"]],
+        "ALTER TABLE scrolls RENAME COLUMN wheel TO dy"]],
+    [("scrolls", "dx"),  [
+        "ALTER TABLE scrolls ADD COLUMN dx INTEGER DEFAULT 0"]],
 ]
 
 
