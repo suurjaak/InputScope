@@ -6,7 +6,7 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    12.02.2021
+@modified    05.10.2021
 """
 import collections
 import datetime
@@ -290,7 +290,7 @@ def format_timedelta(timedelta):
     mm, ss  = divmod(rem, 60)
     items = []
     for c, n in (dd, "d"), (hh, "h"), (mm, "min"), (ss, "sec"):
-        f = "%d" % c if "second" != n else str(c).rstrip("0").rstrip(".")
+        f = "%d" % c if "sec" != n else str(round(c, 2)).rstrip("0").rstrip(".")
         if f != "0": items += [f + n]
     return " ".join(items or ["0 seconds"])
 
