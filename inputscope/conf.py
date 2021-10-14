@@ -25,9 +25,8 @@ the declared ones in source code. File is deleted if all values are at default.
 """
 try: import ConfigParser as configparser # Py2
 except ImportError: import configparser  # Py3
-try: import cStringIO as StringIO         # Py2
-except ImportError: import io as StringIO # Py3
 import datetime
+import io
 import json
 import logging
 import os
@@ -36,8 +35,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.4.2.dev0"
-VersionDate = "12.10.2021"
+Version = "1.5.dev0"
+VersionDate = "14.10.2021"
 
 """TCP port of the web user interface."""
 WebHost = "localhost"
@@ -317,6 +316,9 @@ DbUpdateStatements = [
 ]
 
 
+try: text_types = (str, unicode)       # Py2
+except Exception: text_types = (str, ) # Py3
+
 def init(filename=ConfigPath):
     """Loads INI configuration into this module's attributes."""
     section, parts = "DEFAULT", filename.rsplit(":", 1)
@@ -329,9 +331,12 @@ def init(filename=ConfigPath):
         def parse_value(raw):
             try: return json.loads(raw) # Try to interpret as JSON
             except ValueError: return raw # JSON failed, fall back to raw
-        txt = open(filename).read() # Add DEFAULT section if none present
+        with open(filename, "r") as f:
+            txt = f.read()
+        try: txt = txt.decode()
+        except Exception: pass
         if not re.search("\\[\\w+\\]", txt): txt = "[DEFAULT]\n" + txt
-        parser.readfp(StringIO.StringIO(txt), filename)
+        parser.readfp(io.StringIO(txt), filename)
         for k, v in parser.items(section): vardict[k] = parse_value(v)
     except Exception:
         logging.warn("Error reading config from %s.", filename, exc_info=True)
@@ -343,7 +348,7 @@ def save(filename=ConfigPath):
     parser = configparser.RawConfigParser()
     parser.optionxform = str # Force case-sensitivity on names
     try:
-        save_types = basestring, int, float, tuple, list, dict, type(None)
+        save_types = text_types + (int, float, tuple, list, dict, type(None))
         for k, v in sorted(globals().items()):
             if not isinstance(v, save_types) or k.startswith("_") \
             or k not in default_values or default_values[k] == v \
@@ -352,7 +357,7 @@ def save(filename=ConfigPath):
             try: parser.set("DEFAULT", k, json.dumps(v))
             except Exception: pass
         if parser.defaults():
-            with open(filename, "wb") as f:
+            with open(filename, "w") as f:
                 f.write("# %s %s configuration written on %s.\n" % (Title, Version,
                         datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
                 parser.write(f)
@@ -366,7 +371,7 @@ def save(filename=ConfigPath):
 def defaults(values={}):
     """Returns a once-assembled dict of this module's storable attributes."""
     if values: return values
-    save_types = basestring, int, float, tuple, list, dict, type(None)
+    save_types = text_types + (int, float, tuple, list, dict, type(None))
     for k, v in globals().items():
         if isinstance(v, save_types) and not k.startswith("_"): values[k] = v
     return values

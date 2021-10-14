@@ -11,7 +11,7 @@ import sys
 
 APPPATH = os.path.join(os.path.dirname(os.path.abspath(SPEC)), "inputscope")
 sys.path.append(APPPATH)
-import conf
+from . import conf
 
 
 APP_INCLUDES = [("static", "icon.ico"),       ("static", "site.css"),

@@ -15,7 +15,7 @@ db.execute("DROP TABLE test")
 
 @author      Erki Suurjaak
 @created     05.03.2014
-@modified    25.01.2021
+@modified    14.10.2021
 """
 import os
 import re
@@ -85,7 +85,7 @@ def make_cursor(path, init_statements=(), _connectioncache={}):
         connection = sqlite3.connect(path, isolation_level=None,
             check_same_thread=False, detect_types=sqlite3.PARSE_DECLTYPES)
         for x in init_statements or (): connection.execute(x)
-        try: is_new and ":memory:" not in path.lower() and os.chmod(path, 0707)
+        try: is_new and ":memory:" not in path.lower() and os.chmod(path, 0o707)
         except OSError: pass
         connection.row_factory = lambda cur, row: dict(sqlite3.Row(cur, row))
         _connectioncache[path] = connection
@@ -94,10 +94,12 @@ def make_cursor(path, init_statements=(), _connectioncache={}):
 
 def makeSQL(action, table, cols="*", where=(), group="", order=(), limit=(), values=()):
     """Returns (SQL statement string, parameter dict)."""
-    cols   =    cols if isinstance(cols,  basestring) else ", ".join(cols)
-    group  =   group if isinstance(group, basestring) else ", ".join(group)
-    order  = [order] if isinstance(order, basestring) else order
-    limit  = [limit] if isinstance(limit, (basestring, int)) else limit
+    try: text_types = (str, unicode)       # Py2
+    except Exception: text_types = (str, ) # Py3
+    cols   =    cols if isinstance(cols,  text_types) else ", ".join(cols)
+    group  =   group if isinstance(group, text_types) else ", ".join(group)
+    order  = [order] if isinstance(order, text_types) else order
+    limit  = [limit] if isinstance(limit, text_types + (int, )) else limit
     values = values if not isinstance(values, dict) else values.items()
     sql = "SELECT %s FROM %s" % (cols, table) if "SELECT" == action else ""
     sql = "DELETE FROM %s"    % (table)       if "DELETE" == action else sql

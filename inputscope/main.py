@@ -5,21 +5,20 @@ command-line echoer otherwise. Launches the event listener and web UI server.
 
 @author      Erki Suurjaak
 @created     05.05.2015
-@modified    12.10.2021
+@modified    14.10.2021
 """
 import calendar
 import datetime
 import errno
 import functools
 import multiprocessing
-import multiprocessing.forking
 import os
+import re
 import signal
 import subprocess
 import sys
 import threading
 import time
-import urllib
 import webbrowser
 try: import win32com.client # For creating startup shortcut
 except ImportError: pass
@@ -29,25 +28,36 @@ except ImportError:
     try: import Tkinter as tk   # For getting screen size if wx unavailable
     except ImportError: pass
 
-import conf
-import listener
-import webui
+from . import conf
+from . import listener
+from . import webui
 
-class Popen(multiprocessing.forking.Popen):
-    """Support for PyInstaller-frozen Windows executables."""
-    def __init__(self, *args, **kwargs):
-        hasattr(sys, "frozen") and os.putenv("_MEIPASS2", sys._MEIPASS + os.sep)
-        try: super(Popen, self).__init__(*args, **kwargs)
-        finally: hasattr(sys, "frozen") and os.unsetenv("_MEIPASS2")
 
-class Process(multiprocessing.Process): _Popen = Popen
+try: # Py2
+    import multiprocessing.forking
+
+    class Popen(multiprocessing.forking.Popen):
+        """Support for PyInstaller-frozen Windows executables."""
+        def __init__(self, *args, **kwargs):
+            hasattr(sys, "frozen") and os.putenv("_MEIPASS2", sys._MEIPASS + os.sep)
+            try: super(Popen, self).__init__(*args, **kwargs)
+            finally: hasattr(sys, "frozen") and os.unsetenv("_MEIPASS2")
+
+    class Process(multiprocessing.Process): _Popen = Popen
+except ImportError: # Py3
+    class Process(multiprocessing.Process): pass
 
 
 class QueueLine(object):
     """Queue-like interface for writing lines to a file-like object."""
     def __init__(self, output): self.output = output
     def put(self, item):
-        try: self.output.write("%s\n" % item)
+        try:
+            if "b" in getattr(self.output, "mode", ""): # Py2
+                try: item = item.encode("utf-8")
+                except Exception: pass
+            self.output.write("%s\n" % item)
+            self.output.flush()
         except IOError as e:
             if e.errno != errno.EINVAL: raise # Invalid argument, probably stale pipe
 
@@ -126,11 +136,12 @@ class Model(threading.Thread):
             self.webui = Process(target=webui.start)
             self.listener.start(), self.webui.start()
         else:
-            args = lambda *x: [sys.executable,
-                   os.path.join(conf.ApplicationPath, x[0])] + list(x[1:])
-            self.listener = subprocess.Popen(args("listener.py", "--quiet"),
-                                             stdin=subprocess.PIPE)
-            self.webui = subprocess.Popen(args("webui.py", "--quiet"))
+            pkg = os.path.basename(conf.ApplicationPath)
+            root = os.path.dirname(conf.ApplicationPath)
+            args = lambda *x: [sys.executable, "-m", "%s.%s" % (pkg, x[0])] + list(x[1:])
+            self.listener = subprocess.Popen(args("listener", "--quiet"), cwd=root,
+                                             stdin=subprocess.PIPE, universal_newlines=True)
+            self.webui = subprocess.Popen(args("webui", "--quiet"), cwd=root)
             self.listenerqueue = QueueLine(self.listener.stdin)
 
         if conf.MouseEnabled:    self.listenerqueue.put("start mouse")
@@ -143,6 +154,10 @@ class Model(threading.Thread):
 
 
 class MainApp(getattr(wx, "App", object)):
+
+    def InitLocale(self):
+        # Avoid dialog buttons in native language
+        pass
 
     def OnInit(self):
         self.model = Model()
@@ -313,8 +328,13 @@ class MainApp(getattr(wx, "App", object)):
 
     def OnLogResolution(self, event=None):
         if not self: return
-        sizes = [[m.Width, m.Height] for i in range(wx.Display.GetCount())
-                 for m in [wx.Display(i).GetCurrentMode()]]
+        def make_size(geo, w, h):
+            """@todo """
+            scale = geo.Width / float(w)
+            return [int(geo.X * scale), int(geo.Y * scale), w, h]
+        sizes = [make_size(d.Geometry, m.Width, m.Height)
+                 for i in range(wx.Display.GetCount())
+                 for d in [wx.Display(i)] for m in [d.GetCurrentMode()]]
         self.model.log_resolution(sizes)
 
     def OnOpenUI(self, event):
@@ -394,13 +414,11 @@ def main():
     conf.init()
 
     if wx:
-        name = urllib.quote_plus("-".join([conf.Title, conf.DbPath]))
+        name = re.sub(r"\W", "__", "-".join([conf.Title, conf.DbPath]))
         singlechecker = wx.SingleInstanceChecker(name)
         if singlechecker.IsAnotherRunning(): sys.exit()
 
-        app = MainApp(redirect=True) # redirect stdout/stderr to wx popup
-        locale = wx.Locale(wx.LANGUAGE_ENGLISH) # Avoid dialog buttons in native language
-        app.MainLoop() # stdout/stderr directed to wx popup
+        MainApp(redirect=True).MainLoop() # stdout/stderr directed to wx popup
     else:
         model = Model()
         if tk:

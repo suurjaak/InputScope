@@ -15,8 +15,9 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    27.01.2021
+@modified    14.10.2021
 %"""
+%import json
 %WEBROOT = get_url("/")
 %title = "%s %s" % (input.capitalize(), table)
 %rebase("base.tpl", **locals())
@@ -114,7 +115,7 @@ Template arguments:
                 %if key not in conf.KeyPositions:
                     %continue # for key
                 %end # if key not in
-                %data.append({"x": conf.KeyPositions[key][0], "y": conf.KeyPositions[key][1], "count": count, "key": key.encode("utf-8")})
+                %data.append({"x": conf.KeyPositions[key][0], "y": conf.KeyPositions[key][1], "count": count, "key": json.dumps(key)})
             %end # for key
         %end # for fullkey
 {dt: "{{ str(item["dt"]) }}", data: {{! data }}}, \\

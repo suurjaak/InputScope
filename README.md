@@ -42,7 +42,7 @@ and `inputscope-webui` to path.
 Dependencies
 ------------
 
-* Python 2.7
+* Python 2.7 or Python 3.5+
 * bottle
 * pynput
 * wxPython (optional)

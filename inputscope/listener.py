@@ -6,12 +6,13 @@ Mouse and keyboard listener, logs events to database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    10.02.2021
+@modified    14.10.2021
 """
 from __future__ import print_function
 import datetime
 import math
-import Queue
+try: import Queue as queue        # Py2
+except ImportError: import queue  # Py3
 import sys
 import threading
 import time
@@ -19,8 +20,8 @@ import traceback
 
 import pynput
 
-import conf
-import db
+from . import conf
+from . import db
 
 DEBUG = False
 
@@ -92,7 +93,7 @@ class Listener(threading.Thread):
                 db.delete(table, where=where)
         elif command.startswith("screen_size "):
             # "screen_size [0, 0, 1920, 1200] [1920, 0, 1000, 800]"
-            sizestrs = filter(bool, map(str.strip, command[12:].replace("[", "").split("]")))
+            sizestrs = list(filter(bool, map(str.strip, command[12:].replace("[", "").split("]"))))
             sizes = sorted(map(int, s.replace(",", "").split()) for s in sizestrs)
             for i, size in enumerate(sizes):
                 db.insert("screen_sizes", x=size[0], y=size[1], w=size[2], h=size[3], display=i)
@@ -120,7 +121,7 @@ class DataHandler(threading.Thread):
         threading.Thread.__init__(self)
         self.counts = {} # {type: count}
         self.output = output
-        self.inqueue = Queue.Queue()
+        self.inqueue = queue.Queue()
         self.lasts = {"moves": None}
         self.screen_sizes = [[0, 0] + list(conf.DefaultScreenSize)]
         self.running = False
@@ -156,7 +157,7 @@ class DataHandler(threading.Thread):
 
         def one_line(pt1, pt2, pt3):
             """Returns whether points more or less fall onto one line."""
-            (x1, y1), (x2, y2), (x3, y3) = map(rescale, (pt1, pt2, pt3))
+            (x1, y1), (x2, y2), (x3, y3) = list(map(rescale, (pt1, pt2, pt3)))
             if  not (x1 >= x2 >= x3) and not (y1 >= y2 >= y3) \
             and not (x1 <= x2 <= x3) and not (y1 <= y2 <= y3): return False
             return abs((y1 - y2) * (x1 - x3) - (y1 - y3) * (x1 - x2)) <= conf.MouseMoveJoinRadius
@@ -169,7 +170,7 @@ class DataHandler(threading.Thread):
             while data:
                 items.append(data)
                 try: data = self.inqueue.get(block=False)
-                except Queue.Empty: data = None
+                except queue.Empty: data = None
             if not items or not self.running: continue # while self.running
 
             move0, move1, scroll0 = None, None, None
@@ -355,7 +356,7 @@ class KeyHandler(object):
         self._downs[realkey] = pressed
         if not conf.KeyboardEnabled or not pressed: return
 
-        if DEBUG: print("Adding key %s (real %s)" % (mykey.encode("utf-8"), realkey.encode("utf-8")))
+        if DEBUG: print("Adding key %r (real %r)" % (mykey, realkey))
         self._output(type="keys", key=mykey, realkey=realkey)
 
         if mykey not in self.MODIFIERNAMES and conf.KeyboardCombosEnabled:
@@ -365,7 +366,7 @@ class KeyHandler(object):
                 mykey = "%s-%s" % (modifier, realkey)
                 realmodifier = "-".join(k for k, v in self._realmodifiers.items() if v)
                 realkey = "%s-%s" % (realmodifier, realkey)
-                if DEBUG: print("Adding combo %s (real %s)" % (mykey.encode("utf-8"), realkey.encode("utf-8")))
+                if DEBUG: print("Adding combo %r (real %r)" % (mykey, realkey))
                 self._output(type="combos", key=mykey, realkey=realkey)
 
 
@@ -430,12 +431,15 @@ class LineQueue(threading.Thread):
     def __init__(self, input):
         threading.Thread.__init__(self)
         self.daemon = True
-        self.input, self.queue = input, Queue.Queue()
+        self.input, self.queue = input, queue.Queue()
         self.start()
 
     def run(self):
         for line in iter(self.input.readline, ""):
+            try: line = line.decode("utf-8") # Py2
+            except Exception: pass
             self.queue.put(line.strip())
+
 
 def zhex(v):
     """Returns number as zero-padded hex, e.g. "0x0C" for 12 and "0x0100" for 256."""

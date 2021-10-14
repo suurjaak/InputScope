@@ -1,5 +1,5 @@
 """Package entry point."""
-from inputscope import main
+from . import listener, main, webui
 
 if "__main__" == __name__:
     main.main()

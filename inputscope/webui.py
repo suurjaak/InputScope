@@ -6,7 +6,7 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    05.10.2021
+@modified    12.10.2021
 """
 import collections
 import datetime
@@ -17,8 +17,8 @@ import sys
 import bottle
 from bottle import hook, request, route
 
-import conf
-import db
+from . import conf
+from . import db
 
 app = None   # Bottle application instance
 
@@ -168,7 +168,7 @@ def stats_keyboard(events, table, count):
         ("Typing sessions (key interval < %ss)" % UNBROKEN_DELTA.seconds,
          len(sessions)),
         ("Average keys in session",
-         sum(len(x) + 1 for x in sessions) / len(sessions) if sessions else 0),
+         int(round(sum(len(x) + 1 for x in sessions) / len(sessions)) if sessions else 0)),
         ("Average session duration", format_timedelta(sum((sum(x, datetime.timedelta())
          for x in sessions), datetime.timedelta()) / (len(sessions) or 1))),
         ("Longest session duration",
@@ -241,13 +241,13 @@ def stats_mouse(events, table, count):
                  ("", "%.4f meters per second" %
                   (distance * conf.PixelLength / (seconds or 1))), ]
     elif "scrolls" == table and count:
-        stats = filter(bool, [("Scrolls per hour", 
+        stats = list(filter(bool, [("Scrolls per hour", 
                   int(count / (timedelta_seconds(last["dt"] - first["dt"]) / 3600 or 1))),
                  ("Average interval", totaldelta / (count or 1)),
                  ("Scrolls down",  counts["-dy"]),
                  ("Scrolls up",    counts["dy"]), 
                  ("Scrolls left",  counts["dx"])  if counts["dx"]  else None, 
-                 ("Scrolls right", counts["-dx"]) if counts["-dx"] else None, ])
+                 ("Scrolls right", counts["-dx"]) if counts["-dx"] else None, ]))
     elif "clicks" == table and count:
         NAMES = {"1": "Left", "2": "Right", "3": "Middle"}
         stats = [("Clicks per hour", 
