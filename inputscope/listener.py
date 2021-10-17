@@ -4,9 +4,24 @@ Mouse and keyboard listener, logs events to database.
 
 --quiet      prints out nothing
 
+
+Commands from stdin:
+
+start          CATEGORY
+stop           CATEGORY
+clear          CATEGORY ?DATE1 ?DATE2
+screen_size    [DISPLAY0 x, y, w, h], ..
+
+session start  NAME
+session stop
+session rename NAME2 ID
+session clear  CATEGORY ID
+session drop   ID
+
+
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    14.10.2021
+@modified    17.10.2021
 """
 from __future__ import print_function
 import datetime
@@ -22,6 +37,7 @@ import pynput
 
 from . import conf
 from . import db
+from . util import LineQueue, stamp_to_date, zhex
 
 DEBUG = False
 
@@ -94,10 +110,38 @@ class Listener(threading.Thread):
         elif command.startswith("screen_size "):
             # "screen_size [0, 0, 1920, 1200] [1920, 0, 1000, 800]"
             sizestrs = list(filter(bool, map(str.strip, command[12:].replace("[", "").split("]"))))
-            sizes = sorted(map(int, s.replace(",", "").split()) for s in sizestrs)
+            sizes = sorted([[int(x) for x in s.replace(",", "").split()] for s in sizestrs])
             for i, size in enumerate(sizes):
                 db.insert("screen_sizes", x=size[0], y=size[1], w=size[2], h=size[3], display=i)
             self.data_handler.screen_sizes = sizes
+        elif command.startswith("session "):
+            parts = command.split()[1:]
+            action, args = parts[0], parts[1:]
+            if "start" == action and args:
+                stamp = time.time()
+                db.update("sessions", {"end": stamp}, end=None)
+                db.insert("sessions", name=" ".join(args), start=stamp)
+            elif "stop" == action:
+                db.update("sessions", {"end": time.time()}, end=None)
+            elif "rename" == action and len(args) > 1:
+                name2, sid = " ".join(args[:-1]), args[-1]
+                db.update("sessions", {"name": name2}, id=sid)
+            elif "clear" == action and len(args) == 2:
+                category, sess = args[0], db.fetchone("sessions", id=args[1])
+                if "all" == category: tables = sum(conf.InputEvents.values(), ())
+                elif category in conf.InputEvents: tables = conf.InputEvents[category]
+                else: tables = [category]
+                day0 = stamp_to_date(sess["start"])
+                day1 = stamp_to_date(sess["end"] or time.time())
+                step = datetime.timedelta(days=1)
+                days = [day0 + step for i in range(abs((day1 - day0).days) + 1)]
+
+                for table, day in ((t, d) for t in tables for d in days):
+                    count = db.delete(table, day=day)
+                    db.update("counts", {"count": ("EXPR", "count - %s" % count)}, day=day, type=table)
+                    db.update("sessions", {table: ("EXPR", "%s - %s" % (table, count))}, id=sess["id"])
+            elif "drop" == action and args:
+                db.delete("sessions", id=args[0])
         elif "vacuum" == command:
             db.execute("VACUUM")
         elif "exit" == command:
@@ -207,8 +251,7 @@ class DataHandler(threading.Thread):
 
             try:
                 while dbqueue:
-                    db.insert(*dbqueue[0])
-                    dbqueue.pop(0)
+                    db.insert(*dbqueue.pop(0))
             except StandardError as e:
                 print(e, category, data)
             self.output(self.counts)
@@ -426,37 +469,21 @@ class KeyHandler(object):
 
 
 
-class LineQueue(threading.Thread):
-    """Reads lines from a file-like object and pushes to self.queue."""
-    def __init__(self, input):
-        threading.Thread.__init__(self)
-        self.daemon = True
-        self.input, self.queue = input, queue.Queue()
-        self.start()
-
-    def run(self):
-        for line in iter(self.input.readline, ""):
-            try: line = line.decode("utf-8") # Py2
-            except Exception: pass
-            self.queue.put(line.strip())
-
-
-def zhex(v):
-    """Returns number as zero-padded hex, e.g. "0x0C" for 12 and "0x0100" for 256."""
-    if not v: return "0x00"
-    sign, v = ("-" if v < 0 else ""), abs(v)
-    return "%s0x%0*X" % (sign, 2 * int(1 + math.log(v) / math.log(2) // 8), v)
-
-
 def start(inqueue, outqueue=None):
     """Starts the listener with incoming and outgoing queues."""
     conf.init(), db.init(conf.DbPath, conf.DbStatements)
 
     # Carry out db update for tables lacking expected new columns
     for (table, col), sqls in conf.DbUpdateStatements:
-        if any(col == x["name"] for x in db.execute("PRAGMA table_info(%s)" % table)):
-            continue # for
-        for sql in sqls: db.execute(sql)
+        if not any(col == x["name"] for x in db.execute("PRAGMA table_info(%s)" % table)):
+            for sql in sqls: db.execute(sql)
+
+    # Carry out db update for triggers lacking session handling
+    triggers = {t: conf.TriggerTemplate .format(t) for _, tt in conf.InputTables for t in tt}
+    for trigger in db.fetch("sqlite_master", type="trigger"):
+        if "sessions" not in trigger["sql"] and trigger["tbl_name"] in triggers:
+            db.execute("DROP TRIGGER %s" % trigger["name"])
+            db.execute(triggers[trigger["tbl_name"]])
 
     try: db.execute("PRAGMA journal_mode = WAL")
     except Exception: pass

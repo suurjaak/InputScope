@@ -3,7 +3,7 @@
  *
  * @author      Erki Suurjaak
  * @created     07.04.2015
- * @modified    27.01.2021
+ * @modified    17.10.2021
  */
 * {
   font-family: Tahoma;
@@ -69,6 +69,23 @@
 #headerlinks {
   float: left;
   position: relative;
+}
+#session {
+  color: white;
+  font-size: 1em;
+  left: 250px;
+  position: absolute;
+  top: 4px;
+}
+#session * {
+  font-size: 1em;
+}
+#session div {
+  font-size: 0.9em;
+  max-width: 100px;
+  overflow-x: clip;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 #indexlink {
   font-size: 2em;

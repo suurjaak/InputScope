@@ -6,7 +6,7 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    12.10.2021
+@modified    17.10.2021
 """
 import collections
 import datetime
@@ -14,11 +14,14 @@ import math
 import os
 import re
 import sys
+import time
 import bottle
 from bottle import hook, request, route
 
 from . import conf
 from . import db
+from . util import format_bytes, format_timedelta, stamp_to_date, timedelta_seconds
+
 
 app = None   # Bottle application instance
 
@@ -36,69 +39,121 @@ def server_static(filepath):
     return bottle.static_file(filepath, root=conf.StaticPath, mimetype=mimetype)
 
 
-@route("/mouse/<table>")
-@route("/mouse/<table>/<period>")
-def mouse(table, period=None):
-    """Handler for showing mouse statistics for specified type and day."""
-    days, input = db.fetch("counts", order="day", type=table), "mouse"
-    if period and not any(v["day"][:len(period)] == period for v in days):
-        return bottle.redirect(request.app.get_url("/<input>", input=input))
-        
-    count = sum(v["count"] for v in days if not period or v["day"][:len(period)] == period)
-    tabledays = set(x["type"] for x in db.fetch("counts", day=("LIKE", period + "%"))) if period else {}
+@route("/sessions/<session>")
+def session(session):
+    """Handler for showing the GUI index page."""
+    sess = db.fetchone("sessions", id=session)
+    if not sess:
+        return bottle.redirect(request.app.get_url("/"))
 
-    where = (("day", period), ) if period else ()
-    if not period: # Mouse tables can have 100M+ rows, total order takes too long
+    stats = {} # {category: {count, first, last, periods}}
+    COLS = "COUNT(*) as count, day AS period, 'day' AS class"
+    where = [("day", (">=", stamp_to_date(sess["start"]))),
+             ("stamp", (">=", sess["start"]))]
+    if sess["end"]: where += [("day", ("<=", stamp_to_date(sess["end"]))),
+                              ("stamp", ("<=", sess["end"] or time.time()))]
+    for table in (t for _, tt in conf.InputTables for t in tt):
+        stats[table] = {"count": 0, "periods": []}
+        for row in db.fetch(table, COLS, where=where, group="day"):
+            stats[table]["count"]   += row["count"]
+            stats[table]["periods"] += [row]
+
+    dbinfo, session = stats_db(conf.DbPath), sess
+    return bottle.template("session.tpl", locals(), conf=conf)
+
+
+@route("/sessions/<session>/<input>")
+def inputsessionindex(session, input):
+    """Handler for showing keyboard or mouse page with day and total links."""
+    sess = db.fetchone("sessions", id=session)
+    if not sess:
+        return bottle.redirect(request.app.get_url("/<input>", input=input))
+
+    stats = {} # {category: {count, first, last, periods}}
+    countminmax = "COUNT(*) AS count, MIN(day) AS first, MAX(day) AS last"
+    where = [("day", (">=", stamp_to_date(sess["start"]))),
+             ("stamp", (">=", sess["start"]))]
+    if sess["end"]: where += [("day", ("<=", stamp_to_date(sess["end"]))),
+                              ("stamp", ("<=", sess["end"]))]
+    for table in conf.InputEvents[input]:
+        stats[table] = db.fetchone(table, "COUNT(*) AS count, MIN(day) AS first, MAX(day) AS last",
+                                   where=where)
+        stats[table]["periods"] = db.fetch(table, "day AS period, COUNT(*) AS count, 'day' AS class",
+                                           where=where, group="day", order="day DESC")
+
+    dbinfo, session, sessions = stats_db(conf.DbPath), sess, []
+    return bottle.template("input.tpl", locals(), conf=conf)
+
+
+@route("/<input>/<table>")
+@route("/<input>/<table>/<period>")
+@route("/sessions/<session>/<input>/<table>")
+@route("/sessions/<session>/<input>/<table>/<period>")
+def inputdetail(input, table, period=None, session=None):
+    """Handler for showing mouse/keyboard statistics page."""
+    sess = db.fetchone("sessions", id=session) if session else None
+    if session and not sess:
+        url, kws = "/<input>/<table>", dict(input=input, table=table)
+        if period: url, kws = (url + "/<period>", dict(kws, period=period))
+        return bottle.redirect(request.app.get_url(url, **kws))
+
+    where = [("day", (">=", stamp_to_date(sess["start"])))] if sess else []
+    if sess and sess["end"]: where += [("day", ("<=", stamp_to_date(sess["end"])))]
+    days = db.fetch("counts", order="day", where=where, type=table)
+    if period and not any(v["day"][:len(period)] == period for v in days):
+        url, kws = "/<input>", dict(input=input)
+        if session: url, kws = ("/sessions/<session>" + url, dict(kws, session=session))
+        return bottle.redirect(request.app.get_url(url, **kws))
+
+    if sess:
+        where += [("stamp", (">=", sess["start"]))]
+        if sess["end"]: where += [("stamp", ("<=", sess["end"]))]
+        days = db.fetch(table, "day || '' AS day, COUNT(*) AS count", where=where, group="day", order="day")
+        where2 = where + ([("day", ("LIKE", period + "%"))] if period else [])
+        count = db.fetchone(table, "COUNT(*) AS count", where=where2)["count"]
+        tabledays = set(t for _, tt in conf.InputTables for t in tt
+                        if t != table and db.fetchone(t, "1", where=where2))
+    else:
+        count = sum(v["count"] for v in days if not period or v["day"][:len(period)] == period)
+        tabledays = set(x["type"] for x in db.fetch("counts", day=("LIKE", period + "%"))) if period else {}
+
+    if not period and "mouse" == input: # Mouse tables can have 100M+ rows, total order takes too long
         mydays, mycount = [], 0
         for myday in days:
             mydays, mycount = mydays + [myday["day"]], mycount + myday["count"]
             if mycount >= conf.MaxEventsForStats: break # for myday
         if len(mydays) != len(days):
-            where = (("day", ("IN", mydays)), )
-    elif len(period) < 8: # Month period, query by known month days
+            where += [("day", ("IN", mydays))]
+    elif period and len(period) < 8: # Month period, query by known month days
         mydays = [v["day"] for v in days if v["day"][:7] == period]
-        where = (("day", ("IN", mydays)), )
+        where += [("day", ("IN", mydays))]
+    elif period:
+        where += [("day", period)]
+    if "keyboard" == input:
+        cols, group = "realkey AS key, COUNT(*) AS count", "realkey"
+        counts_display = counts = db.fetch(table, cols, where, group, "count DESC")
+        if "combos" == table:
+            counts_display = db.fetch(table, "key, COUNT(*) AS count", where,
+                                      "key", "count DESC")
 
     events = db.select(table, where=where, order="stamp", limit=conf.MaxEventsForStats)
-    stats, positions, events = stats_mouse(events, table, count)
-    dbinfo = stats_db(conf.DbPath)
-    return bottle.template("heatmap_mouse.tpl", locals(), conf=conf)
-
-
-@route("/keyboard/<table>")
-@route("/keyboard/<table>/<period>")
-def keyboard(table, period=None):
-    """Handler for showing the keyboard statistics page."""
-    days, input = db.fetch("counts", order="day", type=table), "keyboard"
-    if period and not any(v["day"][:len(period)] == period for v in days):
-        return bottle.redirect(request.app.get_url("/<input>", input=input))
-
-    count = sum(v["count"] for v in days if not period or v["day"][:len(period)] == period)
-    tabledays = set(x["type"] for x in db.fetch("counts", day=("LIKE", period + "%"))) if period else {}
-
-    where = (("day", period), ) if period else ()
-    if period and len(period) < 8: # Month period, query by known month days
-        mydays = [v["day"] for v in days if v["day"][:7] == period]
-        where = (("day", ("IN", mydays)), )
-    cols, group = "realkey AS key, COUNT(*) AS count", "realkey"
-    counts_display = counts = db.fetch(table, cols, where, group, "count DESC")
-    if "combos" == table:
-        counts_display = db.fetch(table, "key, COUNT(*) AS count", where,
-                                  "key", "count DESC")
-
-    events = db.select(table, where=where, order="stamp", limit=conf.MaxEventsForStats)
-    stats, events = stats_keyboard(events, table, count)
-    dbinfo = stats_db(conf.DbPath)
-    return bottle.template("heatmap_keyboard.tpl", locals(), conf=conf)
+    if "mouse" == input:
+        stats, positions, events = stats_mouse(events, table, count)
+    else:
+        stats, events = stats_keyboard(events, table, count)
+    dbinfo, session = stats_db(conf.DbPath), sess
+    template = "heatmap_mouse.tpl" if "mouse" == input else "heatmap_keyboard.tpl"
+    return bottle.template(template, locals(), conf=conf)
 
 
 @route("/<input>")
 def inputindex(input):
     """Handler for showing keyboard or mouse page with day and total links."""
-    stats = {}
+    if input not in conf.InputEvents:
+        return bottle.redirect(request.app.get_url("/"))
+    stats = {} # {category: {count, first, last, periods}}
     countminmax = "SUM(count) AS count, MIN(day) AS first, MAX(day) AS last"
-    tables = ("moves", "clicks", "scrolls") if "mouse" == input else ("keys", "combos")
-    for table in tables:
+    for table in conf.InputEvents[input]:
         stats[table] = db.fetchone("counts", countminmax, type=table)
         periods, month = [], None
         for data in db.fetch("counts", "day AS period, count, 'day' AS class", order="day DESC", type=table):
@@ -108,6 +163,7 @@ def inputindex(input):
             month["count"] += data["count"]
             periods.append(data)
         stats[table]["periods"] = periods
+    sessions = db.fetch("sessions", order="start DESC")
     dbinfo = stats_db(conf.DbPath)
     return bottle.template("input.tpl", locals(), conf=conf)
 
@@ -124,6 +180,7 @@ def index():
         for func, key in [(min, "first"), (max, "last")]:
             stats[input][key] = (row[key] if key not in stats[input]
                                  else func(stats[input][key], row[key]))
+    sessions = db.fetch("sessions", order="start DESC")
     dbinfo = stats_db(conf.DbPath)
     return bottle.template("index.tpl", locals(), conf=conf)
 
@@ -131,7 +188,7 @@ def index():
 def stats_keyboard(events, table, count):
     """Return (statistics, collated and max-limited events) for keyboard events."""
     deltas, first, last = [], None, None
-    sessions, session = [], None
+    tsessions, tsession = [], None
     UNBROKEN_DELTA = datetime.timedelta(seconds=conf.KeyboardSessionMaxDelta)
     blank = collections.defaultdict(lambda: collections.defaultdict(int))
     collated = [blank.copy()] # [{dt, keys: {key: count}}]
@@ -145,17 +202,17 @@ def stats_keyboard(events, table, count):
             delta = e["dt"] - last["dt"]
             deltas.append(delta)
             if delta > UNBROKEN_DELTA:
-                session = None
+                tsession = None
             else:
-                if not session:
-                    session = []
-                    sessions.append(session)
-                session.append(delta)
+                if not tsession:
+                    tsession = []
+                    tsessions.append(tsession)
+                tsession.append(delta)
         collated[-1]["dt"] = e["dt"]
         collated[-1]["keys"][e["realkey"]] += 1
         last = e
 
-    longest_session = max(sessions + [[datetime.timedelta()]], key=lambda x: sum(x, datetime.timedelta()))
+    longest_session = max(tsessions + [[datetime.timedelta()]], key=lambda x: sum(x, datetime.timedelta()))
     stats = [
         ("Average combo interval",
          format_timedelta(sum(deltas, datetime.timedelta()) / len(deltas))),
@@ -166,22 +223,21 @@ def stats_keyboard(events, table, count):
         ("Average key interval",
          format_timedelta(sum(deltas, datetime.timedelta()) / len(deltas))),
         ("Typing sessions (key interval < %ss)" % UNBROKEN_DELTA.seconds,
-         len(sessions)),
+         len(tsessions)),
         ("Average keys in session",
-         int(round(sum(len(x) + 1 for x in sessions) / len(sessions)) if sessions else 0)),
+         int(round(sum(len(x) + 1 for x in tsessions) / len(tsessions))) if tsessions else 0),
         ("Average session duration", format_timedelta(sum((sum(x, datetime.timedelta())
-         for x in sessions), datetime.timedelta()) / (len(sessions) or 1))),
+         for x in tsessions), datetime.timedelta()) / (len(tsessions) or 1))),
         ("Longest session duration",
          format_timedelta(sum(longest_session, datetime.timedelta()))),
         ("Keys in longest session",
          len(longest_session) + 1),
         ("Most keys in session",
-         max(len(x) + 1 for x in sessions) if sessions else 0),
+         max(len(x) + 1 for x in tsessions) if tsessions else 0),
     ] if deltas and "keys" == table else []
     if deltas:
         stats += [("Total time interval", format_timedelta(last["dt"] - first["dt"]))]
     return stats, collated[:conf.MaxEventsForReplay]
-
 
 
 def stats_mouse(events, table, count):
@@ -195,7 +251,7 @@ def stats_mouse(events, table, count):
     counts, lasts = collections.Counter(), {} # {display: last event}
     distances     = collections.defaultdict(int)
     SIZES = {} # Scale by desktop size at event time; {display: [{size}, ]}
-    for row in db.fetch("screen_sizes", order=("dt",)):
+    for row in db.fetch("screen_sizes", order="dt"):
         row.update({0: row["x"], 2: row["w"] / float(HS[0]),
                     1: row["y"], 3: row["h"] / float(HS[1])})
         SIZES.setdefault(row["display"], []).append(row)
@@ -273,37 +329,6 @@ def stats_db(filename):
     for name, tables in conf.InputTables:
         countstr = "{:,}".format(sum(cmap.get(t) or 0 for t in tables))
         result += [("%s events" % name.capitalize(), countstr)]
-    return result
-
-
-def timedelta_seconds(timedelta):
-    """Returns the total timedelta duration in seconds."""
-    return (timedelta.total_seconds() if hasattr(timedelta, "total_seconds")
-            else timedelta.days * 24 * 3600 + timedelta.seconds +
-                 timedelta.microseconds / 1000000.)
-
-
-def format_timedelta(timedelta):
-    """Formats the timedelta as "3d 40h 23min 23.1sec"."""
-    dd, rem = divmod(timedelta_seconds(timedelta), 24*3600)
-    hh, rem = divmod(rem, 3600)
-    mm, ss  = divmod(rem, 60)
-    items = []
-    for c, n in (dd, "d"), (hh, "h"), (mm, "min"), (ss, "sec"):
-        f = "%d" % c if "sec" != n else str(round(c, 2)).rstrip("0").rstrip(".")
-        if f != "0": items += [f + n]
-    return " ".join(items or ["0 seconds"])
-
-
-def format_bytes(size, precision=2, inter=" "):
-    """Returns a formatted byte size (e.g. 421.45 MB)."""
-    result = "0 bytes"
-    if size:
-        UNITS = [("bytes", "byte")[1 == size]] + [x + "B" for x in "KMGTPEZY"]
-        exponent = min(int(math.log(size, 1024)), len(UNITS) - 1)
-        result = "%.*f" % (precision, size / (1024. ** exponent))
-        result += "" if precision > 0 else "."  # Do not strip integer zeroes
-        result = result.rstrip("0").rstrip(".") + inter + UNITS[exponent]
     return result
 
 

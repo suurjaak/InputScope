@@ -20,7 +20,7 @@ the declared ones in source code. File is deleted if all values are at default.
 
 @author      Erki Suurjaak
 @created     26.03.2015
-@modified    12.10.2021
+@modified    17.10.2021
 ------------------------------------------------------------------------------
 """
 try: import ConfigParser as configparser # Py2
@@ -35,8 +35,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.5.dev0"
-VersionDate = "14.10.2021"
+Version = "1.5.dev1"
+VersionDate = "17.10.2021"
 
 """TCP port of the web user interface."""
 WebHost = "localhost"
@@ -105,6 +105,9 @@ MaxEventsForStats = 1000 * 1000
 
 """Maximum number of events to replay on statistics page."""
 MaxEventsForReplay = 100 * 1000
+
+"""Maximum number of sessions listed in tray menu."""
+MaxSessionsInMenu = 20
 
 """Physical length of a pixel, in meters."""
 PixelLength = 0.00024825
@@ -277,6 +280,7 @@ CREATE TRIGGER IF NOT EXISTS on_insert_{0} AFTER INSERT ON {0}
 BEGIN
   INSERT OR IGNORE INTO counts (type, day, count) VALUES ('{0}', NEW.day, 0);
   UPDATE counts SET count = count + 1 WHERE type = '{0}' AND day = NEW.day;
+  UPDATE sessions SET {0} = {0} + 1 WHERE end IS NULL;
 END;"""
 
 """SQL template for day field index."""
@@ -292,8 +296,9 @@ DbStatements = (
     "CREATE TABLE IF NOT EXISTS app_events (id INTEGER NOT NULL PRIMARY KEY, dt TIMESTAMP DEFAULT (DATETIME('now', 'localtime')), type TEXT)",
     "CREATE TABLE IF NOT EXISTS screen_sizes (id INTEGER NOT NULL PRIMARY KEY, dt TIMESTAMP DEFAULT (DATETIME('now', 'localtime')), x INTEGER, y INTEGER, w INTEGER, h INTEGER, display INTEGER)",
     "CREATE TABLE IF NOT EXISTS counts (id INTEGER NOT NULL PRIMARY KEY, type TEXT, day DATETIME, count INTEGER, UNIQUE(type, day))",
-) + tuple(TriggerTemplate .format(x) for x in [x for k, vv in InputTables for x in vv]
-) + tuple(DayIndexTemplate.format(x) for x in [x for k, vv in InputTables for x in vv])
+    "CREATE TABLE IF NOT EXISTS sessions (id INTEGER NOT NULL PRIMARY KEY, name TEXT, start REAL, end REAL, clicks INTEGER DEFAULT 0, combos INTEGER DEFAULT 0, keys INTEGER DEFAULT 0, moves INTEGER DEFAULT 0, scrolls INTEGER DEFAULT 0)",
+) + tuple(TriggerTemplate .format(t) for _, tt in InputTables for t in tt
+) + tuple(DayIndexTemplate.format(t) for _, tt in InputTables for t in tt)
 
 """
 Statements to update database v<1.3 to new schema,

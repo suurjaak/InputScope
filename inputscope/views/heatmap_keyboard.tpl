@@ -10,15 +10,17 @@ Template arguments:
   counts          keyboard event counts
   counts_display  displayed event counts for keyboard combos
   events          list of replayable events
+  session         session data, if any
   stats           keyboard statistics
   tabledays       set of tables that have events for specified day
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    14.10.2021
+@modified    17.10.2021
 %"""
 %import json
 %WEBROOT = get_url("/")
+%INPUTURL, URLARGS = ("/sessions/<session>", dict(session=session["id"])) if get("session") else ("", {})
 %title = "%s %s" % (input.capitalize(), table)
 %rebase("base.tpl", **locals())
 
@@ -47,9 +49,9 @@ Template arguments:
         %if period and tbl not in tabledays:
   <span class="inactive">{{ tbl }}</span>
         %elif period:
-  <a href="{{ get_url("/%s/<table>/<period>" % type, table=tbl, period=period) }}">{{ tbl }}</a>
+  <a href="{{ get_url("%s/<input>/<table>/<period>" % INPUTURL, input=type, table=tbl, period=period, **URLARGS) }}">{{ tbl }}</a>
         %else:
-  <a href="{{ get_url("/%s/<table>" % type, table=tbl) }}">{{ tbl }}</a>
+  <a href="{{ get_url("%s/<input>/<table>" % INPUTURL, input=type, table=tbl, **URLARGS) }}">{{ tbl }}</a>
         %end # if period
     %end # if tbl == table
 %end # for type, tbl

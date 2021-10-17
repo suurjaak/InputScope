@@ -8,14 +8,20 @@ Template arguments:
   days       list of available days
   input      "mouse"|"keyboard"
   table      events table shown, moves|clicks|scrolls|keys|combos
+  session    session data, if any
   dbinfo     [(database info label, value)]
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    26.01.2021
+@modified    17.10.2021
 %"""
+%from inputscope.util import format_session
 %WEBROOT = get_url("/")
-%period, days = get("period", None), get("days", [])
+%INPUTURL, URLARGS = ("/<input>", dict(input=input)) if get("input") else ("/", {})
+%period, days, session = get("period", None), get("days", []), get("session", None)
+%if session:
+%    INPUTURL, URLARGS = "/sessions/<session>" + INPUTURL, dict(URLARGS, session=session["id"])
+%end # if session
 <!DOCTYPE html>
 <html>
 <head>
@@ -32,11 +38,26 @@ Template arguments:
   <span id="headerlinks">
     <a href="{{ WEBROOT }}" id="indexlink">{{ conf.Title }}</a>
     <span id="inputlinks">
-%for x in ["mouse", "keyboard"]:
-    <a href="{{ get_url("/<input>", input=x) }}">{{ x }}</a>
+%for type in ["mouse", "keyboard"]:
+    <a href="{{ get_url("/<input>", input=type) }}">{{ type }}</a>
 %end # for x
     </span>
   </span>
+
+%if session:
+  <span id="session" title="session {{ format_session(session, maxlen=0, quote=True) }}">
+%if get("input"):
+    <a href="{{ get_url("/sessions/<session>", session=session["id"]) }}">
+%end # if
+    SESSION
+    <div>
+      {{ session["name"] }}
+    </div>
+%if get("input"):
+    </a>
+%end # if
+  </span>
+%end # if defined("session")
 
 %if days:
 <span id="daysection">
@@ -52,7 +73,7 @@ Template arguments:
     %    prevperiod = prevperiod or None if period else days[-1]["day"]
     %end # if period and len(period) < 8
     %if prevperiod:
-  <a href="{{ get_url("/%s/<table>/<period>" % input, table=table, period=prevperiod) }}">&lt; {{ prevperiod }}</a>
+  <a href="{{ get_url("%s/<table>/<period>" % INPUTURL, table=table, period=prevperiod, **URLARGS) }}">&lt; {{ prevperiod }}</a>
     %end # if prevperiod
 
   <select id="dayselector">
@@ -61,7 +82,7 @@ Template arguments:
     %end # if not period
     %prevmonth = None
     %for d in days[::-1]:
-        %if prevmonth != d["day"][:7]:
+        %if prevmonth != d["day"][:7] and not session:
     <option{{! ' selected="selected"' if period == d["day"][:7] else "" }}>{{ d["day"][:7] }}</option>
         %end # if prevmonth != d["day"][:7]
     <option{{! ' selected="selected"' if period == d["day"] else "" }}>{{ d["day"] }}</option>
@@ -70,7 +91,7 @@ Template arguments:
   </select>
 
     %if nextperiod:
-  <a href="{{ get_url("/%s/<table>/<period>" % input, table=table, period=nextperiod) }}">{{ nextperiod }} &gt;</a>
+  <a href="{{ get_url("%s/<table>/<period>" % INPUTURL, table=table, period=nextperiod, **URLARGS) }}">{{ nextperiod }} &gt;</a>
     %end # if nextperiod
 </span>
 %end # if days
@@ -118,7 +139,7 @@ window.addEventListener("load", function() {
 
 %if days:
   document.getElementById("dayselector").addEventListener("change", function() {
-    window.location.href = "{{ get_url("/%s/<table>" % input, table=table) }}/" + this.value;
+    window.location.href = "{{ get_url("%s/<table>" % INPUTURL, table=table, **URLARGS) }}/" + this.value;
   });
 %end # if days
 });
