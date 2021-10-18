@@ -4,7 +4,7 @@ Utilities.
 
 @author      Erki Suurjaak
 @created     17.10.2021
-@modified    17.10.2021
+@modified    18.10.2021
 """
 import datetime
 import errno
@@ -37,8 +37,16 @@ def format_session(session, maxlen=20, quote=False, stamp=True):
         result = result[:maxlen] + ".."
     if quote:
         result = '"%s"' % result
-    dt = stamp and datetime.datetime.fromtimestamp(session["start"]).strftime("%Y-%m-%d %H:%M")
-    return result if not stamp or dt == session["name"] else "%s (%s)" % (result, dt)
+    dtstr = stamp and format_stamp(session["start"])
+    return result if not stamp or dtstr == session["name"] else "%s (%s)" % (result, dtstr)
+
+
+def format_stamp(stamp, fmt="%Y-%m-%d %H:%M"):
+    """Formats UNIX timestamp or datetime object as datetime string."""
+    try: number_types = (float, int, long)        # Py2
+    except NameError: number_types = (float, int) # Py3
+    dt = datetime.datetime.fromtimestamp(stamp) if isinstance(stamp, number_types) else stamp
+    return dt.strftime(fmt)
 
 
 def format_timedelta(timedelta):

@@ -7,11 +7,11 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    17.10.2021
+@modified    18.10.2021
 %"""
 %import datetime
 %from inputscope import conf
-%from inputscope.util import stamp_to_date
+%from inputscope.util import format_stamp
 %WEBROOT = get_url("/")
 %rebase("base.tpl", **locals())
 
@@ -32,18 +32,18 @@ Template arguments:
 %if sessions:
   <tbody><tr><th>sessions</th><th></th><th></th></tr>
 %end # if sessions
-%for session in sessions:
+%for sess in sessions:
   <tr>
-    <td>{{ session["name"] }}:</td>
-%    count = sum(session[k] for _, kk in conf.InputTables for k in kk)
+    <td>{{ sess["name"] }}:</td>
+%    count = sum(sess[k] for _, kk in conf.InputTables for k in kk)
 %    if count:
-    <td><a href="{{ get_url("/sessions/<session>", session=session["id"]) }}#{{ count }}">{{ "{:,}".format(count) }}</a></td>
-    <td>from {{ stamp_to_date(session["start"]) }} {{ "to %s" % stamp_to_date(session["end"]) if session["end"] else "" }}</td>
+    <td><a href="{{ get_url("/sessions/<session>", session=sess["id"]) }}#{{ count }}">{{ "{:,}".format(count) }}</a></td>
 %    else:
     <td>0</td>
 %    end # if count
+    <td>from {{ format_stamp(sess["start"]) }} {{ "to %s" % format_stamp(sess["end"]) if sess["end"] else "" }}</td>
   </tr>
-%end # for session
+%end # for sess
 %if sessions:
   </tbody>
 %end # if sessions
