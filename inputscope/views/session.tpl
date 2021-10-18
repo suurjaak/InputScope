@@ -20,6 +20,9 @@ Template arguments:
 <table>
 %for table, data in stats.items():
 %    input = next((k for k, vv in conf.InputEvents.items() if table in vv), None)
+%    if not data["count"]:
+%        continue # for table
+%    end
   <tbody>
   <tr><th>{{ table }}</th></tr>
   <tr><td>Total:</td><td><a href="{{ get_url("/sessions/<session>/<input>/<table>", session=session["id"], input=input, table=table) }}#{{ data["count"] }}">{{ "{:,}".format(data["count"]) }}</a></td></tr>
