@@ -16,7 +16,7 @@ db.execute("DROP TABLE test")
 
 @author      Erki Suurjaak
 @created     05.03.2014
-@modified    16.10.2021
+@modified    18.10.2021
 """
 import os
 import re
@@ -109,14 +109,23 @@ def makeSQL(action, table, cols="*", where=(), group="", order=(), limit=(), val
     sql = "UPDATE %s"         % (table)       if "UPDATE" == action else sql
     args = {}
     if "INSERT" == action:
-        args.update(values)
-        cols, vals = (", ".join(x + k for k, v in values) for x in ("", ":"))
-        sql += " (%s) VALUES (%s)" % (cols, vals)
+        cols, vals = [], []
+        for i, (col, val) in enumerate(values):
+            cols.append(col)
+            if isinstance(val, (list, tuple)) and len(val) == 2 and "EXPR" == val[0]:
+                vals.append("%s" % val[1])
+            else:
+                vals.append(":%s" % col)
+                args[col] = val
+        sql += " (%s) VALUES (%s)" % (", ".join(cols), ", ".join(vals))
     if "UPDATE" == action:
         sql += " SET "
         for i, (col, val) in enumerate(values):
-            sql += (", " if i else "") + "%s = :%sU%s" % (col, col, i)
-            args["%sU%s" % (col, i)] = val
+            if isinstance(val, (list, tuple)) and len(val) == 2 and "EXPR" == val[0]:
+                sql += (", " if i else "") + "%s = %s" % (col, val[1])
+            else:
+                sql += (", " if i else "") + "%s = :%sU%s" % (col, col, i)
+                args["%sU%s" % (col, i)] = val
     if where:
         sql += " WHERE "
         for i, (col, val) in enumerate(where):

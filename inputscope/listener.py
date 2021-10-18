@@ -21,7 +21,7 @@ session drop   ID
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    17.10.2021
+@modified    18.10.2021
 """
 from __future__ import print_function
 import datetime
@@ -118,11 +118,12 @@ class Listener(threading.Thread):
             parts = command.split()[1:]
             action, args = parts[0], parts[1:]
             if "start" == action and args:
-                stamp = time.time()
+                stamp = ("EXPR", "(julianday('now') - 2440587.5) * 86400.0")
                 db.update("sessions", {"end": stamp}, end=None)
                 db.insert("sessions", name=" ".join(args), start=stamp)
             elif "stop" == action:
-                db.update("sessions", {"end": time.time()}, end=None)
+                stamp = ("EXPR", "(julianday('now') - 2440587.5) * 86400.0")
+                db.update("sessions", {"end": stamp}, end=None)
             elif "rename" == action and len(args) > 1:
                 name2, sid = " ".join(args[:-1]), args[-1]
                 db.update("sessions", {"name": name2}, id=sid)
