@@ -6,7 +6,7 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    17.10.2021
+@modified    18.10.2021
 """
 import collections
 import datetime
@@ -51,7 +51,7 @@ def session(session):
     where = [("day", (">=", stamp_to_date(sess["start"]))),
              ("stamp", (">=", sess["start"]))]
     if sess["end"]: where += [("day", ("<=", stamp_to_date(sess["end"]))),
-                              ("stamp", ("<=", sess["end"] or time.time()))]
+                              ("stamp", ("<", sess["end"] or time.time()))]
     for table in (t for _, tt in conf.InputTables for t in tt):
         stats[table] = {"count": 0, "periods": []}
         for row in db.fetch(table, COLS, where=where, group="day"):
@@ -74,7 +74,7 @@ def inputsessionindex(session, input):
     where = [("day", (">=", stamp_to_date(sess["start"]))),
              ("stamp", (">=", sess["start"]))]
     if sess["end"]: where += [("day", ("<=", stamp_to_date(sess["end"]))),
-                              ("stamp", ("<=", sess["end"]))]
+                              ("stamp", ("<", sess["end"]))]
     for table in conf.InputEvents[input]:
         stats[table] = db.fetchone(table, "COUNT(*) AS count, MIN(day) AS first, MAX(day) AS last",
                                    where=where)
@@ -107,7 +107,7 @@ def inputdetail(input, table, period=None, session=None):
 
     if sess:
         where += [("stamp", (">=", sess["start"]))]
-        if sess["end"]: where += [("stamp", ("<=", sess["end"]))]
+        if sess["end"]: where += [("stamp", ("<", sess["end"]))]
         days = db.fetch(table, "day || '' AS day, COUNT(*) AS count", where=where, group="day", order="day")
         where2 = where + ([("day", ("LIKE", period + "%"))] if period else [])
         count = db.fetchone(table, "COUNT(*) AS count", where=where2)["count"]
@@ -163,8 +163,7 @@ def inputindex(input):
             month["count"] += data["count"]
             periods.append(data)
         stats[table]["periods"] = periods
-    sessions = db.fetch("sessions", order="start DESC")
-    dbinfo = stats_db(conf.DbPath)
+    dbinfo, sessions = stats_db(conf.DbPath), stats_sessions(input=input)
     return bottle.template("input.tpl", locals(), conf=conf)
 
 
@@ -180,8 +179,7 @@ def index():
         for func, key in [(min, "first"), (max, "last")]:
             stats[input][key] = (row[key] if key not in stats[input]
                                  else func(stats[input][key], row[key]))
-    sessions = db.fetch("sessions", order="start DESC")
-    dbinfo = stats_db(conf.DbPath)
+    dbinfo, sessions = stats_db(conf.DbPath), stats_sessions()
     return bottle.template("index.tpl", locals(), conf=conf)
 
 
@@ -316,6 +314,20 @@ def stats_mouse(events, table, count):
     if count:
         stats += [("Total time interval", format_timedelta(last["dt"] - first["dt"]))]
     return stats, positions, all_events
+
+
+def stats_sessions(input=None):
+    """Returns a list of sessions with total event counts."""
+    sessions = db.fetch("sessions", order="start DESC")
+    for sess in sessions:
+        sess["count"] = 0
+        where = [("day", (">=", sess["day1"]))]
+        if sess["end"]:
+            where += [("day", ("<=", sess["day1"])), ("stamp", ("<", sess["end"]))]
+        where += [("stamp", (">=", sess["start"]))]
+        for table in (t for k, tt in conf.InputTables if input in (None, k) for t in tt):
+            sess["count"] += db.fetchone(table, "COUNT(*) AS count", where)["count"]
+    return sessions
 
 
 def stats_db(filename):

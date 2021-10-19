@@ -35,12 +35,11 @@ Template arguments:
 %for sess in sessions:
   <tr>
     <td>{{ sess["name"] }}:</td>
-%    count = sum(sess[k] for _, kk in conf.InputTables for k in kk)
-%    if count:
-    <td><a href="{{ get_url("/sessions/<session>", session=sess["id"]) }}#{{ count }}">{{ "{:,}".format(count) }}</a></td>
+%    if sess["count"]:
+    <td><a href="{{ get_url("/sessions/<session>", session=sess["id"]) }}#{{ sess["count"] }}">{{ "{:,}".format(sess["count"]) }}</a></td>
 %    else:
     <td>0</td>
-%    end # if count
+%    end # if sess["count"]
     <td>from {{ format_stamp(sess["start"]) }} {{ "to %s" % format_stamp(sess["end"]) if sess["end"] else "" }}</td>
   </tr>
 %end # for sess

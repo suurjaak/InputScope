@@ -16,7 +16,7 @@ session start  NAME
 session stop
 session rename NAME2 ID
 session clear  CATEGORY ID
-session drop   ID
+session delete ID
 
 
 @author      Erki Suurjaak
@@ -104,26 +104,37 @@ class Listener(threading.Thread):
             elif category in conf.InputEvents: tables = conf.InputEvents[category]
             else: tables = [category]
             where = [("day", (">=", dates[0])), ("day", ("<=", dates[1]))] if dates else []
+            count_deleted = 0
             for table in tables:
+                count_deleted += db.delete(table, where=where)
                 db.delete("counts", where=where, type=table)
-                db.delete(table, where=where)
+            if count_deleted:
+                where = [("day1", (">=", dates[0])), ("day2", ("<=", dates[1]))] if dates else []
+                for session in db.fetch("sessions", where=where):
+                    retain = False
+                    where = [("stamp", (">=", session["start"])), ("stamp", ("<", session["end"]))]
+                    for table in tables:
+                        retain = retain or db.fetchone(table, "1", where=where)
+                    if not retain:
+                        db.delete("sessions", id=session["id"])
         elif command.startswith("screen_size "):
             # "screen_size [0, 0, 1920, 1200] [1920, 0, 1000, 800]"
-            sizestrs = list(filter(bool, map(str.strip, command[12:].replace("[", "").split("]"))))
+            sizestrs = list(filter(bool, (x.strip() for x in command[12:].replace("[", "").split("]"))))
             sizes = sorted([[int(x) for x in s.replace(",", "").split()] for s in sizestrs])
             for i, size in enumerate(sizes):
                 db.insert("screen_sizes", x=size[0], y=size[1], w=size[2], h=size[3], display=i)
             self.data_handler.screen_sizes = sizes
         elif command.startswith("session "):
+            print(repr(command)) # @todo remove
             parts = command.split()[1:]
             action, args = parts[0], parts[1:]
             if "start" == action and args:
-                stamp = ("EXPR", "(julianday('now') - 2440587.5) * 86400.0")
-                db.update("sessions", {"end": stamp}, end=None)
-                db.insert("sessions", name=" ".join(args), start=stamp)
+                stamp, day = next((x, stamp_to_date(x)) for x in [time.time()])
+                db.update("sessions", {"day2": day, "end": stamp}, end=None)
+                db.insert("sessions", name=" ".join(args), start=stamp, day1=day)
             elif "stop" == action:
-                stamp = ("EXPR", "(julianday('now') - 2440587.5) * 86400.0")
-                db.update("sessions", {"end": stamp}, end=None)
+                stamp, day = next((x, stamp_to_date(x)) for x in [time.time()])
+                db.update("sessions", {"day2": day, "end": time.time()}, end=None)
             elif "rename" == action and len(args) > 1:
                 name2, sid = " ".join(args[:-1]), args[-1]
                 db.update("sessions", {"name": name2}, id=sid)
@@ -132,16 +143,17 @@ class Listener(threading.Thread):
                 if "all" == category: tables = sum(conf.InputEvents.values(), ())
                 elif category in conf.InputEvents: tables = conf.InputEvents[category]
                 else: tables = [category]
-                day0 = stamp_to_date(sess["start"])
-                day1 = stamp_to_date(sess["end"] or time.time())
+                day1 = stamp_to_date(sess["start"])
+                day2 = stamp_to_date(sess["end"] or time.time())
                 step = datetime.timedelta(days=1)
-                days = [day0 + step for i in range(abs((day1 - day0).days) + 1)]
+                days = [day1 + i * step for i in range(abs((day2 - day1).days + 1))]
+                where = [("stamp", (">=", sess["start"]))]
+                if sess["end"]: where += [("stamp", ("<", sess["end"]))]
 
                 for table, day in ((t, d) for t in tables for d in days):
-                    count = db.delete(table, day=day)
+                    count = db.delete(table, [("day", day)] + where)
                     db.update("counts", {"count": ("EXPR", "count - %s" % count)}, day=day, type=table)
-                    db.update("sessions", {table: ("EXPR", "%s - %s" % (table, count))}, id=sess["id"])
-            elif "drop" == action and args:
+            elif "delete" == action and args:
                 db.delete("sessions", id=args[0])
         elif "vacuum" == command:
             db.execute("VACUUM")
@@ -251,10 +263,8 @@ class DataHandler(threading.Thread):
                 dbqueue.append((category, data))
 
             try:
-                while dbqueue:
-                    db.insert(*dbqueue.pop(0))
-            except StandardError as e:
-                print(e, category, data)
+                while dbqueue: db.insert(*dbqueue.pop(0))
+            except StandardError as e: print(e)
             self.output(self.counts)
             if conf.EventsWriteInterval > 0: time.sleep(conf.EventsWriteInterval)
 
@@ -478,13 +488,6 @@ def start(inqueue, outqueue=None):
     for (table, col), sqls in conf.DbUpdateStatements:
         if not any(col == x["name"] for x in db.execute("PRAGMA table_info(%s)" % table)):
             for sql in sqls: db.execute(sql)
-
-    # Carry out db update for triggers lacking session handling
-    triggers = {t: conf.TriggerTemplate .format(t) for _, tt in conf.InputTables for t in tt}
-    for trigger in db.fetch("sqlite_master", type="trigger"):
-        if "sessions" not in trigger["sql"] and trigger["tbl_name"] in triggers:
-            db.execute("DROP TRIGGER %s" % trigger["name"])
-            db.execute(triggers[trigger["tbl_name"]])
 
     try: db.execute("PRAGMA journal_mode = WAL")
     except Exception: pass

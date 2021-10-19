@@ -15,6 +15,13 @@ Data is kept in an SQLite database.
 [![Keyboard combos heatmap](https://raw.githubusercontent.com/suurjaak/InputScope/media/th_combos.png)](https://raw.githubusercontent.com/suurjaak/InputScope/media/combos.png)
 
 
+@todo Some Suitable Title About What This Section Is About
+------------
+
+Provides an option to record named sessions, allowing to group inputs
+with finer detail than a day.
+
+
 Installation
 ------------
 

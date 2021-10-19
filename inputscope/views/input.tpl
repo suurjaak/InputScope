@@ -48,17 +48,16 @@ Template arguments:
 
 %headered = False
 %for sess in sessions:
-%    count = sum(sess[t] for k, tt in conf.InputTables if k == input for t in tt)
-%    if not count:
+%    if not sess["count"]:
 %        continue # for sess
-%    end # if not count
+%    end # if not sess["count"]
 %    if not headered:
     <tbody><tr><th>sessions</th><th></th><th></th></tr>
 %    end # if sessions
 %    headered = True
   <tr>
     <td>{{ sess["name"] }}:</td>
-    <td><a href="{{ get_url("/sessions/<session>/<input>", session=sess["id"], input=input) }}#{{ count }}">{{ "{:,}".format(count) }}</a></td>
+    <td><a href="{{ get_url("/sessions/<session>/<input>", session=sess["id"], input=input) }}#{{ sess["count"] }}">{{ "{:,}".format(sess["count"]) }}</a></td>
     <td>from {{ stamp_to_date(sess["start"]) }} {{ "to %s" % stamp_to_date(sess["end"]) if sess["end"] else "" }}</td>
   </tr>
 %end # for sess

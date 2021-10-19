@@ -403,6 +403,7 @@ class MainApp(getattr(wx, "App", object)):
         elif "clear" == action:
             arg = category
             label = ("%s events" % arg) if arg in conf.InputTables else arg or "all events"
+            arg = arg or "all"
 
             if not session:
                 choices = [format_session(x) for x in self.model.sessions]

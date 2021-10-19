@@ -9,6 +9,7 @@ Template arguments:
   count           count of all events
   events          list of replayable events, as [{x, y, display, dt}]
   positions       mouse position counts, as {display: [{x, y, count}, ]}
+  session         session data, if any
   stats           mouse statistics, as [(label, text)]
   tabledays       set of tables that have events for specified day
 
