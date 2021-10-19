@@ -7,6 +7,7 @@ Template arguments:
   period     period for events, if any (day like "2020-02-20" or month like "2020-02")
   days       list of available days
   input      "mouse"|"keyboard"
+  page       page being shown like "index" or "input"
   table      events table shown, moves|clicks|scrolls|keys|combos
   session    session data, if any
   dbinfo     [(database info label, value)]
@@ -32,7 +33,7 @@ Template arguments:
   <link rel="stylesheet" href="{{ WEBROOT }}static/site.css" />
   <script src="{{ WEBROOT }}static/heatmap.min.js"></script>
 </head>
-<body>
+<body{{! ' class="%s"' % page if get("page") else "" }}>
 <div id="header" style="position: relative;">
 
   <span id="headerlinks">

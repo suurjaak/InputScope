@@ -43,14 +43,12 @@ Template arguments:
 %for type, tbl in [(k, x) for k, tt in conf.InputTables for x in tt]:
     %if tbl == table:
   <span>{{ tbl }}</span>
-    %else:
-        %if period and tbl not in tabledays:
+    %elif tbl not in tabledays:
   <span class="inactive">{{ tbl }}</span>
-        %elif period:
+    %elif period:
   <a href="{{ get_url("%s/<input>/<table>/<period>" % INPUTURL, input=type, table=tbl, period=period, **URLARGS) }}">{{ tbl }}</a>
-        %else:
+    %else:
   <a href="{{ get_url("%s/<input>/<table>" % INPUTURL, input=type, table=tbl, **URLARGS) }}">{{ tbl }}</a>
-        %end # if period
     %end # if tbl == table
 %end # for type, tbl
 </div>

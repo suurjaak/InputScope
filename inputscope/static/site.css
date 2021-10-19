@@ -3,7 +3,7 @@
  *
  * @author      Erki Suurjaak
  * @created     07.04.2015
- * @modified    17.10.2021
+ * @modified    19.10.2021
  */
 * {
   font-family: Tahoma;
@@ -62,6 +62,12 @@
 }
 #content a {
   text-decoration: none;
+}
+body.index #content > div {
+  display: inline-block;
+}
+body.index #content > div > table {
+  width: 100%;
 }
 #header a:hover, #content a:hover {
   text-decoration: underline;
@@ -190,7 +196,8 @@
   clear: both;
   overflow: auto;
 }
-#stats.keyboard {
+#stats.keyboard,
+#stats.sessions {
   clear: both;
   float: right;
   margin-right: 10px;
@@ -267,6 +274,20 @@ table.input_index td.periods .periods a.day {
 }
 table.input_index td.periods .periods span {
   float: right;
+}
+#stats.sessions tr:first-child {
+  font-weight: bold;
+}
+#stats.sessions tr:not(:first-child) td:last-child {
+  text-align: right;
+}
+#stats.sessions tr:first-child td:nth-child(2) {
+  max-width: 200px;
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+}
+table.sessions td:nth-child(2) {
+  text-align: right;
 }
 #overlay {
   display: none;

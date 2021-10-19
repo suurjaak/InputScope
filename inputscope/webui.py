@@ -6,7 +6,7 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    18.10.2021
+@modified    19.10.2021
 """
 import collections
 import datetime
@@ -20,7 +20,7 @@ from bottle import hook, request, route
 
 from . import conf
 from . import db
-from . util import format_bytes, format_timedelta, stamp_to_date, timedelta_seconds
+from . util import format_bytes, format_stamp, format_timedelta, stamp_to_date, timedelta_seconds
 
 
 app = None   # Bottle application instance
@@ -58,7 +58,7 @@ def session(session):
             stats[table]["count"]   += row["count"]
             stats[table]["periods"] += [row]
 
-    dbinfo, session = stats_db(conf.DbPath), sess
+    dbinfo, sessioninfo, session = stats_db(conf.DbPath), stats_session(sess, stats), sess
     return bottle.template("session.tpl", locals(), conf=conf)
 
 
@@ -330,6 +330,18 @@ def stats_sessions(input=None):
     return sessions
 
 
+def stats_session(session, stats):
+    """Returns session information as [(label, value), ]."""
+    FMT = "%Y-%m-%d %H:%M:%S"
+    result = [("Started",  format_stamp(session["start"], FMT)),
+              ("Ended",    format_stamp(session["end"],   FMT) if session["end"] else ""),
+              ("Duration", format_timedelta((session["end"] or time.time()) - session["start"])),
+              ("Mouse",    "{:,}".format(sum(stats.get(t, {}).get("count", 0) for t in conf.InputEvents["mouse"]))),
+              ("Keyboard", "{:,}".format(sum(stats.get(t, {}).get("count", 0) for t in conf.InputEvents["keyboard"]))),
+              ("Total",    "{:,}".format(sum(stats.get(t, {}).get("count", 0) for _, tt in conf.InputTables for t in tt))), ]
+    return result
+
+
 def stats_db(filename):
     """Returns database information as [(label, value), ]."""
     result = [("Database", filename),
@@ -341,6 +353,7 @@ def stats_db(filename):
     for name, tables in conf.InputTables:
         countstr = "{:,}".format(sum(cmap.get(t) or 0 for t in tables))
         result += [("%s events" % name.capitalize(), countstr)]
+    result += [("Sessions", db.fetchone("sessions", "COUNT(*) AS count")["count"])]
     return result
 
 

@@ -125,7 +125,6 @@ class Listener(threading.Thread):
                 db.insert("screen_sizes", x=size[0], y=size[1], w=size[2], h=size[3], display=i)
             self.data_handler.screen_sizes = sizes
         elif command.startswith("session "):
-            print(repr(command)) # @todo remove
             parts = command.split()[1:]
             action, args = parts[0], parts[1:]
             if "start" == action and args:

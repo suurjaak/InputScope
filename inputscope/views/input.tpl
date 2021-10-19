@@ -12,13 +12,13 @@ Template arguments:
 @modified    17.10.2021
 %"""
 %from inputscope import conf
-%from inputscope.util import stamp_to_date
+%from inputscope.util import format_stamp
 %WEBROOT = get_url("/")
 %INPUTURL, URLARGS = ("/<input>", dict(input=input))
 %if get("session"):
 %    INPUTURL, URLARGS = "/sessions/<session>" + INPUTURL, dict(URLARGS, session=session["id"])
 %end # if get("session")
-%title = input.capitalize()
+%title, page = input.capitalize(), "input"
 %rebase("base.tpl", **locals())
 
 <div>
@@ -45,26 +45,26 @@ Template arguments:
   </tr>
   </tbody>
 %end # for table, data
+</table>
 
-%headered = False
-%for sess in sessions:
-%    if not sess["count"]:
-%        continue # for sess
-%    end # if not sess["count"]
-%    if not headered:
-    <tbody><tr><th>sessions</th><th></th><th></th></tr>
+%did_sessions = False
+%for sess in (s for s in sessions if s["count"]):
+%    if not did_sessions:
+<table class="sessions">
+  <tbody>
+  <tr><th>sessions</th><th></th><th></th></tr>
 %    end # if sessions
-%    headered = True
+%    did_sessions = True
   <tr>
-    <td>{{ sess["name"] }}:</td>
+    <td title="{{ sess["name"] }}">{{ sess["name"] }}:</td>
     <td><a href="{{ get_url("/sessions/<session>/<input>", session=sess["id"], input=input) }}#{{ sess["count"] }}">{{ "{:,}".format(sess["count"]) }}</a></td>
-    <td>from {{ stamp_to_date(sess["start"]) }} {{ "to %s" % stamp_to_date(sess["end"]) if sess["end"] else "" }}</td>
+    <td>from {{ format_stamp(sess["start"]) }} {{ "to %s" % format_stamp(sess["end"]) if sess["end"] else "" }}</td>
   </tr>
 %end # for sess
-%    if headered:
-    </tbody>
-%    end # if headered
+%    if did_sessions:
+  </tbody>
 </table>
+%    end # if did_sessions
 </div>
 
 

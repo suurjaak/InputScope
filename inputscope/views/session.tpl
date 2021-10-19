@@ -7,15 +7,24 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     15.10.2021
-@modified    17.10.2021
+@modified    19.10.2021
 %"""
-%import datetime
 %from inputscope import conf
 %WEBROOT = get_url("/")
+%page = "session"
 %rebase("base.tpl", **locals())
 
 <div>
-<table>
+
+<table id="stats" class="sessions">
+  <tr>
+    <td>Session name</td>
+    <td title="{{ session["name"] }}">{{ session["name"] }}</td>
+  </tr>
+%for key, val in sessioninfo:
+    <tr><td>{{ key }}</td><td>{{ val }}</td></tr>
+%end # for key
+</tr></table>
 
 <table>
 %for input, table in ((k, t) for k, tt in conf.InputTables for t in tt):

@@ -13,6 +13,7 @@ Template arguments:
 %from inputscope import conf
 %from inputscope.util import format_stamp
 %WEBROOT = get_url("/")
+%page = "index"
 %rebase("base.tpl", **locals())
 
 <div>
@@ -28,13 +29,15 @@ Template arguments:
 %    end # if data["count"]
   </tr></tbody>
 %end # for input, data
+</table>
 
 %if sessions:
+<table class="sessions">
   <tbody><tr><th>sessions</th><th></th><th></th></tr>
 %end # if sessions
 %for sess in sessions:
   <tr>
-    <td>{{ sess["name"] }}:</td>
+    <td title="{{ sess["name"] }}">{{ sess["name"] }}:</td>
 %    if sess["count"]:
     <td><a href="{{ get_url("/sessions/<session>", session=sess["id"]) }}#{{ sess["count"] }}">{{ "{:,}".format(sess["count"]) }}</a></td>
 %    else:
@@ -45,6 +48,6 @@ Template arguments:
 %end # for sess
 %if sessions:
   </tbody>
-%end # if sessions
 </table>
+%end # if sessions
 </div>

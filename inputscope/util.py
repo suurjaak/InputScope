@@ -74,6 +74,8 @@ def stamp_to_date(stamp):
 
 def timedelta_seconds(timedelta):
     """Returns the total timedelta duration in seconds."""
+    if not isinstance(timedelta, datetime.timedelta):
+        return timedelta
     return (timedelta.total_seconds() if hasattr(timedelta, "total_seconds")
             else timedelta.days * 24 * 3600 + timedelta.seconds +
                  timedelta.microseconds / 1000000.)
