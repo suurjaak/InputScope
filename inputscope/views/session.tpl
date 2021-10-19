@@ -18,9 +18,9 @@ Template arguments:
 <table>
 
 <table>
-%for table, data in stats.items():
-%    input = next((k for k, vv in conf.InputEvents.items() if table in vv), None)
-%    if not data["count"]:
+%for input, table in ((k, t) for k, tt in conf.InputTables for t in tt):
+%    data = stats.get(table, {})
+%    if not data.get("count"):
 %        continue # for table
 %    end
   <tbody>
