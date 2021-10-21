@@ -15,7 +15,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    17.10.2021
+@modified    21.10.2021
 %"""
 %WEBROOT = get_url("/")
 %INPUTURL, URLARGS = ("/sessions/<session>", dict(session=session["id"])) if get("session") else ("", {})
@@ -43,7 +43,7 @@ Template arguments:
 %for type, tbl in [(k, x) for k, tt in conf.InputTables for x in tt]:
     %if tbl == table:
   <span>{{ tbl }}</span>
-    %elif tbl not in tabledays:
+    %elif tabledays and tbl not in tabledays:
   <span class="inactive">{{ tbl }}</span>
     %elif period:
   <a href="{{ get_url("%s/<input>/<table>/<period>" % INPUTURL, input=type, table=tbl, period=period, **URLARGS) }}">{{ tbl }}</a>
