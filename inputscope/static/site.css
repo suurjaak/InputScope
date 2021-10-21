@@ -3,7 +3,7 @@
  *
  * @author      Erki Suurjaak
  * @created     07.04.2015
- * @modified    19.10.2021
+ * @modified    21.10.2021
  */
 * {
   font-family: Tahoma;
@@ -281,13 +281,11 @@ table.input_index td.periods .periods span {
 #stats.sessions tr:not(:first-child) td:last-child {
   text-align: right;
 }
-#stats.sessions tr:first-child td:nth-child(2) {
+#stats.sessions tr:first-child td:nth-child(2),
+table.sessions:not(#stats) td:first-child {
   max-width: 200px;
   overflow-x: hidden;
   text-overflow: ellipsis;
-}
-table.sessions td:nth-child(2) {
-  text-align: right;
 }
 #overlay {
   display: none;
