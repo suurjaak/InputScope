@@ -3,11 +3,8 @@ InputScope
 
 Mouse and keyboard input heatmap visualizer and statistics.
 
-Keypresses are logged as physical keys, ignoring Unicode mappings.
-Note: keyboard logging can interfere with remote control desktop, 
-UI automation scripts, and sticky keys.
-
-Data is kept in an SQLite database.
+Runs a tray program that logs mouse and keyboard input events to a local database,
+and provides a local web page for viewing statistics and heatmaps by day or month.
 
 [![Mouse clicks heatmap](https://raw.githubusercontent.com/suurjaak/InputScope/media/th_clicks.png)](https://raw.githubusercontent.com/suurjaak/InputScope/media/clicks.png)
 [![Mouse moves heatmap](https://raw.githubusercontent.com/suurjaak/InputScope/media/th_moves.png)](https://raw.githubusercontent.com/suurjaak/InputScope/media/moves.png)
@@ -15,11 +12,20 @@ Data is kept in an SQLite database.
 [![Keyboard combos heatmap](https://raw.githubusercontent.com/suurjaak/InputScope/media/th_combos.png)](https://raw.githubusercontent.com/suurjaak/InputScope/media/combos.png)
 
 
-@todo Some Suitable Title About What This Section Is About
-------------
+Details
+-------
+
+Logs mouse clicks and scrolls and movement, and keyboard key presses and key 
+combinations; event categories can be toggled off from tray menu.
 
 Provides an option to record named sessions, allowing to group inputs
-with finer detail than a day.
+with finer detail than one day.
+
+Keypresses are logged as physical keys, ignoring Unicode mappings.
+Note: keyboard logging can interfere with remote control desktop, 
+UI automation scripts, and sticky keys.
+
+Data is kept in an SQLite database.
 
 
 Installation
