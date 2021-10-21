@@ -5,7 +5,7 @@ command-line echoer otherwise. Launches the event listener and web UI server.
 
 @author      Erki Suurjaak
 @created     05.05.2015
-@modified    17.10.2021
+@modified    21.10.2021
 """
 import calendar
 import datetime
@@ -515,6 +515,7 @@ def YesNoCancelMessageBox(message, caption, icon=wx.ICON_NONE,
 
 def main():
     """Program entry point."""
+    if conf.Frozen: multiprocessing.freeze_support()
     conf.init(), db.init(conf.DbPath, conf.DbStatements)
     try: db.execute("PRAGMA journal_mode = WAL")
     except Exception: pass
@@ -543,5 +544,4 @@ def main():
 
 
 if "__main__" == __name__:
-    if conf.Frozen: multiprocessing.freeze_support()
     main()

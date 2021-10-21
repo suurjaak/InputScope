@@ -1,24 +1,36 @@
 # -*- mode: python -*-
 """
-Pyinstaller spec file for InputScope, produces a Windows executable.
+Pyinstaller spec file for Inputscope, produces a 32-bit or 64-bit executable,
+depending on Python environment.
+
+Pyinstaller-provided names and variables: Analysis, EXE, PYZ, SPEC, TOC.
 
 @author    Erki Suurjaak
 @created   13.04.2015
-@modified  11.02.2021
+@modified  21.10.2021
 """
 import os
+import struct
 import sys
 
-APPPATH = os.path.join(os.path.dirname(os.path.abspath(SPEC)), "inputscope")
-sys.path.append(APPPATH)
-from . import conf
+NAME        = "inputscope"
+DO_DEBUGVER = False
+DO_64BIT    = (struct.calcsize("P") * 8 == 64)
+
+BUILDPATH = os.path.dirname(os.path.abspath(SPEC))
+APPPATH   = os.path.join(BUILDPATH, NAME)
+ROOTPATH  = BUILDPATH
+os.chdir(ROOTPATH)
+sys.path.append(ROOTPATH)
+
+from inputscope import conf
 
 
 APP_INCLUDES = [("static", "icon.ico"),       ("static", "site.css"),
                 ("static", "heatmap.min.js"), ("static", "keyboard.svg"),
                 ("views",  "index.tpl"),      ("views",  "heatmap_keyboard.tpl"),
                 ("views",  "input.tpl"),      ("views",  "heatmap_mouse.tpl"),
-                ("views",  "base.tpl"), ]
+                ("views",  "base.tpl"),       ("views",  "session.tpl")]
 DATA_EXCLUDES = ["Include\\pyconfig.h"] # PyInstaller 2.1 bug: warning about existing pyconfig.h
 MODULE_EXCLUDES = ["_gtkagg", "_tkagg", "_tkinter", "backports", "bsddb", "bz2",
                    "cherrypy", "colorama", "curses", "distutils",
@@ -45,26 +57,39 @@ PURE_RETAINS = {"encodings.": [
 ]}
 
 
-a = Analysis([(os.path.join(APPPATH, "main.py"))], excludes=MODULE_EXCLUDES,
-            hiddenimports=MODULE_INCLUDES)
+app_file = "%s_%s%s%s" % (NAME, conf.Version, "_x64" if DO_64BIT else "",
+                          ".exe" if "nt" == os.name else "")
+entrypoint = os.path.join(ROOTPATH, "launch.py")
+
+with open(entrypoint, "w") as f:
+    f.write("from %s import main; main.main()" % NAME)
+
+
+a = Analysis(
+    [entrypoint], excludes=MODULE_EXCLUDES, hiddenimports=MODULE_INCLUDES
+)
 a.datas -= [(n, None, "DATA") for n in DATA_EXCLUDES] # entry=(name, path, typecode)
 a.datas += [(os.path.join(*x), os.path.join(APPPATH, *x), "DATA")
             for x in APP_INCLUDES]
 a.binaries -= [(n, None, None) for n in BINARY_EXCLUDES]
 a.pure = TOC([(n, p, c) for (n, p, c) in a.pure if not any(
               n.startswith(k) and n not in vv for k, vv in PURE_RETAINS.items())])
+pyz = PYZ(a.pure)
 
-exename = "%s_%s.exe" % (conf.Title, conf.Version)
 exe = EXE(
-    PYZ(a.pure),
-    a.scripts,
+    pyz,
+    a.scripts + ([("v", "", "OPTION")] if DO_DEBUGVER else []),
     a.binaries,
-    a.zipfiles,
     a.datas,
-    name=exename,
-    debug=False,  # Verbose or non-verbose 
-    strip=False,  # EXE and all shared libraries run through cygwin's strip, tends to render Win32 DLLs unusable
-    upx=True,     # Using Ultimate Packer for eXecutables
+    name=app_file,
+
+    debug=DO_DEBUGVER, # Verbose or non-verbose debug statements printed
+    exclude_binaries=False, # Binaries not left out of PKG
+    strip=False, # EXE and all shared libraries run through cygwin's strip, tends to render Win32 DLLs unusable
+    upx=True, # Using Ultimate Packer for eXecutables
+    console=DO_DEBUGVER, # Use the Windows subsystem executable instead of the console one
     icon=os.path.join(APPPATH, "static", "icon.ico"),
-    console=False # Use the Windows subsystem executable instead of the console one
 )
+
+try: os.remove(entrypoint)
+except Exception: pass
