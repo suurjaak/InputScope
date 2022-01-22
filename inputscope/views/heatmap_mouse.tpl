@@ -9,14 +9,16 @@ Template arguments:
   count           count of all events
   events          list of replayable events, as [{x, y, display, dt}]
   positions       mouse position counts, as {display: [{x, y, count}, ]}
+  session         session data, if any
   stats           mouse statistics, as [(label, text)]
   tabledays       set of tables that have events for specified day
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    27.01.2021
+@modified    21.10.2021
 %"""
 %WEBROOT = get_url("/")
+%INPUTURL, URLARGS = ("/sessions/<session>", dict(session=session["id"])) if get("session") else ("", {})
 %title = "%s %s" % (input.capitalize(), table)
 %rebase("base.tpl", **locals())
 
@@ -41,14 +43,12 @@ Template arguments:
 %for type, tbl in [(k, x) for k, tt in conf.InputTables for x in tt]:
     %if tbl == table:
   <span>{{ tbl }}</span>
-    %else:
-        %if period and tbl not in tabledays:
+    %elif tabledays and tbl not in tabledays:
   <span class="inactive">{{ tbl }}</span>
-        %elif period:
-  <a href="{{ get_url("/%s/<table>/<period>" % type, table=tbl, period=period) }}">{{ tbl }}</a>
-        %else:
-  <a href="{{ get_url("/%s/<table>" % type, table=tbl) }}">{{ tbl }}</a>
-        %end # if period
+    %elif period:
+  <a href="{{ get_url("%s/<input>/<table>/<period>" % INPUTURL, input=type, table=tbl, period=period, **URLARGS) }}">{{ tbl }}</a>
+    %else:
+  <a href="{{ get_url("%s/<input>/<table>" % INPUTURL, input=type, table=tbl, **URLARGS) }}">{{ tbl }}</a>
     %end # if tbl == table
 %end # for type, tbl
 </div>

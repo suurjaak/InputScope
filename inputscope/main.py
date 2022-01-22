@@ -5,21 +5,20 @@ command-line echoer otherwise. Launches the event listener and web UI server.
 
 @author      Erki Suurjaak
 @created     05.05.2015
-@modified    11.02.2021
+@modified    21.10.2021
 """
 import calendar
 import datetime
 import errno
 import functools
 import multiprocessing
-import multiprocessing.forking
 import os
+import re
 import signal
 import subprocess
 import sys
 import threading
 import time
-import urllib
 import webbrowser
 try: import win32com.client # For creating startup shortcut
 except ImportError: pass
@@ -29,27 +28,26 @@ except ImportError:
     try: import Tkinter as tk   # For getting screen size if wx unavailable
     except ImportError: pass
 
-import conf
-import listener
-import webui
-
-class Popen(multiprocessing.forking.Popen):
-    """Support for PyInstaller-frozen Windows executables."""
-    def __init__(self, *args, **kwargs):
-        hasattr(sys, "frozen") and os.putenv("_MEIPASS2", sys._MEIPASS + os.sep)
-        try: super(Popen, self).__init__(*args, **kwargs)
-        finally: hasattr(sys, "frozen") and os.unsetenv("_MEIPASS2")
-
-class Process(multiprocessing.Process): _Popen = Popen
+from . import conf
+from . import db
+from . import listener
+from . import webui
+from . util import QueueLine, format_session, run_later
 
 
-class QueueLine(object):
-    """Queue-like interface for writing lines to a file-like object."""
-    def __init__(self, output): self.output = output
-    def put(self, item):
-        try: self.output.write("%s\n" % item)
-        except IOError as e:
-            if e.errno != errno.EINVAL: raise # Invalid argument, probably stale pipe
+try: # Py2
+    import multiprocessing.forking
+
+    class Popen(multiprocessing.forking.Popen):
+        """Support for PyInstaller-frozen Windows executables."""
+        def __init__(self, *args, **kwargs):
+            hasattr(sys, "frozen") and os.putenv("_MEIPASS2", sys._MEIPASS + os.sep)
+            try: super(Popen, self).__init__(*args, **kwargs)
+            finally: hasattr(sys, "frozen") and os.unsetenv("_MEIPASS2")
+
+    class Process(multiprocessing.Process): _Popen = Popen
+except ImportError: # Py3
+    class Process(multiprocessing.Process): pass
 
 
 class Model(threading.Thread):
@@ -58,6 +56,7 @@ class Model(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.running = False
+        self.sessions = []
         self.sizes = None # [[x, y, w, h], ]
         self.initialqueue = multiprocessing.Queue()
         self.listenerqueue = None
@@ -70,6 +69,7 @@ class Model(threading.Thread):
 
 
     def toggle(self, category):
+        """Toggles logging input category on or off."""
         if category not in conf.InputFlags: return
 
         # Event input (mouse|keyboard), None if category itself is input
@@ -100,6 +100,13 @@ class Model(threading.Thread):
         q.put("%s %s" % ("start" if on else "stop", category))
 
 
+    def session_action(self, action, session=None, arg=None):
+        """Carries out session action."""
+        q = self.listenerqueue or self.initialqueue
+        q.put(" ".join(filter(bool, ("session", action, arg, session and str(session["id"])))))
+        if action in ("rename", "delete", "start", "stop"):
+            run_later(lambda: setattr(self, "sessions", db.fetch("sessions", order="start DESC")), 1000)
+
     def stop(self, exit=False):
         self.running = False
         if self.listener: self.listenerqueue.put("exit"), self.listener.terminate()
@@ -126,11 +133,12 @@ class Model(threading.Thread):
             self.webui = Process(target=webui.start)
             self.listener.start(), self.webui.start()
         else:
-            args = lambda *x: [sys.executable,
-                   os.path.join(conf.ApplicationPath, x[0])] + list(x[1:])
-            self.listener = subprocess.Popen(args("listener.py", "--quiet"),
-                                             stdin=subprocess.PIPE)
-            self.webui = subprocess.Popen(args("webui.py", "--quiet"))
+            pkg = os.path.basename(conf.ApplicationPath)
+            root = os.path.dirname(conf.ApplicationPath)
+            args = lambda *x: [sys.executable, "-m", "%s.%s" % (pkg, x[0])] + list(x[1:])
+            self.listener = subprocess.Popen(args("listener", "--quiet"), cwd=root, shell=True,
+                                             stdin=subprocess.PIPE, universal_newlines=True)
+            self.webui = subprocess.Popen(args("webui", "--quiet"), cwd=root)
             self.listenerqueue = QueueLine(self.listener.stdin)
 
         if conf.MouseEnabled:    self.listenerqueue.put("start mouse")
@@ -138,11 +146,17 @@ class Model(threading.Thread):
         while not self.initialqueue.empty():
             self.listenerqueue.put(self.initialqueue.get())
 
+        self.sessions = db.fetch("sessions", order="start DESC")
+
         self.running = True
         while self.running: time.sleep(1)
 
 
 class MainApp(getattr(wx, "App", object)):
+
+    def InitLocale(self):
+        # Avoid dialog buttons in native language
+        pass
 
     def OnInit(self):
         self.model = Model()
@@ -191,8 +205,14 @@ class MainApp(getattr(wx, "App", object)):
         """Creates and opens a popup menu for the tray icon."""
         menu, makeitem = wx.Menu(), lambda m, x, **k: wx.MenuItem(m, -1, x, **k)
         mousemenu, keyboardmenu, histmenu = wx.Menu(), wx.Menu(), wx.Menu()
-        histall_menu, histday_menu, histmon_menu, histdts_menu = wx.Menu(), wx.Menu(), wx.Menu(), wx.Menu()
+        sessions_menu = wx.Menu()
+        histall_menu, histmon_menu, histday_menu = wx.Menu(), wx.Menu(), wx.Menu()
+        histdts_menu, histses_menu = wx.Menu(), wx.Menu()
         on_category = lambda c: functools.partial(self.OnToggleCategory, c)
+        on_session  = lambda k, s=None: functools.partial(self.OnSessionAction, k, session=s)
+        on_clear    = lambda p, c, s=False: functools.partial(self.OnSessionAction, "clear", category=c) \
+                                            if s else functools.partial(self.OnClearHistory, p, c)
+
         item_ui       = makeitem(menu, "&Open statistics")
         item_startup  = makeitem(menu, "Start with &Windows",  kind=wx.ITEM_CHECK) \
                         if self.startupservice.can_start() else None
@@ -207,29 +227,51 @@ class MainApp(getattr(wx, "App", object)):
         item_keys     = makeitem(keyboardmenu, "Log individual &keys",  kind=wx.ITEM_CHECK)
         item_combos   = makeitem(keyboardmenu, "Log key &combinations", kind=wx.ITEM_CHECK)
 
-        item_vacuum   = makeitem(histmenu, "&Repack database to smaller size")
+        lastsession = self.model.sessions[0] if self.model.sessions else None
+        activesession = lastsession if lastsession and not lastsession["end"] else None
+        activename = format_session(activesession, quote=True, stamp=False) if activesession else None
+        item_session_start = makeitem(menu, "&Start session ..")
+        item_session_stop  = makeitem(menu, "Stop session%s" % (' ' + activename if activename else ""))
+        item_session_stop.Enable(bool(activename))
+        for session in self.model.sessions[:conf.MaxSessionsInMenu]:
+            sessmenu = wx.Menu()
+            item_session_open   = makeitem(sessmenu, "Open statistics")
+            item_session_rename = makeitem(sessmenu, "Rename")
+            item_session_clear  = makeitem(sessmenu, "Clear events")
+            item_session_delete = makeitem(sessmenu, "Delete")
+            sessmenu.Bind(wx.EVT_MENU, on_session("open",   session), item_session_open)
+            sessmenu.Bind(wx.EVT_MENU, on_session("rename", session), item_session_rename)
+            sessmenu.Bind(wx.EVT_MENU, on_session("clear",  session), item_session_clear)
+            sessmenu.Bind(wx.EVT_MENU, on_session("delete", session), item_session_delete)
+            sessmenu.Append(item_session_open)
+            sessmenu.Append(item_session_rename)
+            sessmenu.Append(item_session_clear)
+            sessmenu.Append(item_session_delete)
+            sessions_menu.AppendSubMenu(sessmenu, format_session(session))
 
-        for m in histall_menu, histmon_menu, histday_menu, histdts_menu:
+        item_vacuum = makeitem(histmenu, "&Repack database to smaller size")
+
+        for m in histall_menu, histmon_menu, histday_menu, histdts_menu, histses_menu:
             item_all = makeitem(m, "All inputs")
-            period = "all" if m is histall_menu else "month" if m is histmon_menu else \
-                     "today" if m is histday_menu else "range"
-            m.Bind(wx.EVT_MENU, functools.partial(self.OnClearHistory, period, None),
-                   id=item_all.GetId())
+            period = "all" if m in (histall_menu, histses_menu) else \
+                     "month" if m is histmon_menu else "today" if m is histday_menu else "range"
+            session = (m is histses_menu)
+            m.Bind(wx.EVT_MENU, on_clear(period, None, session), id=item_all.GetId())
             m.Append(item_all)
             for input, cc in conf.InputTables:
                 item_input = makeitem(m, "    %s inputs" % input.capitalize())
-                m.Bind(wx.EVT_MENU, functools.partial(self.OnClearHistory, period, input),
-                       id=item_input.GetId())
+                m.Bind(wx.EVT_MENU, on_clear(period, input, session), id=item_input.GetId())
                 m.Append(item_input)
                 for c in cc:
                     item_cat = makeitem(m, "        %s" % c)
-                    m.Bind(wx.EVT_MENU, functools.partial(self.OnClearHistory, period, c),
-                           id=item_cat.GetId())
+                    m.Bind(wx.EVT_MENU, on_clear(period, c, session), id=item_cat.GetId())
                     m.Append(item_cat)
         histmenu.AppendSubMenu(histall_menu, "Clear &all history")
         histmenu.AppendSubMenu(histmon_menu, "Clear this &month")
         histmenu.AppendSubMenu(histday_menu, "Clear &today")
         histmenu.AppendSubMenu(histdts_menu, "Clear history &from .. to ..")
+        item_sessions_clear = histmenu.AppendSubMenu(histses_menu, "Clear from &session ..")
+        histmenu.Enable(item_sessions_clear.Id, bool(self.model.sessions))
         histmenu.AppendSeparator()
         histmenu.Append(item_vacuum)
 
@@ -249,6 +291,11 @@ class MainApp(getattr(wx, "App", object)):
         menu.Append(item_keyboard)
         menu.AppendSubMenu(keyboardmenu, "  Keyboard e&vent categories")
         menu.AppendSeparator()
+        menu.Append(item_session_start)
+        menu.Append(item_session_stop)
+        item_sessions = menu.AppendSubMenu(sessions_menu, "Sessions")
+        menu.Enable(item_sessions.Id, bool(self.model.sessions))
+        menu.AppendSeparator()
         menu.AppendSubMenu(histmenu, "Clear events &history")
         menu.Append(item_console)
         menu.Append(item_exit)
@@ -263,19 +310,20 @@ class MainApp(getattr(wx, "App", object)):
         item_combos  .Check(conf.KeyboardEnabled and conf.KeyboardCombosEnabled)
         item_console .Check(self.frame_console.Shown)
 
-        menu.Bind(wx.EVT_MENU, self.OnOpenUI,           id=item_ui.GetId())
-        menu.Bind(wx.EVT_MENU, self.OnVacuum,           id=item_vacuum.GetId())
-        menu.Bind(wx.EVT_MENU, self.OnToggleStartup,    id=item_startup.GetId()) \
-        if item_startup else None
-        menu.Bind(wx.EVT_MENU, on_category("mouse"),    id=item_mouse.GetId())
-        menu.Bind(wx.EVT_MENU, on_category("keyboard"), id=item_keyboard.GetId())
-        menu.Bind(wx.EVT_MENU, on_category("moves"),    id=item_moves.GetId())
-        menu.Bind(wx.EVT_MENU, on_category("clicks"),   id=item_clicks.GetId())
-        menu.Bind(wx.EVT_MENU, on_category("scrolls"),  id=item_scrolls.GetId())
-        menu.Bind(wx.EVT_MENU, on_category("keys"),     id=item_keys.GetId())
-        menu.Bind(wx.EVT_MENU, on_category("combos"),   id=item_combos.GetId())
-        menu.Bind(wx.EVT_MENU, self.OnToggleConsole,    id=item_console.GetId())
-        menu.Bind(wx.EVT_MENU, self.OnClose,            id=item_exit.GetId())
+        menu.Bind(wx.EVT_MENU, self.OnOpenUI,           item_ui)
+        menu.Bind(wx.EVT_MENU, self.OnVacuum,           item_vacuum)
+        menu.Bind(wx.EVT_MENU, self.OnToggleStartup,    item_startup) if item_startup else None
+        menu.Bind(wx.EVT_MENU, on_category("mouse"),    item_mouse)
+        menu.Bind(wx.EVT_MENU, on_category("keyboard"), item_keyboard)
+        menu.Bind(wx.EVT_MENU, on_category("moves"),    item_moves)
+        menu.Bind(wx.EVT_MENU, on_category("clicks"),   item_clicks)
+        menu.Bind(wx.EVT_MENU, on_category("scrolls"),  item_scrolls)
+        menu.Bind(wx.EVT_MENU, on_category("keys"),     item_keys)
+        menu.Bind(wx.EVT_MENU, on_category("combos"),   item_combos)
+        menu.Bind(wx.EVT_MENU, on_session("start"),     item_session_start)
+        menu.Bind(wx.EVT_MENU, on_session("stop"),      item_session_stop)
+        menu.Bind(wx.EVT_MENU, self.OnToggleConsole,    item_console)
+        menu.Bind(wx.EVT_MENU, self.OnClose,            item_exit)
         self.trayicon.PopupMenu(menu)
 
 
@@ -313,8 +361,12 @@ class MainApp(getattr(wx, "App", object)):
 
     def OnLogResolution(self, event=None):
         if not self: return
-        sizes = [list(wx.Display(i).Geometry)
-                 for i in range(wx.Display.GetCount())]
+        def make_size(geometry, w, h):
+            scale = geometry.Width / float(w)
+            return [int(geometry.X * scale), int(geometry.Y * scale), w, h]
+        sizes = [make_size(d.Geometry, m.Width, m.Height)
+                 for i in range(wx.Display.GetCount())
+                 for d in [wx.Display(i)] for m in [d.GetCurrentMode()]]
         self.model.log_resolution(sizes)
 
     def OnOpenUI(self, event):
@@ -331,6 +383,61 @@ class MainApp(getattr(wx, "App", object)):
 
     def OnToggleCategory(self, category, event):
         self.model.toggle(category)
+
+
+    def OnSessionAction(self, action, event, session=None, category=None):
+        arg = None
+
+        if "open" == action:
+            webbrowser.open(conf.WebUrl + "/sessions/%s" % session["id"])
+            return
+        elif "rename" == action:
+            dlg = wx.TextEntryDialog(None, "Enter new name for session:", "Rename session",
+                                     value=session["name"], style=wx.OK | wx.CANCEL)
+            if self.icons: dlg.SetIcons(self.icons)
+            dlg.CenterOnScreen()
+            if wx.ID_OK != dlg.ShowModal(): return
+            arg = dlg.GetValue().strip()
+            if not arg or arg == session["name"]:
+                return
+        elif "clear" == action:
+            arg = category
+            label = ("%s events" % arg) if arg in conf.InputTables else arg or "all events"
+            arg = arg or "all"
+
+            if not session:
+                choices = [format_session(x) for x in self.model.sessions]
+                dlg = wx.SingleChoiceDialog(None, "Clear %s from:" % label, "Clear session", choices)
+                if self.icons: dlg.SetIcons(self.icons)
+                dlg.CenterOnScreen()
+                res, sel = dlg.ShowModal(), dlg.GetSelection()
+                dlg.Destroy()
+                if wx.ID_OK != res: return
+                session = self.model.sessions[sel]
+            else:
+                msg = 'Are you sure you want to clear %s from session "%s"?' % (label, session["name"])
+                if wx.OK != wx.MessageBox(msg, conf.Title, wx.OK | wx.CANCEL | wx.ICON_WARNING): return
+        elif "delete" == action:
+            msg = 'Are you sure you want to delete session "%s"' % session["name"]
+            res = YesNoCancelMessageBox(msg, conf.Title, wx.ICON_WARNING,
+                                        yes="Delete", no="Clear events and delete")
+            if wx.CANCEL == res: return
+            if wx.NO == res:
+                self.model.session_action("clear", session)
+        elif "start" == action:
+            arg = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+            dlg = wx.TextEntryDialog(None, "Enter name for new session:", "Start session",
+                                     value=arg, style=wx.OK | wx.CANCEL)
+            if self.icons: dlg.SetIcons(self.icons)
+            dlg.CenterOnScreen()
+            res, arg = dlg.ShowModal(), dlg.GetValue().strip()
+            dlg.Destroy()
+            if wx.ID_OK != res or not arg: return
+        elif "stop" != action:
+            return
+
+        self.model.session_action(action, session, arg)
+
 
     def OnToggleConsole(self, event):
         self.frame_console.Show(not self.frame_console.IsShown())
@@ -389,18 +496,36 @@ class StartupService(object):
             shortcut.save()
 
 
+def YesNoCancelMessageBox(message, caption, icon=wx.ICON_NONE,
+                          yes="&Yes", no="&No", cancel="Cancel"):
+    """
+    Opens a Yes/No/Cancel messagebox with custom labels, returns dialog result.
+
+    @param   icon     dialog icon to use, one of wx.ICON_XYZ
+    @param   default  default selected button, wx.YES or wx.NO
+    """
+    style = icon | wx.YES | wx.NO | wx.CANCEL
+    dlg = wx.MessageDialog(None, message, caption, style)
+    dlg.SetYesNoCancelLabels(yes, no, cancel)
+    dlg.CenterOnScreen()
+    res = dlg.ShowModal()
+    dlg.Destroy()
+    return res
+
+
 def main():
     """Program entry point."""
-    conf.init()
+    if conf.Frozen: multiprocessing.freeze_support()
+    conf.init(), db.init(conf.DbPath, conf.DbStatements)
+    try: db.execute("PRAGMA journal_mode = WAL")
+    except Exception: pass
 
     if wx:
-        name = urllib.quote_plus("-".join([conf.Title, conf.DbPath]))
+        name = re.sub(r"\W", "__", "-".join([conf.Title, conf.DbPath]))
         singlechecker = wx.SingleInstanceChecker(name)
         if singlechecker.IsAnotherRunning(): sys.exit()
 
-        app = MainApp(redirect=True) # redirect stdout/stderr to wx popup
-        locale = wx.Locale(wx.LANGUAGE_ENGLISH) # Avoid dialog buttons in native language
-        app.MainLoop() # stdout/stderr directed to wx popup
+        MainApp(redirect=True).MainLoop() # stdout/stderr directed to wx popup
     else:
         model = Model()
         if tk:
@@ -419,5 +544,4 @@ def main():
 
 
 if "__main__" == __name__:
-    if conf.Frozen: multiprocessing.freeze_support()
     main()

@@ -4,14 +4,30 @@ Mouse and keyboard listener, logs events to database.
 
 --quiet      prints out nothing
 
+
+Commands from stdin:
+
+start          CATEGORY
+stop           CATEGORY
+clear          CATEGORY ?DATE1 ?DATE2
+screen_size    [DISPLAY0 x, y, w, h], ..
+
+session start  NAME
+session stop
+session rename NAME2 ID
+session clear  CATEGORY ID
+session delete ID
+
+
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    10.02.2021
+@modified    18.10.2021
 """
 from __future__ import print_function
 import datetime
 import math
-import Queue
+try: import Queue as queue        # Py2
+except ImportError: import queue  # Py3
 import sys
 import threading
 import time
@@ -19,8 +35,9 @@ import traceback
 
 import pynput
 
-import conf
-import db
+from . import conf
+from . import db
+from . util import LineQueue, stamp_to_date, zhex
 
 DEBUG = False
 
@@ -87,16 +104,56 @@ class Listener(threading.Thread):
             elif category in conf.InputEvents: tables = conf.InputEvents[category]
             else: tables = [category]
             where = [("day", (">=", dates[0])), ("day", ("<=", dates[1]))] if dates else []
+            count_deleted = 0
             for table in tables:
+                count_deleted += db.delete(table, where=where)
                 db.delete("counts", where=where, type=table)
-                db.delete(table, where=where)
+            if count_deleted:
+                where = [("day1", (">=", dates[0])), ("day2", ("<=", dates[1]))] if dates else []
+                for session in db.fetch("sessions", where=where):
+                    retain = False
+                    where = [("stamp", (">=", session["start"])), ("stamp", ("<", session["end"]))]
+                    for table in tables:
+                        retain = retain or db.fetchone(table, "1", where=where)
+                    if not retain:
+                        db.delete("sessions", id=session["id"])
         elif command.startswith("screen_size "):
             # "screen_size [0, 0, 1920, 1200] [1920, 0, 1000, 800]"
-            sizestrs = filter(bool, map(str.strip, command[12:].replace("[", "").split("]")))
-            sizes = sorted(map(int, s.replace(",", "").split()) for s in sizestrs)
+            sizestrs = list(filter(bool, (x.strip() for x in command[12:].replace("[", "").split("]"))))
+            sizes = sorted([[int(x) for x in s.replace(",", "").split()] for s in sizestrs])
             for i, size in enumerate(sizes):
                 db.insert("screen_sizes", x=size[0], y=size[1], w=size[2], h=size[3], display=i)
             self.data_handler.screen_sizes = sizes
+        elif command.startswith("session "):
+            parts = command.split()[1:]
+            action, args = parts[0], parts[1:]
+            if "start" == action and args:
+                stamp, day = next((x, stamp_to_date(x)) for x in [time.time()])
+                db.update("sessions", {"day2": day, "end": stamp}, end=None)
+                db.insert("sessions", name=" ".join(args), start=stamp, day1=day)
+            elif "stop" == action:
+                stamp, day = next((x, stamp_to_date(x)) for x in [time.time()])
+                db.update("sessions", {"day2": day, "end": time.time()}, end=None)
+            elif "rename" == action and len(args) > 1:
+                name2, sid = " ".join(args[:-1]), args[-1]
+                db.update("sessions", {"name": name2}, id=sid)
+            elif "clear" == action and len(args) == 2:
+                category, sess = args[0], db.fetchone("sessions", id=args[1])
+                if "all" == category: tables = sum(conf.InputEvents.values(), ())
+                elif category in conf.InputEvents: tables = conf.InputEvents[category]
+                else: tables = [category]
+                day1 = stamp_to_date(sess["start"])
+                day2 = stamp_to_date(sess["end"] or time.time())
+                step = datetime.timedelta(days=1)
+                days = [day1 + i * step for i in range(abs((day2 - day1).days + 1))]
+                where = [("stamp", (">=", sess["start"]))]
+                if sess["end"]: where += [("stamp", ("<", sess["end"]))]
+
+                for table, day in ((t, d) for t in tables for d in days):
+                    count = db.delete(table, [("day", day)] + where)
+                    db.update("counts", {"count": ("EXPR", "count - %s" % count)}, day=day, type=table)
+            elif "delete" == action and args:
+                db.delete("sessions", id=args[0])
         elif "vacuum" == command:
             db.execute("VACUUM")
         elif "exit" == command:
@@ -120,7 +177,7 @@ class DataHandler(threading.Thread):
         threading.Thread.__init__(self)
         self.counts = {} # {type: count}
         self.output = output
-        self.inqueue = Queue.Queue()
+        self.inqueue = queue.Queue()
         self.lasts = {"moves": None}
         self.screen_sizes = [[0, 0] + list(conf.DefaultScreenSize)]
         self.running = False
@@ -156,7 +213,7 @@ class DataHandler(threading.Thread):
 
         def one_line(pt1, pt2, pt3):
             """Returns whether points more or less fall onto one line."""
-            (x1, y1), (x2, y2), (x3, y3) = map(rescale, (pt1, pt2, pt3))
+            (x1, y1), (x2, y2), (x3, y3) = list(map(rescale, (pt1, pt2, pt3)))
             if  not (x1 >= x2 >= x3) and not (y1 >= y2 >= y3) \
             and not (x1 <= x2 <= x3) and not (y1 <= y2 <= y3): return False
             return abs((y1 - y2) * (x1 - x3) - (y1 - y3) * (x1 - x2)) <= conf.MouseMoveJoinRadius
@@ -169,7 +226,7 @@ class DataHandler(threading.Thread):
             while data:
                 items.append(data)
                 try: data = self.inqueue.get(block=False)
-                except Queue.Empty: data = None
+                except queue.Empty: data = None
             if not items or not self.running: continue # while self.running
 
             move0, move1, scroll0 = None, None, None
@@ -205,11 +262,8 @@ class DataHandler(threading.Thread):
                 dbqueue.append((category, data))
 
             try:
-                while dbqueue:
-                    db.insert(*dbqueue[0])
-                    dbqueue.pop(0)
-            except StandardError as e:
-                print(e, category, data)
+                while dbqueue: db.insert(*dbqueue.pop(0))
+            except StandardError as e: print(e)
             self.output(self.counts)
             if conf.EventsWriteInterval > 0: time.sleep(conf.EventsWriteInterval)
 
@@ -355,7 +409,7 @@ class KeyHandler(object):
         self._downs[realkey] = pressed
         if not conf.KeyboardEnabled or not pressed: return
 
-        if DEBUG: print("Adding key %s (real %s)" % (mykey.encode("utf-8"), realkey.encode("utf-8")))
+        if DEBUG: print("Adding key %r (real %r)" % (mykey, realkey))
         self._output(type="keys", key=mykey, realkey=realkey)
 
         if mykey not in self.MODIFIERNAMES and conf.KeyboardCombosEnabled:
@@ -365,7 +419,7 @@ class KeyHandler(object):
                 mykey = "%s-%s" % (modifier, realkey)
                 realmodifier = "-".join(k for k, v in self._realmodifiers.items() if v)
                 realkey = "%s-%s" % (realmodifier, realkey)
-                if DEBUG: print("Adding combo %s (real %s)" % (mykey.encode("utf-8"), realkey.encode("utf-8")))
+                if DEBUG: print("Adding combo %r (real %r)" % (mykey, realkey))
                 self._output(type="combos", key=mykey, realkey=realkey)
 
 
@@ -425,34 +479,14 @@ class KeyHandler(object):
 
 
 
-class LineQueue(threading.Thread):
-    """Reads lines from a file-like object and pushes to self.queue."""
-    def __init__(self, input):
-        threading.Thread.__init__(self)
-        self.daemon = True
-        self.input, self.queue = input, Queue.Queue()
-        self.start()
-
-    def run(self):
-        for line in iter(self.input.readline, ""):
-            self.queue.put(line.strip())
-
-def zhex(v):
-    """Returns number as zero-padded hex, e.g. "0x0C" for 12 and "0x0100" for 256."""
-    if not v: return "0x00"
-    sign, v = ("-" if v < 0 else ""), abs(v)
-    return "%s0x%0*X" % (sign, 2 * int(1 + math.log(v) / math.log(2) // 8), v)
-
-
 def start(inqueue, outqueue=None):
     """Starts the listener with incoming and outgoing queues."""
     conf.init(), db.init(conf.DbPath, conf.DbStatements)
 
     # Carry out db update for tables lacking expected new columns
     for (table, col), sqls in conf.DbUpdateStatements:
-        if any(col == x["name"] for x in db.execute("PRAGMA table_info(%s)" % table)):
-            continue # for
-        for sql in sqls: db.execute(sql)
+        if not any(col == x["name"] for x in db.execute("PRAGMA table_info(%s)" % table)):
+            for sql in sqls: db.execute(sql)
 
     try: db.execute("PRAGMA journal_mode = WAL")
     except Exception: pass

@@ -4,7 +4,7 @@ Setup.py for InputScope.
 
 @author      Erki Suurjaak
 @created     29.04.2015
-@modified    10.02.2021
+@modified    21.10.2021
 ------------------------------------------------------------------------------
 """
 import setuptools
@@ -31,7 +31,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     include_package_data=True, # Use MANIFEST.in for data files
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: End Users/Desktop",
         "Operating System :: Microsoft :: Windows",
         "Operating System :: Unix",
@@ -42,19 +42,15 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3",
     ],
 
     long_description_content_type="text/markdown",
     long_description=
 """Mouse and keyboard input heatmap visualizer and statistics.
 
-Three components:
-
-- main - wxPython desktop tray program, runs listener and webui
-- listener - logs mouse and keyboard input
-- webui - web frontend for statistics and heatmaps
-
-Listener and web-UI components can be run separately, or launched from main.
+Runs a tray program that logs mouse and keyboard input events to a local database,
+and provides a local web page for viewing statistics and heatmaps by day or month.
 
 Data is kept in an SQLite database.
 """,

@@ -10,14 +10,17 @@ Template arguments:
   counts          keyboard event counts
   counts_display  displayed event counts for keyboard combos
   events          list of replayable events
+  session         session data, if any
   stats           keyboard statistics
   tabledays       set of tables that have events for specified day
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    27.01.2021
+@modified    21.10.2021
 %"""
+%import json
 %WEBROOT = get_url("/")
+%INPUTURL, URLARGS = ("/sessions/<session>", dict(session=session["id"])) if get("session") else ("", {})
 %title = "%s %s" % (input.capitalize(), table)
 %rebase("base.tpl", **locals())
 
@@ -42,14 +45,12 @@ Template arguments:
 %for type, tbl in [(k, x) for k, tt in conf.InputTables for x in tt]:
     %if tbl == table:
   <span>{{ tbl }}</span>
-    %else:
-        %if period and tbl not in tabledays:
+    %elif tabledays and tbl not in tabledays:
   <span class="inactive">{{ tbl }}</span>
-        %elif period:
-  <a href="{{ get_url("/%s/<table>/<period>" % type, table=tbl, period=period) }}">{{ tbl }}</a>
-        %else:
-  <a href="{{ get_url("/%s/<table>" % type, table=tbl) }}">{{ tbl }}</a>
-        %end # if period
+    %elif period:
+  <a href="{{ get_url("%s/<input>/<table>/<period>" % INPUTURL, input=type, table=tbl, period=period, **URLARGS) }}">{{ tbl }}</a>
+    %else:
+  <a href="{{ get_url("%s/<input>/<table>" % INPUTURL, input=type, table=tbl, **URLARGS) }}">{{ tbl }}</a>
     %end # if tbl == table
 %end # for type, tbl
 </div>
@@ -114,7 +115,7 @@ Template arguments:
                 %if key not in conf.KeyPositions:
                     %continue # for key
                 %end # if key not in
-                %data.append({"x": conf.KeyPositions[key][0], "y": conf.KeyPositions[key][1], "count": count, "key": key.encode("utf-8")})
+                %data.append({"x": conf.KeyPositions[key][0], "y": conf.KeyPositions[key][1], "count": count, "key": json.dumps(key)})
             %end # for key
         %end # for fullkey
 {dt: "{{ str(item["dt"]) }}", data: {{! data }}}, \\
