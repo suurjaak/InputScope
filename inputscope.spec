@@ -7,7 +7,7 @@ Pyinstaller-provided names and variables: Analysis, EXE, PYZ, SPEC, TOC.
 
 @author    Erki Suurjaak
 @created   13.04.2015
-@modified  21.10.2021
+@modified  22.01.2022
 """
 import os
 import struct
@@ -33,16 +33,11 @@ APP_INCLUDES = [("static", "icon.ico"),       ("static", "site.css"),
                 ("views",  "base.tpl"),       ("views",  "session.tpl")]
 DATA_EXCLUDES = ["Include\\pyconfig.h"] # PyInstaller 2.1 bug: warning about existing pyconfig.h
 MODULE_EXCLUDES = ["_gtkagg", "_tkagg", "_tkinter", "backports", "bsddb", "bz2",
-                   "cherrypy", "colorama", "curses", "distutils",
-                   "doctest", "email.errors", "email.feedparser", "email.header",
-                   "email.message", "email.parser", "FixTk", "ftplib",
-                   "future.backports", "future.builtins", "future.moves",
+                   "cherrypy", "colorama", "curses", "distutils", "doctest",
+                   "FixTk", "ftplib", "future.backports", "future.builtins", "future.moves",
                    "future.types", "future.utils", "getpass", "gettext", "gevent",
-                   "gzip", "html", "http", "jinja2", "mako", "multiprocessing.heap",
-                   "multiprocessing.managers", "multiprocessing.pool",
-                   "multiprocessing.reduction", "multiprocessing.sharedctypes",
-                   "numpy", "OpenSSL", "optparse", "os2emxpath", "paste",
-                   "paste.httpserver", "paste.translogger", "PIL", "pygments",
+                   "gzip", "jinja2", "mako", "numpy", "OpenSSL", "optparse", "os2emxpath",
+                   "paste", "paste.httpserver", "paste.translogger", "PIL", "pygments",
                    "pyreadline", "pywin", "servicemanager", "setuptools",
                    "sitecustomize", "sre", "tarfile", "tcl", "tk", "Tkconstants",
                    "tkinter", "Tkinter", "tornado", "unittest", "urllib2",
