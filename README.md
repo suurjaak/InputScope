@@ -27,6 +27,9 @@ UI automation scripts, and sticky keys.
 
 Data is kept in an SQLite database.
 
+The local web page is viewable at http://localhost:8099/,
+port can be changed in configuration file.
+
 
 Installation
 ------------
