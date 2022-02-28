@@ -4,6 +4,7 @@ CHANGELOG
 1.6, 2022-02-28
 ---------------
 - fix potential error on unplugging monitor (#12)
+- take display index into account when discarding close mouse move events
 
 
 1.5, 2022-01-22

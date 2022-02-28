@@ -21,11 +21,10 @@ session delete ID
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    18.10.2021
+@modified    28.02.2022
 """
 from __future__ import print_function
 import datetime
-import math
 try: import Queue as queue        # Py2
 except ImportError: import queue  # Py3
 import sys
@@ -178,7 +177,7 @@ class DataHandler(threading.Thread):
         self.counts = {} # {type: count}
         self.output = output
         self.inqueue = queue.Queue()
-        self.lasts = {"moves": None}
+        self.lasts = {"moves": None}  # {mouse event type: [display, x, y]}
         self.screen_sizes = [[0, 0] + list(conf.DefaultScreenSize)]
         self.running = False
         self.start()
@@ -193,7 +192,8 @@ class DataHandler(threading.Thread):
             for i, size in enumerate(self.screen_sizes):
                 # Point falls exactly into display
                 if  size[0] <= pt[0] <= size[0] + size[2] \
-                and size[1] <= pt[1] <= size[1] + size[3]: return i, size
+                and size[1] <= pt[1] <= size[1] + size[3]:
+                    return i, size
             if pt[0] >= self.screen_sizes[-1][0] + self.screen_sizes[-1][2] \
             or pt[1] >= self.screen_sizes[-1][1] + self.screen_sizes[-1][3]:
                 # Point is beyond the last display
@@ -201,7 +201,8 @@ class DataHandler(threading.Thread):
             for i, size in enumerate(self.screen_sizes):
                 # One coordinate falls into display, other is off screen
                 if size[0] <= pt[0] <= size[0] + size[2] \
-                or size[1] <= pt[1] <= size[1] + size[3]: return i, size
+                or size[1] <= pt[1] <= size[1] + size[3]:
+                    return i, size
             return 0, self.screen_sizes[0] # Fall back to first display
 
         def rescale(pt):
@@ -235,9 +236,9 @@ class DataHandler(threading.Thread):
                 if category in conf.InputEvents["mouse"]:
                     data["display"], _ = get_display([data["x"], data["y"]])
                 if category in self.lasts: # Skip event if same position as last
-                    pos = rescale([data["x"], data["y"]])
-                    if self.lasts[category] == pos: continue # for data
-                    self.lasts[category] = pos
+                    newlast = [data["display"]] + rescale([data["x"], data["y"]])
+                    if self.lasts[category] == newlast: continue # for data
+                    self.lasts[category] = newlast
 
                 if "moves" == category: # Reduce move events
                     if move0 and move1 and move1["stamp"] - move0["stamp"] < conf.MouseMoveJoinInterval \
