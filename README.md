@@ -49,7 +49,7 @@ Three components in source code form:
 
 Listener and web-UI components can be run separately.
 
-In source code form, data and configuration is kept under inputscope/var.
+In source code form, data and configuration is kept under `inputscope/var`.
 
 The pip installation will add commands `inputscope`, `inputscope-listener` 
 and `inputscope-webui` to path.
@@ -62,6 +62,9 @@ Dependencies
 * bottle
 * pynput
 * wxPython (optional)
+
+If wxPython is not available, InputScope will not have its tray program,
+and will not recognize multi-monitor setups in mouse statistics.
 
 
 Attribution

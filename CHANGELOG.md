@@ -5,6 +5,7 @@ CHANGELOG
 ---------------
 - fix potential error on unplugging monitor (#12)
 - take display index into account when discarding close mouse move events
+- rearrange source code in src-layout
 
 
 1.5, 2022-01-22

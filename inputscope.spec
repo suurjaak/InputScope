@@ -7,7 +7,7 @@ Pyinstaller-provided names and variables: Analysis, EXE, PYZ, SPEC, TOC.
 
 @author    Erki Suurjaak
 @created   13.04.2015
-@modified  22.01.2022
+@modified  28.02.2022
 """
 import os
 import struct
@@ -18,10 +18,10 @@ DO_DEBUGVER = False
 DO_64BIT    = (struct.calcsize("P") * 8 == 64)
 
 BUILDPATH = os.path.dirname(os.path.abspath(SPEC))
-APPPATH   = os.path.join(BUILDPATH, NAME)
 ROOTPATH  = BUILDPATH
+APPPATH   = os.path.join(ROOTPATH, "src")
 os.chdir(ROOTPATH)
-sys.path.append(ROOTPATH)
+sys.path.insert(0, APPPATH)
 
 from inputscope import conf
 
