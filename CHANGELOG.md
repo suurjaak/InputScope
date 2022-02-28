@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+1.6, 2022-02-28
+---------------
+- fix potential error on unplugging monitor (#12)
+
+
 1.5, 2022-01-22
 ---------------
 - add named sessions functionality

@@ -5,7 +5,7 @@ command-line echoer otherwise. Launches the event listener and web UI server.
 
 @author      Erki Suurjaak
 @created     05.05.2015
-@modified    21.10.2021
+@modified    28.02.2022
 """
 import calendar
 import datetime
@@ -362,12 +362,14 @@ class MainApp(getattr(wx, "App", object)):
     def OnLogResolution(self, event=None):
         if not self: return
         def make_size(geometry, w, h):
+            """Returns [scaled x, scaled y, w, h]."""
             scale = geometry.Width / float(w)
             return [int(geometry.X * scale), int(geometry.Y * scale), w, h]
         sizes = [make_size(d.Geometry, m.Width, m.Height)
                  for i in range(wx.Display.GetCount())
-                 for d in [wx.Display(i)] for m in [d.GetCurrentMode()]]
-        self.model.log_resolution(sizes)
+                 for d in [wx.Display(i)] for m in [d.GetCurrentMode()]
+                 if m.Width and m.Height and all(d.Geometry.Size)]
+        if sizes: self.model.log_resolution(sizes)
 
     def OnOpenUI(self, event):
         webbrowser.open(conf.WebUrl)
