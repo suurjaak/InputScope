@@ -61,6 +61,7 @@ Dependencies
 * Python 2.7 or Python 3.5+
 * bottle
 * pynput
+* pywin32 (optional, for toggling "Start with Windows")
 * wxPython (optional)
 
 If wxPython is not available, InputScope will not have its tray program,
