@@ -64,7 +64,7 @@ a = Analysis(
     [entrypoint], excludes=MODULE_EXCLUDES, hiddenimports=MODULE_INCLUDES
 )
 a.datas -= [(n, None, "DATA") for n in DATA_EXCLUDES] # entry=(name, path, typecode)
-a.datas += [(os.path.join(*x), os.path.join(APPPATH, *x), "DATA")
+a.datas += [(os.path.join(*x), os.path.join(APPPATH, NAME, *x), "DATA")
             for x in APP_INCLUDES]
 a.binaries -= [(n, None, None) for n in BINARY_EXCLUDES]
 a.pure = TOC([(n, p, c) for (n, p, c) in a.pure if not any(
@@ -83,7 +83,7 @@ exe = EXE(
     strip=False, # EXE and all shared libraries run through cygwin's strip, tends to render Win32 DLLs unusable
     upx=True, # Using Ultimate Packer for eXecutables
     console=DO_DEBUGVER, # Use the Windows subsystem executable instead of the console one
-    icon=os.path.join(APPPATH, "static", "icon.ico"),
+    icon=os.path.join(APPPATH, NAME, "static", "icon.ico"),
 )
 
 try: os.remove(entrypoint)
