@@ -5,7 +5,7 @@ command-line echoer otherwise. Launches the event listener and web UI server.
 
 @author      Erki Suurjaak
 @created     05.05.2015
-@modified    28.02.2022
+@modified    05.07.2022
 """
 import calendar
 import datetime
@@ -20,9 +20,9 @@ import sys
 import threading
 import time
 import webbrowser
+win32com = wx = tk = None
 try: import win32com.client # For creating startup shortcut
 except ImportError: pass
-wx = tk = None
 try: import wx, wx.adv, wx.py.shell
 except ImportError:
     try: import Tkinter as tk   # For getting screen size if wx unavailable
@@ -109,7 +109,8 @@ class Model(threading.Thread):
 
     def stop(self, exit=False):
         self.running = False
-        if self.listener: self.listenerqueue.put("exit"), self.listener.terminate()
+        if self.listenerqueue: self.listenerqueue.put("exit")
+        if self.listener: self.listener.terminate()
         if self.webui: self.webui.terminate()
         if exit: sys.exit()
 
@@ -137,8 +138,12 @@ class Model(threading.Thread):
             root = os.path.dirname(conf.ApplicationPath)
             args = lambda *x: [sys.executable, "-m", "%s.%s" % (pkg, x[0])] + list(x[1:])
             self.listener = subprocess.Popen(args("listener", "--quiet"), cwd=root, shell=True,
-                                             stdin=subprocess.PIPE, universal_newlines=True)
-            self.webui = subprocess.Popen(args("webui", "--quiet"), cwd=root)
+                                             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                             stderr=subprocess.PIPE, universal_newlines=True)
+            self.webui = subprocess.Popen(args("webui", "--quiet"), cwd=root,
+                                               stdin=subprocess.DEVNULL,
+                                               stdout=subprocess.DEVNULL,
+                                               stderr=subprocess.DEVNULL)
             self.listenerqueue = QueueLine(self.listener.stdin)
 
         if conf.MouseEnabled:    self.listenerqueue.put("start mouse")
@@ -456,7 +461,7 @@ class StartupService(object):
 
     def can_start(self):
         """Whether startup can be set on this system at all."""
-        return ("win32" == sys.platform)
+        return win32com and ("win32" == sys.platform)
 
     def is_started(self):
         """Whether the program has been added to startup."""

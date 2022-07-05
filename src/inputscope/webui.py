@@ -6,16 +6,24 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    19.10.2021
+@modified    05.07.2021
 """
 import collections
 import datetime
+import io
 import math
 import os
 import re
 import sys
 import time
-import bottle
+try:  # Workaround for Py3 bug in W7: sys.stdout and .stderr are set to None
+      # when using pythonw.exe, but bottle expects output streams to exist.
+    _stdout, _stderr = sys.stdout, sys.stderr
+    if sys.stdout is None: sys.stdout = io.StringIO()
+    if sys.stderr is None: sys.stderr = io.StringIO()
+    import bottle
+finally:
+    sys.stdout, sys.stderr = _stdout, _stderr
 from bottle import hook, request, route
 
 from . import conf
