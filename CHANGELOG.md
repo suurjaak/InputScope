@@ -3,12 +3,13 @@ CHANGELOG
 
 1.6, 2022-07-06
 ---------------
-- fix potential error on unplugging monitor (#12)
-- add missing Numpad-Delete key (#14)
-- fix registering Ctrl-NUM combos (#14)
+- fix potential error on unplugging monitor (issue #12)
 - take display index into account when discarding close mouse move events
-- rearrange source code in src-layout
+- add missing Numpad-Delete key (issue #14)
+- add more OEM keys (issue #14)
+- fix registering Ctrl-NUM combos (issue #14)
 - fix running application with pythonw.exe in Py3 W7
+- rearrange source code in src-layout
 
 
 1.5, 2022-01-22

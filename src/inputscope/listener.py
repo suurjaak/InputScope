@@ -354,10 +354,23 @@ class KeyHandler(object):
         110: "Numpad-Delete",
         111: "Numpad-Divide",
 
+         21: "IME Kana/Hangul",
+         23: "IME Junja",
+         24: "IME final",
+         25: "IME Hanja/Kanji",
+
         172: "Web/Home", # Extra top keys
+        173: "Volume Mute",
+        174: "Volume Down",
+        175: "Volume Up",
+        176: "Media Next",
+        177: "Media Prev",
+        178: "Media Stop",
+        179: "Media Play/Pause",
         180: "Email",
-        181: "Media",
-        183: "Calculator",
+        181: "Media Select",
+        182: "Application 1",
+        183: "Application 2",
     }
     OTHER_VK_NAMES = { # Not Windows
         65027:     "AltGr",
