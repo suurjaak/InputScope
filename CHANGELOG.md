@@ -10,6 +10,7 @@ CHANGELOG
 - fix potential error on unplugging monitor (issue #12)
 - fix registering Ctrl-NUM combos (issue #14)
 - fix running application with pythonw.exe in Py3 W7
+- always save basic config directives to config file
 - rearrange source code in src-layout
 
 
