@@ -437,7 +437,8 @@ class KeyHandler(object):
             name = realname = self.RENAMES.get(name, name)
             if vk and (name, self._is_extended) in self.NUMPAD_SPECIALS:
                 name = realname = "Numpad-" + name
-        elif ord("A") <= vk <= ord("Z"): # Common A..Z keys, whatever the chars
+        elif ord("A") <= vk <= ord("Z") or ord("0") <= vk <= ord("9"):
+            # Common A..Z 0..9 keys, whatever the chars
             name, realname = char.upper() if char else chr(vk), chr(vk)
 
         if not name and "win32" != sys.platform:

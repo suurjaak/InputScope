@@ -5,6 +5,7 @@ CHANGELOG
 ---------------
 - fix potential error on unplugging monitor (#12)
 - add missing Numpad-Delete key (#14)
+- fix registering Ctrl-NUM combos (#14)
 - take display index into account when discarding close mouse move events
 - rearrange source code in src-layout
 - fix running application with pythonw.exe in Py3 W7
