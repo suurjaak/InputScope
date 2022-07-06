@@ -475,6 +475,9 @@ class KeyHandler(object):
             if self._modifiers["Ctrl"]: name = realname
             else: name = self.CONTROLCODES[name]
 
+        if vk in conf.CustomKeys:
+            name = realname = conf.CustomKeys[vk]
+
         return name, realname
 
 

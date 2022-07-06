@@ -25,6 +25,15 @@ Keypresses are logged as physical keys, ignoring Unicode mappings.
 Note: keyboard logging can interfere with remote control desktop, 
 UI automation scripts, and sticky keys.
 
+Non-standard keys can be added in configuration file, as:
+```javascript
+CustomKeys = {numeric key code: "text label for key"}
+```
+e.g.
+```javascript
+CustomKeys = {21: "IME Han/Yeong", 25: "IME Hanja"}
+```
+
 Data is kept in an SQLite database.
 
 The local web page is viewable at http://localhost:8099/,

@@ -82,6 +82,9 @@ InputFlags = {
     "combos"  : "KeyboardCombosEnabled",
 }
 
+"""Extra configured keys, as {virtual keycode: "key name"}."""
+CustomKeys = {}
+
 """Maximum keypress interval to count as one typing session, in seconds."""
 KeyboardSessionMaxDelta = 3
 
@@ -334,7 +337,9 @@ def init(filename=ConfigPath):
     try:
         def parse_value(raw):
             try: return json.loads(raw) # Try to interpret as JSON
-            except ValueError: return raw # JSON failed, fall back to raw
+            except ValueError:
+                try: return ast.literal(raw) # JSON failed, fall back to eval
+                except (SyntaxError, ValueError): raw # Fall back to raw
         with open(filename, "r") as f:
             txt = f.read()
         try: txt = txt.decode()
@@ -344,6 +349,7 @@ def init(filename=ConfigPath):
         for k, v in parser.items(section): vardict[k] = parse_value(v)
     except Exception:
         logging.warn("Error reading config from %s.", filename, exc_info=True)
+    validate()
 
 
 def save(filename=ConfigPath):
@@ -370,6 +376,19 @@ def save(filename=ConfigPath):
             except Exception: pass
     except Exception:
         logging.warn("Error writing config to %s.", filename, exc_info=True)
+
+
+def validate():
+    """Validates configuration values, discarding invalids."""
+    global CustomKeys
+    try:
+        keys, _ = CustomKeys.copy(), CustomKeys.clear()
+        for k, v in keys.items():
+            try: CustomKeys[int(k)] = v
+            except Exception:
+                try: CustomKeys[int(k, 16)] = v
+                except Exception: pass
+    except Exception: CustomKeys = defaults()["CustomKeys"]
 
 
 def defaults(values={}):
