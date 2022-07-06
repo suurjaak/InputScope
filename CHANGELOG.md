@@ -1,9 +1,10 @@
 CHANGELOG
 =========
 
-1.6, 2022-07-05
+1.6, 2022-07-06
 ---------------
 - fix potential error on unplugging monitor (#12)
+- add missing Numpad-Delete key (#14)
 - take display index into account when discarding close mouse move events
 - rearrange source code in src-layout
 - fix running application with pythonw.exe in Py3 W7

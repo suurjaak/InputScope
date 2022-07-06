@@ -21,7 +21,7 @@ session delete ID
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    28.02.2022
+@modified    06.07.2022
 """
 from __future__ import print_function
 import datetime
@@ -348,10 +348,11 @@ class KeyHandler(object):
         105: "Numpad9",
 
          12: "Numpad-Clear", # Numpad5 without NumLock
-        111: "Numpad-Divide",
         106: "Numpad-Multiply",
-        109: "Numpad-Subtract",
         107: "Numpad-Add",
+        109: "Numpad-Subtract",
+        110: "Numpad-Delete",
+        111: "Numpad-Divide",
 
         172: "Web/Home", # Extra top keys
         180: "Email",
