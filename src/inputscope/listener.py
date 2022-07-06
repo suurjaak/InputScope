@@ -354,7 +354,7 @@ class KeyHandler(object):
         110: "Numpad-Delete",
         111: "Numpad-Divide",
 
-         21: "IME Kana/Hangul",
+         21: "IME Hangul/Kana",
          23: "IME Junja",
          24: "IME final",
          25: "IME Hanja/Kanji",
