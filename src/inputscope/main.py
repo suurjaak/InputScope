@@ -5,7 +5,7 @@ command-line echoer otherwise. Launches the event listener and web UI server.
 
 @author      Erki Suurjaak
 @created     05.05.2015
-@modified    05.07.2022
+@modified    06.07.2022
 """
 import calendar
 import datetime
@@ -141,9 +141,9 @@ class Model(threading.Thread):
                                              stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                              stderr=subprocess.PIPE, universal_newlines=True)
             self.webui = subprocess.Popen(args("webui", "--quiet"), cwd=root,
-                                               stdin=subprocess.DEVNULL,
-                                               stdout=subprocess.DEVNULL,
-                                               stderr=subprocess.DEVNULL)
+                                               stdin=getattr(subprocess, "DEVNULL", None), # Py2
+                                               stdout=getattr(subprocess, "DEVNULL", None),
+                                               stderr=getattr(subprocess, "DEVNULL", None))
             self.listenerqueue = QueueLine(self.listener.stdin)
 
         if conf.MouseEnabled:    self.listenerqueue.put("start mouse")
