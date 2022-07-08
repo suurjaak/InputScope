@@ -239,7 +239,6 @@ class MainApp(getattr(wx, "App", object)):
         activename = format_session(activesession, quote=True, stamp=False) if activesession else None
         item_session_start = makeitem(menu, "&Start session ..")
         item_session_stop  = makeitem(menu, "Stop session%s" % (' ' + activename if activename else ""))
-        item_session_stop.Enable(bool(activename))
         for session in self.model.sessions[:conf.MaxSessionsInMenu]:
             sessmenu = wx.Menu()
             item_session_open   = makeitem(sessmenu, "Open statistics")
@@ -316,6 +315,7 @@ class MainApp(getattr(wx, "App", object)):
         item_keys    .Check(conf.KeyboardEnabled and conf.KeyboardKeysEnabled)
         item_combos  .Check(conf.KeyboardEnabled and conf.KeyboardCombosEnabled)
         item_console .Check(self.frame_console.Shown)
+        item_session_stop.Enable(bool(activename))
 
         menu.Bind(wx.EVT_MENU, self.OnOpenUI,           item_ui)
         menu.Bind(wx.EVT_MENU, self.OnVacuum,           item_vacuum)
