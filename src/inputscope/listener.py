@@ -21,7 +21,7 @@ session delete ID
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    06.07.2022
+@modified    07.07.2022
 """
 from __future__ import print_function
 import datetime
@@ -510,8 +510,9 @@ def start(inqueue, outqueue=None):
     try: db.execute("PRAGMA journal_mode = WAL")
     except Exception: pass
 
-    try: Listener(inqueue, outqueue).run()
-    except KeyboardInterrupt: pass
+    listener = Listener(inqueue, outqueue)
+    try: listener.run()
+    except KeyboardInterrupt: listener.stop()
 
 
 def main():
