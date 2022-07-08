@@ -139,13 +139,18 @@ class Model(threading.Thread):
             pkg = os.path.basename(conf.ApplicationPath)
             root = os.path.dirname(conf.ApplicationPath)
             args = lambda *x: [sys.executable, "-m", "%s.%s" % (pkg, x[0])] + list(x[1:])
-            self.listener = subprocess.Popen(args("listener", "--quiet"), cwd=root, shell=True,
-                                             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                             stderr=subprocess.PIPE, universal_newlines=True)
-            self.webui = subprocess.Popen(args("webui", "--quiet"), cwd=root,
-                                               stdin=getattr(subprocess, "DEVNULL", None), # Py2
-                                               stdout=getattr(subprocess, "DEVNULL", None),
-                                               stderr=getattr(subprocess, "DEVNULL", None))
+            lprocargs = dict(cwd=root, stdin=subprocess.PIPE, universal_newlines=True)
+            wprocargs = dict(cwd=root)
+            if "win32" == sys.platform:
+                lprocargs.update(shell=True)
+                if "pythonw.exe" == os.path.basename(sys.executable).lower():
+                    # Workaround for Py3 bug in W7: pythonw sets sys.stdout and .stderr to None
+                    lprocargs.update(stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    if hasattr(subprocess, "DEVNULL"):  # Python 3.3+
+                        wprocargs.update({k: subprocess.DEVNULL
+                                          for k in ("stdin", "stdout", "stderr")})
+            self.listener = subprocess.Popen(args("listener", "--quiet"), **lprocargs)
+            self.webui    = subprocess.Popen(args("webui",    "--quiet"), **wprocargs)
             self.listenerqueue = QueueLine(self.listener.stdin)
 
         if conf.MouseEnabled:    self.listenerqueue.put("start mouse")

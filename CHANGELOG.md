@@ -10,6 +10,7 @@ CHANGELOG
 - fix potential error on unplugging monitor (issue #12)
 - fix registering Ctrl-NUM combos (issue #14)
 - fix error on closing program with Ctrl-C in Linux (issue #16)
+- fix running listener from main application in Linux (issue #17)
 - fix tray icon menu error in Linux (issue #18)
 - fix running application with pythonw.exe in Py3 W7
 - always save basic config directives to config file
