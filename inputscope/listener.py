@@ -306,7 +306,7 @@ class MouseHandler(object):
         self._output(type="scrolls", x=x, y=y, dx=dx, dy=dy)
 
     def stop(self): self._listener.stop()
-        
+
 
 
 class KeyHandler(object):
@@ -491,8 +491,11 @@ def start(inqueue, outqueue=None):
     try: db.execute("PRAGMA journal_mode = WAL")
     except Exception: pass
 
-    try: Listener(inqueue, outqueue).run()
-    except KeyboardInterrupt: pass
+    listener = Listener(inqueue, outqueue)
+    try:
+        listener.run()
+    except KeyboardInterrupt:
+        listener.stop()
 
 
 def main():
