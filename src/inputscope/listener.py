@@ -264,7 +264,7 @@ class DataHandler(threading.Thread):
 
             try:
                 while dbqueue: db.insert(*dbqueue.pop(0))
-            except StandardError as e: print(e)
+            except Exception as e: print(e)
             self.output(self.counts)
             if conf.EventsWriteInterval > 0: time.sleep(conf.EventsWriteInterval)
 

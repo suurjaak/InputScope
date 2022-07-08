@@ -484,7 +484,7 @@ class StartupService(object):
     def stop(self):
         """Stops the program from running at system startup."""
         try: os.unlink(self.get_shortcut_path())
-        except StandardError: pass
+        except Exception: pass
 
     def get_shortcut_path(self):
         path = "~\\Start Menu\\Programs\\Startup\\%s.lnk" % conf.Title
