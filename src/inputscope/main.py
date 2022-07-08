@@ -5,7 +5,7 @@ command-line echoer otherwise. Launches the event listener and web UI server.
 
 @author      Erki Suurjaak
 @created     05.05.2015
-@modified    06.07.2022
+@modified    07.07.2022
 """
 import calendar
 import datetime
@@ -109,7 +109,9 @@ class Model(threading.Thread):
 
     def stop(self, exit=False):
         self.running = False
-        if self.listenerqueue: self.listenerqueue.put("exit")
+        if self.listenerqueue:
+            try: self.listenerqueue.put("exit")
+            except Exception: pass
         if self.listener: self.listener.terminate()
         if self.webui: self.webui.terminate()
         if exit: sys.exit()
