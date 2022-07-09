@@ -20,7 +20,7 @@ the declared ones in source code. File is deleted if all values are at default.
 
 @author      Erki Suurjaak
 @created     26.03.2015
-@modified    07.07.2022
+@modified    09.07.2022
 ------------------------------------------------------------------------------
 """
 import ast
@@ -36,8 +36,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.6.dev13"
-VersionDate = "07.07.2022"
+Version = "1.6.dev14"
+VersionDate = "09.07.2022"
 
 """TCP port of the web user interface."""
 WebHost = "localhost"
@@ -89,16 +89,19 @@ CustomKeys = {}
 """Maximum keypress interval to count as one typing session, in seconds."""
 KeyboardSessionMaxDelta = 3
 
-"""Maximum interval between linear move events for event reduction, in seconds."""
+"""Maximum interval between same key/combo presses for event reduction, in seconds (0 disables)."""
+KeyboardJoinInterval = 0.05
+
+"""Maximum interval between linear move events for event reduction, in seconds (0 disables)."""
 MouseMoveJoinInterval = 0.5
 
 """Fuzz radius for linear move events for event reduction, in heatmap pixels."""
 MouseMoveJoinRadius = 5
 
-"""Maximum interval between scroll events for event reduction, in seconds."""
+"""Maximum interval between scroll events for event reduction, in seconds (0 disables)."""
 MouseScrollJoinInterval = 0.5
 
-"""Interval between writings events to database, in seconds."""
+"""Interval between writing events to database, in seconds."""
 EventsWriteInterval = 5
 
 """Interval between checking and saving screen size, in seconds."""
@@ -326,9 +329,9 @@ DbUpdateStatements = [
 """List of attribute names that are always saved to ConfigFile."""
 FileDirectives = ["CustomKeys", "DefaultScreenSize", "EventsWriteInterval", "MaxEventsForStats",
     "MaxEventsForReplay", "KeyboardEnabled", "KeyboardKeysEnabled", "KeyboardCombosEnabled",
-    "MouseEnabled", "MouseMovesEnabled", "MouseClicksEnabled", "MouseScrollsEnabled",
-    "MouseHeatmapSize", "MouseMoveJoinInterval", "MouseMoveJoinRadius", "MouseScrollJoinInterval",
-    "PixelLength", "ScreenSizeInterval", "WebPort",
+    "KeyboardJoinInterval", "MouseEnabled", "MouseMovesEnabled", "MouseClicksEnabled",
+    "MouseScrollsEnabled", "MouseHeatmapSize", "MouseMoveJoinInterval", "MouseMoveJoinRadius",
+    "MouseScrollJoinInterval", "PixelLength", "ScreenSizeInterval", "WebPort",
 ]
 
 try: text_types = (str, unicode)       # Py2
