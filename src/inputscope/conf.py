@@ -36,7 +36,7 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.6.dev14"
+Version = "1.6.dev15"
 VersionDate = "09.07.2022"
 
 """TCP port of the web user interface."""
@@ -112,6 +112,9 @@ MaxEventsForStats = 1000 * 1000
 
 """Maximum number of events to replay on statistics page."""
 MaxEventsForReplay = 100 * 1000
+
+"""Maximum number of events to queue for database insertion, excess is discarded."""
+MaxEventsForQueue = 1000
 
 """Maximum number of sessions listed in tray menu."""
 MaxSessionsInMenu = 20

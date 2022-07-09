@@ -290,7 +290,7 @@ class DataHandler(threading.Thread):
         category = kwargs.get("type")
         if not getattr(conf, conf.InputFlags.get(category), False): return
         kwargs.update(day=datetime.date.today(), stamp=time.time())
-        self.inqueue.put(kwargs)
+        if self.inqueue.qsize() < conf.MaxEventsForQueue: self.inqueue.put(kwargs)
 
 
 
