@@ -13,7 +13,7 @@
 }
 #header {
   width: 700px;
-  height: 40px;
+  height: 2.4em;
   background: #1abc9c;
   border-radius: 4px 4px 0px 0px;
   margin-left: auto;
@@ -27,6 +27,11 @@
   margin-left: auto;
   margin-right: auto;
   padding: 10px;
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
 }
 #dbinfo {
   display: none;
@@ -110,9 +115,8 @@ body.index #content > div > table {
   display: block;
 }
 #replaysection {
-  float: right;
   margin-top: 20px;
-  position: relative;
+  justify-self: center;
 }
 #replaysection #limit {
   font-size: 0.8em;
@@ -122,7 +126,7 @@ body.index #content > div > table {
 #daysection {
   float: right;
   font-size: 1em;
-  padding: 10px;
+  padding: 0.6em;
   min-width: 260px;
   display: table;
   margin: 0 auto;
@@ -144,9 +148,6 @@ body.index #content > div > table {
   text-align: center;
 }
 #tablelinks {
-  position: absolute;
-  top: 4px;
-  left: 4px;
   font-weight: bold;
   font-size: 0.8em;
 }
@@ -190,7 +191,7 @@ body.index #content > div > table {
   bottom: -5px;
 }
 #button_replay {
-  width: 70px;
+  width: fit-content;
 }
 #tables {
   clear: both;
@@ -204,6 +205,7 @@ body.index #content > div > table {
 }
 h3 {
   display: inline-block;
+  margin: 0;
 }
 tbody {
   display: table;
@@ -211,7 +213,6 @@ tbody {
   margin-bottom: 20px;
   margin-top: 20px;
   padding: 5px;
-  width: 100%;
 }
 td {
   vertical-align: top;

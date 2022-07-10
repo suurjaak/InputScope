@@ -14,7 +14,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    17.10.2021
+@modified    10.07.2022
 %"""
 %from inputscope.util import format_session
 %WEBROOT = get_url("/")
@@ -99,7 +99,7 @@ Template arguments:
 
 </div>
 
-<div id="content" style="position: relative;">
+<div id="content">
 {{! base }}
 </div>
 
