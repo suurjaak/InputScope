@@ -29,12 +29,13 @@ Template arguments:
   <title>{{ conf.Title }}{{ " - " + title if get("title") else "" }}</title>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <meta name="Author" content="Erki Suurjaak">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/x-icon" href="{{ WEBROOT }}static/icon.ico" />
   <link rel="stylesheet" href="{{ WEBROOT }}static/site.css" />
   <script src="{{ WEBROOT }}static/heatmap.min.js"></script>
 </head>
 <body{{! ' class="%s"' % page if get("page") else "" }}>
-<div id="header" style="position: relative;">
+<div id="header">
 
   <span id="headerlinks">
     <a href="{{ WEBROOT }}" id="indexlink">{{ conf.Title }}</a>
@@ -62,6 +63,7 @@ Template arguments:
 
 %if days:
 <span id="daysection">
+  <span>
     %prevperiod, nextperiod = None, None
     %if period and len(period) < 8:
     %    prevperiod = next((x["day"][:7] for x in days[::-1] if x["day"][:7] < period), None)
@@ -74,7 +76,7 @@ Template arguments:
     %    prevperiod = prevperiod or None if period else days[-1]["day"]
     %end # if period and len(period) < 8
     %if prevperiod:
-  <a href="{{ get_url("%s/<table>/<period>" % INPUTURL, table=table, period=prevperiod, **URLARGS) }}">&lt; {{ prevperiod }}</a>
+      <a href="{{ get_url("%s/<table>/<period>" % INPUTURL, table=table, period=prevperiod, **URLARGS) }}">&lt; {{ prevperiod }}</a>
     %end # if prevperiod
 
   <select id="dayselector">
@@ -94,6 +96,7 @@ Template arguments:
     %if nextperiod:
   <a href="{{ get_url("%s/<table>/<period>" % INPUTURL, table=table, period=nextperiod, **URLARGS) }}">{{ nextperiod }} &gt;</a>
     %end # if nextperiod
+  </span>
 </span>
 %end # if days
 
@@ -116,10 +119,9 @@ Template arguments:
 </div>
 
 <div id="footer">
-<div>
   <a href="#" id="overlaylink">database info</a>
-  Mouse and keyboard input visualizer. <a href="{{ conf.HomepageUrl }}" target="_blank">github</a>
-</div>
+  <span>Mouse and keyboard input visualizer.</span>
+  <a href="{{ conf.HomepageUrl }}" target="_blank">github</a>
 </div>
 
 <script type="text/javascript">
