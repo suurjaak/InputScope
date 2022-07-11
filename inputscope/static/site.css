@@ -3,9 +3,9 @@
  *
  * @author      Erki Suurjaak
  * @created     07.04.2015
- * @modified    21.10.2021
+ * @modified    11.07.2022
  */
-* {
+ * {
   font-family: Tahoma;
 }
 #header, #footer, #header *, #footer * {
@@ -13,11 +13,15 @@
 }
 #header {
   width: 700px;
-  height: 2.4em;
   background: #1abc9c;
   border-radius: 4px 4px 0px 0px;
   margin-left: auto;
   margin-right: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: center;
+  flex-wrap: wrap;
 }
 #content {
   position: relative;
@@ -37,15 +41,16 @@
   display: none;
 }
 #footer {
-  position: relative;
   width: 700px;
   color: white;
   background: #1abc9c;
   border-radius: 0px 0px 4px 4px;
   text-align: center;
   font-size: 0.8em;
-  margin-left: auto;
-  margin-right: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: auto;
 }
 #footer div {
   padding: 7px;
@@ -55,15 +60,11 @@
   text-decoration: none;
 }
 #footer a {
-  position: absolute;
   color: white;
   font-size: 1em;
 }
-#footer a:first-of-type {
-  left: 10px;
-}
-#footer a:last-of-type {
-  right: 10px;
+#footer a {
+    padding: 0 0.2em;
 }
 #content a {
   text-decoration: none;
@@ -78,8 +79,11 @@ body.index #content > div > table {
   text-decoration: underline;
 }
 #headerlinks {
-  float: left;
-  position: relative;
+  display: flex;
+  align-items: center;
+}
+#headerlinks > * {
+  padding: 0 0.5em;
 }
 #session {
   color: white;
@@ -100,16 +104,11 @@ body.index #content > div > table {
 }
 #indexlink {
   font-size: 2em;
-  padding: 10px;
-  position: relative;
-  top: 6px;
 }
 #inputlinks {
-  float: right;
   font-size: 1em;
-  padding: 3px;
-  position: relative;
-  top: 5px;
+  display: flex;
+  flex-direction: column;
 }
 #inputlinks a {
   display: block;
@@ -124,14 +123,10 @@ body.index #content > div > table {
   color: gray;
 }
 #daysection {
-  float: right;
   font-size: 1em;
-  padding: 0.6em;
-  min-width: 260px;
-  display: table;
-  margin: 0 auto;
-  text-align: center;
-  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0 1em;
 }
 #daysection a {
   position: absolute;
