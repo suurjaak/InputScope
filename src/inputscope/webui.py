@@ -6,7 +6,7 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    05.07.2021
+@modified    13.07.2022
 """
 import collections
 import datetime
@@ -198,6 +198,7 @@ def stats_keyboard(events, table, count):
     UNBROKEN_DELTA = datetime.timedelta(seconds=conf.KeyboardSessionMaxDelta)
     blank = collections.defaultdict(lambda: collections.defaultdict(int))
     collated = [blank.copy()] # [{dt, keys: {key: count}}]
+    uniques = set()
     for e in events:
         e.pop("id") # Decrease memory overhead
         e["dt"] = datetime.datetime.fromtimestamp(e.pop("stamp"))
@@ -216,6 +217,7 @@ def stats_keyboard(events, table, count):
                 tsession.append(delta)
         collated[-1]["dt"] = e["dt"]
         collated[-1]["keys"][e["realkey"]] += 1
+        uniques.add(e["key"])
         last = e
 
     longest_session = max(tsessions + [[datetime.timedelta()]], key=lambda x: sum(x, datetime.timedelta()))
@@ -241,6 +243,7 @@ def stats_keyboard(events, table, count):
         ("Most keys in session",
          max(len(x) + 1 for x in tsessions) if tsessions else 0),
     ] if deltas and "keys" == table else []
+    stats += [("Total unique %s" % table, len(uniques))]
     if deltas:
         stats += [("Total time interval", format_timedelta(last["dt"] - first["dt"]))]
     return stats, collated[:conf.MaxEventsForReplay]

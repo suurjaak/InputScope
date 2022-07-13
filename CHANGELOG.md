@@ -1,12 +1,13 @@
 CHANGELOG
 =========
 
-1.6, 2022-07-09
+1.6, 2022-07-13
 ---------------
 - take display index into account when discarding close mouse move events
 - add missing Numpad-Delete key (issue #14)
 - add more OEM keys (issue #14)
 - add support for user-configured keys
+- add unique count to keyboard pages (issue #21)
 - register key being held down as one keypress (issue #15)
 - fix potential error on unplugging monitor (issue #12)
 - fix registering Ctrl-NUM combos (issue #14)
