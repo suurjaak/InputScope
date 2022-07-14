@@ -9,7 +9,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    17.10.2021
+@modified    13.07.2022
 %"""
 %from inputscope import conf
 %from inputscope.util import format_stamp
@@ -29,7 +29,7 @@ Template arguments:
 %    end # if not data["count"]
 %    input = "keyboard" if table in ("keys", "combos") else "mouse"
   <tbody>
-  <tr><th>{{ table }}</th></tr>
+  <tr><th colspan="2">{{ table }}</th></tr>
   <tr><td>Total:</td><td><a href="{{ get_url("%s/<table>" % INPUTURL, table=table, **URLARGS) }}#{{ data["count"] }}">{{ "{:,}".format(data["count"]) }}</a></td></tr>
   <tr><td>Days:</td>
     <td id="{{ table }}_periods" class="periods">
@@ -37,8 +37,10 @@ Template arguments:
     <div class="count">{{ len([v for v in data["periods"] if "day" == v["class"]]) }}</div>
     <div class="periods">
 %    for item in data["periods"]:
-      <a class="{{ item["class"] }}" href="{{ get_url("%s/<table>/<period>" % INPUTURL, table=table, period=item["period"], **URLARGS) }}#{{ item["count"] }}">{{ item["period"] }}</a>
-      <span>({{ "{:,}".format(item["count"])  }})</span><br />
+      <div class="flex-row">
+        <a class="{{ item["class"] }}" href="{{ get_url("%s/<table>/<period>" % INPUTURL, table=table, period=item["period"], **URLARGS) }}#{{ item["count"] }}">{{ item["period"] }}</a>
+        <span>({{ "{:,}".format(item["count"])  }})</span>
+      </div>
 %    end # for item
     </div>
     </td>

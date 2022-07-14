@@ -16,7 +16,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    10.07.2022
+@modified    13.07.2022
 %"""
 %import json
 %WEBROOT = get_url("/")
@@ -38,10 +38,10 @@ Template arguments:
 %end # for type, tbl
 </div>
 
-<div class="row">
-  <div>
+<div id="heading" class="flex-row">
+  <span>
     <h3>{{ title }}</h3>{{ ", %s" % period if period else "" }} ({{ "{:,}".format(count) }})
-  </div>
+  </span>
 
   <span id="replaysection">
     <input type="button" id="button_replay" value="Replay" />
@@ -53,9 +53,9 @@ Template arguments:
       <label for="replay_step" class="range_label">step</label>
       <input type="range" id="replay_step" min="1" max="100" value="1" />
     </span>
-  %if count > conf.MaxEventsForReplay:
+%if count > conf.MaxEventsForReplay:
     <div id="limit">Replay limited to a maximum of {{ "{:,}".format(conf.MaxEventsForReplay) }} events.</div>
-  %end # if count > conf.MaxEventsForReplay
+%end # if count > conf.MaxEventsForReplay
   </span>
 </div>
 
@@ -67,20 +67,13 @@ Template arguments:
 </div>
 %end # if events
 
-<div id="heatmap" class="heatmap" style="width: {{ conf.KeyboardHeatmapSize[0] }}px; height: {{ conf.KeyboardHeatmapSize[1] }}px;"><img id="keyboard" src="{{ WEBROOT }}static/keyboard.svg" width="{{ conf.KeyboardHeatmapSize[0] }}" height="{{ conf.KeyboardHeatmapSize[1] }}" alt="" /></div>
+<div id="heatmap" class="heatmap {{ input }}" style="width: {{ conf.KeyboardHeatmapSize[0] }}px; height: {{ conf.KeyboardHeatmapSize[1] }}px;"><img id="keyboard" src="{{ WEBROOT }}static/keyboard.svg" width="{{ conf.KeyboardHeatmapSize[0] }}" height="{{ conf.KeyboardHeatmapSize[1] }}" alt="" /></div>
 
 <label for="show_heatmap" class="check_label"><input type="checkbox" id="show_heatmap" checked="checked" />Show heatmap</label>
 <label for="show_keyboard" class="check_label"><input type="checkbox" id="show_keyboard" checked="checked" />Show keyboard</label>
 
 
-<div id="tables" class="row">
-
-  <table>
-    <tr><th>Key</th><th>Count</th></tr>
-    %for item in counts_display:
-    <tr><td>{{ item["key"] }}</td><td>{{ item["count"] }}</td></tr>
-    %end # for item
-  </table>
+<div id="tables">
 
   <table id="stats" class="{{ input }}">
 %for key, val in stats:
@@ -89,6 +82,13 @@ Template arguments:
 %if count > conf.MaxEventsForStats:
     <tr><td colspan="2">Statistics and heatmap limited to a maximum of {{ "{:,}".format(conf.MaxEventsForStats) }} events.</td></tr>
 %end # if count > conf.MaxEventsForStats
+  </table>
+
+  <table id="counts">
+    <tr><th>Key</th><th>Count</th></tr>
+    %for item in counts_display:
+    <tr><td>{{ item["key"] }}</td><td>{{ item["count"] }}</td></tr>
+    %end # for item
   </table>
 
 </div>

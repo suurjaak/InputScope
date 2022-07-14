@@ -15,7 +15,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    10.07.2022
+@modified    13.07.2022
 %"""
 %WEBROOT = get_url("/")
 %INPUTURL, URLARGS = ("/sessions/<session>", dict(session=session["id"])) if get("session") else ("", {})
@@ -36,10 +36,10 @@ Template arguments:
 %end # for type, tbl
 </div>
 
-<div class="row">
-  <div>
+<div id="heading" class="flex-row">
+  <span>
     <h3>{{ title }}</h3>{{ ", %s" % period if period else "" }} ({{ "{:,}".format(count) }})
-  </div>
+  </span>
 
   <span id="replaysection">
     <input type="button" id="button_replay" value="Replay" />
@@ -51,9 +51,9 @@ Template arguments:
       <label for="replay_step" class="range_label">step</label>
       <input type="range" id="replay_step" min="1" max="100" value="1" />
     </span>
-  %if count > conf.MaxEventsForReplay:
+%if count > conf.MaxEventsForReplay:
     <div id="limit">Replay limited to a maximum of {{ "{:,}".format(conf.MaxEventsForReplay) }} events.</div>
-  %end # if count > conf.MaxEventsForReplay
+%end # if count > conf.MaxEventsForReplay
   </span>
 </div>
 

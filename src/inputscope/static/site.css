@@ -3,91 +3,83 @@
  *
  * @author      Erki Suurjaak
  * @created     07.04.2015
- * @modified    11.07.2022
+ * @modified    13.07.2022
  */
- * {
+:root {
+  font-size: 6.25%;
+}
+body {
+  font-size: 16rem;
+}
+* {
   font-family: Tahoma;
 }
-#header, #footer, #header *, #footer * {
-  font-size: 0.85em;
+#header > *, #footer > * {
+  font-size: 0.72em;
 }
 #header {
   width: 700px;
+  min-height: 40rem;
   background: #1abc9c;
-  border-radius: 4px 4px 0px 0px;
+  border-radius: 4px 4px 0 0;
   margin-left: auto;
   margin-right: auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  text-align: center;
-  flex-wrap: wrap;
 }
 #content {
   position: relative;
-  width: 678px;
-  min-height: 200px;
+  width: calc(700px - 2 * (10rem + 1px));
+  min-height: 200rem;
   border: 1px solid #1abc9c;
   margin-left: auto;
   margin-right: auto;
-  padding: 10px;
-}
-.row {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
+  padding: 10rem;
 }
 #dbinfo {
   display: none;
 }
 #footer {
-  width: 700px;
+  padding: 0 10rem;
+  width: calc(700px - 2 * 10rem);
   color: white;
   background: #1abc9c;
-  border-radius: 0px 0px 4px 4px;
+  border-radius: 0 0 4px 4px;
   text-align: center;
-  font-size: 0.8em;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: auto;
+  font-size: 0.95em;
+  margin-left: auto;
+  margin-right: auto;
 }
-#footer div {
-  padding: 7px;
-}
-#header a {
-  color: white;
-  text-decoration: none;
+#footer > * {
+  padding: 7rem 0;
 }
 #footer a {
   color: white;
-  font-size: 1em;
-}
-#footer a {
-    padding: 0 0.2em;
 }
 #content a {
   text-decoration: none;
 }
-body.index #content > div {
-  display: inline-block;
+body.index #content td,
+body.input #content td {
+  word-break: normal;
 }
-body.index #content > div > table {
-  width: 100%;
+body.input #content th {
+  min-width: auto;
+}
+#header a {
+  color: white;
+  text-decoration: none;
 }
 #header a:hover, #content a:hover {
   text-decoration: underline;
 }
 #headerlinks {
   display: flex;
+  flex-wrap: wrap;
+  column-gap: 12rem;
   align-items: center;
-}
-#headerlinks > * {
-  padding: 0 0.5em;
+  padding: 0 6rem 0 10rem;
 }
 #session {
   color: white;
-  font-size: 1em;
   left: 250px;
   position: absolute;
   top: 4px;
@@ -105,17 +97,32 @@ body.index #content > div > table {
 #indexlink {
   font-size: 2em;
 }
-#inputlinks {
-  font-size: 1em;
-  display: flex;
-  flex-direction: column;
-}
 #inputlinks a {
   display: block;
+  font-size: 0.9em;
+}
+.flex-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+}
+.flex-row > * {
+  margin-left: auto;
+  margin-right: auto;
+}
+.flex-row > :first-child {
+  margin-left: 0;
+}
+.flex-row > :last-child {
+  margin-right: 0;
+}
+#heading {
+  margin-top: 10rem;
+  row-gap: 8rem;
 }
 #replaysection {
-  margin-top: 20px;
-  justify-self: center;
+  margin-left: auto;
 }
 #replaysection #limit {
   font-size: 0.8em;
@@ -123,40 +130,37 @@ body.index #content > div > table {
   color: gray;
 }
 #daysection {
-  font-size: 1em;
-  display: flex;
-  align-items: center;
-  padding: 0 1em;
+  font-size: 0.72em;
+  margin-left: auto;
 }
 #daysection a {
-  position: absolute;
-  top: 2px;
+  display: inline-block;
+  min-width: 60rem;
   padding: 10px;
 }
-#daysection a:first-child {
-  left: 0px;
-}
-#daysection a:last-child {
-  right: 0px;
-}
 #daysection select {
+  font-size: 1em;
   text-align: center;
 }
 #tablelinks {
   font-weight: bold;
   font-size: 0.8em;
+  margin: -6rem 0 -1rem -6rem;
 }
 #tablelinks a {
   color: #1abc9c;
-  margin: 2px;
+  margin: 2rem;
   text-decoration: none;
 }
 #tablelinks span {
-  margin: 2px;
+  margin: 2rem;
 }
 #tablelinks span.inactive {
   color: gray;
   font-weight: normal;
+}
+.heatmap.keyboard {
+  margin-left: calc(-10rem + 10px - 1px);
 }
 .heatmap.mouse {
   margin-left: auto;
@@ -166,7 +170,8 @@ body.index #content > div > table {
 #status {
   font-size: 0.8em;
   color: gray;
-  margin-bottom: 10px;
+  margin-bottom: 10rem;
+  margin-top: 18rem;
   position: relative;
 }
 #status #replay_stop {
@@ -179,46 +184,57 @@ body.index #content > div > table {
 }
 #progressbar {
   width: 0px;
-  height: 5px;
+  height: 5rem;
   background: lightgray;
   display: block;
   position: absolute;
-  bottom: -5px;
-}
-#button_replay {
-  width: fit-content;
+  bottom: -5rem;
 }
 #tables {
   clear: both;
   overflow: auto;
+  display: flex;
+  flex-direction: row-reverse;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
-#stats.keyboard,
-#stats.sessions {
-  clear: both;
-  float: right;
-  margin-right: 10px;
+#tables > table:last-child {
+  margin-right: auto;
 }
 h3 {
-  display: inline-block;
-  margin: 0;
+  display: inline;
 }
 tbody {
   display: table;
   border: 1px dashed #1abc9c;
   margin-bottom: 20px;
   margin-top: 20px;
-  padding: 5px;
+  padding: 5rem;
 }
 td {
+  word-break: break-word;
   vertical-align: top;
   padding-right: 10px;
   font-size: 0.9em;
 }
-th {
+th:first-child,
+#counts th {
   text-align: left;
   text-transform: uppercase;
   font-size: 0.8em;
-  min-width: 80px;
+  min-width: 80rem;
+}
+#counts th:last-child,
+#counts td:last-child {
+  padding: 0;
+  text-align: right;
+}
+input[type="button"] {
+  font-size: 0.85em;
+  width: fit-content;
+}
+#button_replay {
+  min-width: 70rem;
 }
 input[type="range"] {
   vertical-align: middle;
@@ -230,11 +246,14 @@ span.range {
 label.check_label {
   font-size: 0.7em;
   float: right;
-  margin-left: 5px;
+  margin-left: 5rem;
 }
 label.check_label input {
+  font-size: inherit;
   position: relative;
-  top: 3px;
+  top: 2rem;
+  width: 1.2em;
+  height: 1.2em;
 }
 label.range_label {
   font-size: 0.7em;
@@ -255,6 +274,9 @@ table.input_index td.periods {
   position: relative;
   padding-right: 20px;
 }
+table.input_index td.periods .periods > div {
+  column-gap: 10rem;
+}
 table.input_index td.periods .count {
   display: none;
 }
@@ -269,7 +291,7 @@ table.input_index td.periods .periods a.day {
   margin-left: 10px;
 }
 table.input_index td.periods .periods span {
-  float: right;
+  margin-left: auto;
 }
 #stats.sessions tr:first-child {
   font-weight: bold;
@@ -282,6 +304,9 @@ table.sessions:not(#stats) td:first-child {
   max-width: 200px;
   overflow-x: hidden;
   text-overflow: ellipsis;
+}
+body.session.input td.periods a.day {
+  margin-left: 0;
 }
 #overlay {
   display: none;
@@ -316,7 +341,6 @@ table.sessions:not(#stats) td:first-child {
   justify-content: space-between;
   opacity: 1;
   padding: 10px;
-  padding-right: 20px;
   position: relative;
   z-index: 10001;
 }

@@ -7,6 +7,7 @@ CHANGELOG
 - add missing Numpad-Delete key (issue #14)
 - add more OEM keys (issue #14)
 - add support for user-configured keys
+- add support for larger fonts in statistics
 - add unique count to keyboard pages (issue #21)
 - register key being held down as one keypress (issue #15)
 - fix potential error on unplugging monitor (issue #12)
