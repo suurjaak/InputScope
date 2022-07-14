@@ -365,6 +365,7 @@ def stats_db(filename):
         countstr = "{:,}".format(sum(cmap.get(t) or 0 for t in tables))
         result += [("%s events" % name.capitalize(), countstr)]
     result += [("Sessions", db.fetchone("sessions", "COUNT(*) AS count")["count"])]
+    result += [("%s version" % conf.Title, "%s (%s)" % (conf.Version, conf.VersionDate))]
     return result
 
 

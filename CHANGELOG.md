@@ -9,6 +9,7 @@ CHANGELOG
 - add support for user-configured keys
 - add support for larger fonts in statistics
 - add unique count to keyboard pages (issue #21)
+- add program version to database info box in statistics (issue #21)
 - register key being held down as one keypress (issue #15)
 - fix potential error on unplugging monitor (issue #12)
 - fix registering Ctrl-NUM combos (issue #14)
