@@ -9,7 +9,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    13.07.2022
+@modified    16.07.2022
 %"""
 %from inputscope import conf
 %from inputscope.util import format_stamp
@@ -22,7 +22,7 @@ Template arguments:
 %rebase("base.tpl", **locals())
 
 <div>
-<table class="input_index">
+<table class="totals">
 %for table, data in stats.items():
 %    if not data["count"]:
 %        continue # for table, data

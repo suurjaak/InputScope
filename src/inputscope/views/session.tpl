@@ -7,11 +7,11 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     15.10.2021
-@modified    19.10.2021
+@modified    16.07.2022
 %"""
 %from inputscope import conf
 %WEBROOT = get_url("/")
-%page = "session"
+%page = "session index"
 %rebase("base.tpl", **locals())
 
 <div>
@@ -26,7 +26,7 @@ Template arguments:
 %end # for key
 </tr></table>
 
-<table>
+<table class="totals">
 %for input, table in ((k, t) for k, tt in conf.InputTables for t in tt):
 %    data = stats.get(table, {})
 %    if not data.get("count"):

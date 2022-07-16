@@ -3,23 +3,27 @@
  *
  * @author      Erki Suurjaak
  * @created     07.04.2015
- * @modified    13.07.2022
+ * @modified    16.07.2022
  */
 :root {
-  font-size: 6.25%;
+  font-size: 6.25%; /** Root font size to 1px @ default font size 16px */
 }
 body {
-  font-size: 16rem;
+  background-color: white;
+  color: black;
+  font-size: 16rem; /** 1rem == 1px @ default font size */
+  overflow-y: scroll;
 }
 * {
-  font-family: Tahoma;
+  font-family: Tahoma, Arial, sans serif;
 }
 #header > *, #footer > * {
   font-size: 0.72em;
 }
 #header {
-  width: 700px;
-  min-height: 40rem;
+  padding: 6px 10rem;
+  width: calc(700px - 2 * 10rem);
+  min-height: calc(40rem - 2 * 6px);
   background: #1abc9c;
   border-radius: 4px 4px 0 0;
   margin-left: auto;
@@ -33,6 +37,7 @@ body {
   margin-left: auto;
   margin-right: auto;
   padding: 10rem;
+  overflow-x: hidden;
 }
 #dbinfo {
   display: none;
@@ -57,13 +62,6 @@ body {
 #content a {
   text-decoration: none;
 }
-body.index #content td,
-body.input #content td {
-  word-break: normal;
-}
-body.input #content th {
-  min-width: auto;
-}
 #header a {
   color: white;
   text-decoration: none;
@@ -76,20 +74,10 @@ body.input #content th {
   flex-wrap: wrap;
   column-gap: 12rem;
   align-items: center;
-  padding: 0 6rem 0 10rem;
-}
-#session {
-  color: white;
-  left: 250px;
-  position: absolute;
-  top: 4px;
-}
-#session * {
-  font-size: 1em;
 }
 #session div {
   font-size: 0.9em;
-  max-width: 100px;
+  max-width: 100rem;
   overflow-x: clip;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -129,14 +117,13 @@ body.input #content th {
   opacity: 0.5;
   color: gray;
 }
-#daysection {
-  font-size: 0.72em;
-  margin-left: auto;
-}
 #daysection a {
   display: inline-block;
-  min-width: 60rem;
   padding: 10px;
+}
+#daysection a:empty {
+  min-width: 60rem;
+  min-height: 1.2em;
 }
 #daysection select {
   font-size: 1em;
@@ -163,8 +150,6 @@ body.input #content th {
   margin-left: calc(-10rem + 10px - 1px);
 }
 .heatmap.mouse {
-  margin-left: auto;
-  margin-right: auto;
   border: 1px solid #1abc9c;
 }
 #status {
@@ -201,6 +186,12 @@ body.input #content th {
 #tables > table:last-child {
   margin-right: auto;
 }
+a {
+  color: blue;
+}
+a:visited {
+  color: blue;
+}
 h3 {
   display: inline;
 }
@@ -210,24 +201,6 @@ tbody {
   margin-bottom: 20px;
   margin-top: 20px;
   padding: 5rem;
-}
-td {
-  word-break: break-word;
-  vertical-align: top;
-  padding-right: 10px;
-  font-size: 0.9em;
-}
-th:first-child,
-#counts th {
-  text-align: left;
-  text-transform: uppercase;
-  font-size: 0.8em;
-  min-width: 80rem;
-}
-#counts th:last-child,
-#counts td:last-child {
-  padding: 0;
-  text-align: right;
 }
 input[type="button"] {
   font-size: 0.85em;
@@ -241,6 +214,7 @@ input[type="range"] {
   width: 120px;
 }
 span.range {
+  display: inline-block;
   position: relative;
 }
 label.check_label {
@@ -270,27 +244,27 @@ a.toggle {
 a.toggle:hover {
   text-decoration: none !important;
 }
-table.input_index td.periods {
+table.totals td.periods {
   position: relative;
   padding-right: 20px;
 }
-table.input_index td.periods .periods > div {
+table.totals td.periods .periods > div {
   column-gap: 10rem;
 }
-table.input_index td.periods .count {
+table.totals td.periods .count {
   display: none;
 }
-table.input_index td.periods.collapsed .count {
+table.totals td.periods.collapsed .count {
   display: block;
   white-space: nowrap;
 }
-table.input_index td.periods.collapsed .periods {
+table.totals td.periods.collapsed .periods {
   display: none;
 }
-table.input_index td.periods .periods a.day {
+table.totals td.periods .periods a.day {
   margin-left: 10px;
 }
-table.input_index td.periods .periods span {
+table.totals td.periods .periods span {
   margin-left: auto;
 }
 #stats.sessions tr:first-child {
@@ -299,11 +273,22 @@ table.input_index td.periods .periods span {
 #stats.sessions tr:not(:first-child) td:last-child {
   text-align: right;
 }
-#stats.sessions tr:first-child td:nth-child(2),
-table.sessions:not(#stats) td:first-child {
+#stats.sessions tr:first-child td:nth-child(2) {
   max-width: 200px;
   overflow-x: hidden;
   text-overflow: ellipsis;
+}
+body.session.index #header,
+body.session.input #header {
+  justify-content: start;
+}
+body.session.index #header > *,
+body.session.input #header > * {
+  margin: 0;
+}
+body.session.index #header > #headerlinks,
+body.session.input #header > #headerlinks {
+  margin-right: 60rem;
 }
 body.session.input td.periods a.day {
   margin-left: 0;
@@ -336,17 +321,60 @@ body.session.input td.periods a.day {
 #overlay #overcontent {
   background: white;
   border-radius: 5px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
   opacity: 1;
   padding: 10px;
-  position: relative;
   z-index: 10001;
+  max-width: calc(100% - 2 * 10px);
+  max-height: calc(100% - 2 * 10px);
+  overflow: auto;
 }
 #overlay #overcontent > * {
-  align-self: center;
+  display: block;
+  margin: 0 auto;
+}
+#overlay #overcontent td {
+  word-break: break-word;
 }
 #overlay #overcontent td:first-child {
   font-weight: bold;
+}
+th {
+  font-weight: bold;
+  text-align: left;
+  text-transform: uppercase;
+  vertical-align: top;
+  font-size: 0.8em;
+}
+td {
+  vertical-align: top;
+  font-size: 0.9em;
+}
+#counts th:first-child,
+#counts td:first-child,
+#stats td:first-child,
+table.totals th:not(:last-child),
+table.totals td:not(:last-child) {
+  padding-right: 10px;
+}
+#counts th:last-child,
+#counts td:last-child {
+  text-align: right;
+}
+#counts td,
+#stats td {
+  word-break: break-word;
+}
+table.totals th:first-child,
+#counts th:first-child {
+  min-width: 80rem;
+}
+body.index table .flex-row {
+  column-gap: 10px;
+  justify-content: unset;
+}
+body.index table .flex-row > * {
+  margin: 0;
+}
+body.index table .flex-row > :first-child {
+  min-width: 80rem;
 }

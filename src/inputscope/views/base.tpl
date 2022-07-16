@@ -14,7 +14,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    13.07.2022
+@modified    16.07.2022
 %"""
 %from inputscope.util import format_session
 %WEBROOT = get_url("/")
@@ -23,7 +23,7 @@ Template arguments:
 %if session:
 %    INPUTURL, URLARGS = "/sessions/<session>" + INPUTURL, dict(URLARGS, session=session["id"])
 %end # if session
-%bodycls = " ".join(filter(bool, [get("page"), "session" if session else ""]))
+%bodycls = " ".join(set(filter(bool, get("page", "").split() + ["session" if session else ""])))
 <!DOCTYPE html>
 <html>
 <head>
@@ -45,6 +45,10 @@ Template arguments:
 %end # for x
     </span>
   </span>
+
+%if session or days:
+<span class="flex-row">
+%end # if session or days
 
 %if session:
   <span id="session" title="session {{ format_session(session, maxlen=0, quote=True) }}">
@@ -102,6 +106,10 @@ Template arguments:
     %end # if nextperiod
 </span>
 %end # if days
+
+%if session or days:
+</span>
+%end # if session or days
 
 </div>
 
