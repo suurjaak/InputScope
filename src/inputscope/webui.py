@@ -6,7 +6,7 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    13.07.2022
+@modified    16.07.2022
 """
 import collections
 import datetime
@@ -308,7 +308,7 @@ def stats_mouse(events, table, count):
     elif "scrolls" == table and count:
         stats = list(filter(bool, [("Scrolls per hour", 
                   int(count / (timedelta_seconds(last["dt"] - first["dt"]) / 3600 or 1))),
-                 ("Average interval", totaldelta / (count or 1)),
+                 ("Average interval", format_timedelta(totaldelta / (count or 1))),
                  ("Scrolls down",  counts["-dy"]),
                  ("Scrolls up",    counts["dy"]), 
                  ("Scrolls left",  counts["dx"])  if counts["dx"]  else None, 
@@ -317,7 +317,7 @@ def stats_mouse(events, table, count):
         NAMES = {"1": "Left", "2": "Right", "3": "Middle"}
         stats = [("Clicks per hour", 
                   int(count / (timedelta_seconds(last["dt"] - first["dt"]) / 3600 or 1))),
-                 ("Average interval between clicks", totaldelta / (count or 1)),
+                 ("Average interval between clicks", format_timedelta(totaldelta / (count or 1))),
                  ("Average distance between clicks",
                   "%.1f pixels" % (distance / (count or 1))), ]
         for k, v in sorted(counts.items()):
