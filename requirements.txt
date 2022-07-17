@@ -1,3 +1,4 @@
 bottle
 pynput
+# pywin32  # Used for toggling "Start with Windows"
 wxPython>=4.0

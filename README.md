@@ -25,6 +25,15 @@ Keypresses are logged as physical keys, ignoring Unicode mappings.
 Note: keyboard logging can interfere with remote control desktop, 
 UI automation scripts, and sticky keys.
 
+Non-standard keys can be added in configuration file, as:
+```javascript
+CustomKeys = {numeric key code: "text label for key"}
+```
+e.g.
+```javascript
+CustomKeys = {21: "IME Han/Yeong", 25: "IME Hanja"}
+```
+
 Data is kept in an SQLite database.
 
 The local web page is viewable at http://localhost:8099/,
@@ -49,7 +58,7 @@ Three components in source code form:
 
 Listener and web-UI components can be run separately.
 
-In source code form, data and configuration is kept under inputscope/var.
+In source code form, data and configuration is kept under `inputscope/var`.
 
 The pip installation will add commands `inputscope`, `inputscope-listener` 
 and `inputscope-webui` to path.
@@ -61,7 +70,11 @@ Dependencies
 * Python 2.7 or Python 3.5+
 * bottle
 * pynput
+* pywin32 (optional, for toggling "Start with Windows")
 * wxPython (optional)
+
+If wxPython is not available, InputScope will not have its tray program,
+and will not recognize multi-monitor setups in mouse statistics.
 
 
 Attribution

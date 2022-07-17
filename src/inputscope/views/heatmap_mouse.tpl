@@ -15,29 +15,12 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    21.10.2021
+@modified    16.07.2022
 %"""
 %WEBROOT = get_url("/")
 %INPUTURL, URLARGS = ("/sessions/<session>", dict(session=session["id"])) if get("session") else ("", {})
 %title = "%s %s" % (input.capitalize(), table)
 %rebase("base.tpl", **locals())
-
-<h3>{{ title }}</h3>{{ ", %s" % period if period else "" }} ({{ "{:,}".format(count) }})
-
-<span id="replaysection">
-  <input type="button" id="button_replay" value="Replay" />
-  <span class="range" title="Animation interval (100..1 milliseconds)">
-    <label for="replay_interval" class="range_label">speed</label>
-    <input type="range" id="replay_interval" min="1" max="100" value="50" />
-  </span>
-  <span class="range" title="Events in each step (1..100)">
-    <label for="replay_step" class="range_label">step</label>
-    <input type="range" id="replay_step" min="1" max="100" value="1" />
-  </span>
-%if count > conf.MaxEventsForReplay:
-  <div id="limit">Replay limited to a maximum of {{ "{:,}".format(conf.MaxEventsForReplay) }} events.</div>
-%end # if count > conf.MaxEventsForReplay
-</span>
 
 <div id="tablelinks">
 %for type, tbl in [(k, x) for k, tt in conf.InputTables for x in tt]:
@@ -53,6 +36,27 @@ Template arguments:
 %end # for type, tbl
 </div>
 
+<div id="heading" class="flex-row">
+  <span>
+    <h3>{{ title }}</h3>{{ ", %s" % period if period else "" }} ({{ "{:,}".format(count) }})
+  </span>
+
+  <span id="replaysection">
+    <input type="button" id="button_replay" value="Replay" />
+    <span class="range" title="Animation interval (100..1 milliseconds)">
+      <label for="replay_interval" class="range_label">speed</label>
+      <input type="range" id="replay_interval" min="1" max="100" value="50" />
+    </span>
+    <span class="range" title="Events in each step (1..100)">
+      <label for="replay_step" class="range_label">step</label>
+      <input type="range" id="replay_step" min="1" max="100" value="1" />
+    </span>
+%if count > conf.MaxEventsForReplay:
+    <div id="limit">Replay limited to a maximum of {{ "{:,}".format(conf.MaxEventsForReplay) }} events.</div>
+%end # if count > conf.MaxEventsForReplay
+  </span>
+</div>
+
 %if events:
 <div id="status">
 <span id="statustext"><br /></span>
@@ -62,7 +66,7 @@ Template arguments:
 %end # if events
 
     %for display in positions:
-<div id="heatmap{{ display }}" class="heatmap {{ input }}" style="width: {{ conf.MouseHeatmapSize[0] }}px; height: {{ conf.MouseHeatmapSize[1] }}px;"></div>
+<div id="heatmap{{ display }}" class="heatmap {{ input }}" style="width: {{ conf.MouseHeatmapSize[0] }}px; height: {{ conf.MouseHeatmapSize[1] }}px; margin-left: calc(-10rem + {{ (700 - conf.MouseHeatmapSize[0]) // 2 }}px - 1px);"></div>
     %end # for display
 
 

@@ -1,0 +1,380 @@
+/**
+ * Site style file.
+ *
+ * @author      Erki Suurjaak
+ * @created     07.04.2015
+ * @modified    16.07.2022
+ */
+:root {
+  font-size: 6.25%; /** Root font size to 1px @ default font size 16px */
+}
+body {
+  background-color: white;
+  color: black;
+  font-size: 16rem; /** 1rem == 1px @ default font size */
+  overflow-y: scroll;
+}
+* {
+  font-family: Tahoma, Arial, sans serif;
+}
+#header > *, #footer > * {
+  font-size: 0.72em;
+}
+#header {
+  padding: 6px 10rem;
+  width: calc(700px - 2 * 10rem);
+  min-height: calc(40rem - 2 * 6px);
+  background: #1abc9c;
+  border-radius: 4px 4px 0 0;
+  margin-left: auto;
+  margin-right: auto;
+}
+#content {
+  position: relative;
+  width: calc(700px - 2 * (10rem + 1px));
+  min-height: 200rem;
+  border: 1px solid #1abc9c;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 10rem;
+  overflow-x: hidden;
+}
+#dbinfo {
+  display: none;
+}
+#footer {
+  padding: 0 10rem;
+  width: calc(700px - 2 * 10rem);
+  color: white;
+  background: #1abc9c;
+  border-radius: 0 0 4px 4px;
+  text-align: center;
+  font-size: 0.95em;
+  margin-left: auto;
+  margin-right: auto;
+}
+#footer > * {
+  padding: 7rem 0;
+}
+#footer a {
+  color: white;
+}
+#content a {
+  text-decoration: none;
+}
+#header a {
+  color: white;
+  text-decoration: none;
+}
+#header a:hover, #content a:hover {
+  text-decoration: underline;
+}
+#headerlinks {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 12rem;
+  align-items: center;
+}
+#session div {
+  font-size: 0.9em;
+  max-width: 100rem;
+  overflow-x: clip;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#indexlink {
+  font-size: 2em;
+}
+#inputlinks a {
+  display: block;
+  font-size: 0.9em;
+}
+.flex-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+}
+.flex-row > * {
+  margin-left: auto;
+  margin-right: auto;
+}
+.flex-row > :first-child {
+  margin-left: 0;
+}
+.flex-row > :last-child {
+  margin-right: 0;
+}
+#heading {
+  margin-top: 10rem;
+  row-gap: 8rem;
+}
+#replaysection {
+  margin-left: auto;
+}
+#replaysection #limit {
+  font-size: 0.8em;
+  opacity: 0.5;
+  color: gray;
+}
+#daysection a {
+  display: inline-block;
+  padding: 10px;
+}
+#daysection a:empty {
+  min-width: 60rem;
+  min-height: 1.2em;
+}
+#daysection select {
+  font-size: 1em;
+  text-align: center;
+}
+#tablelinks {
+  font-weight: bold;
+  font-size: 0.8em;
+  margin: -6rem 0 -1rem -6rem;
+}
+#tablelinks a {
+  color: #1abc9c;
+  margin: 2rem;
+  text-decoration: none;
+}
+#tablelinks span {
+  margin: 2rem;
+}
+#tablelinks span.inactive {
+  color: gray;
+  font-weight: normal;
+}
+.heatmap.keyboard {
+  margin-left: calc(-10rem + 10px - 1px);
+}
+.heatmap.mouse {
+  border: 1px solid #1abc9c;
+}
+#status {
+  font-size: 0.8em;
+  color: gray;
+  margin-bottom: 10rem;
+  margin-top: 18rem;
+  position: relative;
+}
+#status #replay_stop {
+  color: gray;
+  float: right;
+  display: none;
+}
+#status.playing #replay_stop {
+  display: inline;
+}
+#progressbar {
+  width: 0px;
+  height: 5rem;
+  background: lightgray;
+  display: block;
+  position: absolute;
+  bottom: -5rem;
+}
+#tables {
+  clear: both;
+  overflow: auto;
+  display: flex;
+  flex-direction: row-reverse;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+#tables > table:last-child {
+  margin-right: auto;
+}
+a {
+  color: blue;
+}
+a:visited {
+  color: blue;
+}
+h3 {
+  display: inline;
+}
+tbody {
+  display: table;
+  border: 1px dashed #1abc9c;
+  margin-bottom: 20px;
+  margin-top: 20px;
+  padding: 5rem;
+}
+input[type="button"] {
+  font-size: 0.85em;
+  width: fit-content;
+}
+#button_replay {
+  min-width: 70rem;
+}
+input[type="range"] {
+  vertical-align: middle;
+  width: 120px;
+}
+span.range {
+  display: inline-block;
+  position: relative;
+}
+label.check_label {
+  font-size: 0.7em;
+  float: right;
+  margin-left: 5rem;
+}
+label.check_label input {
+  font-size: inherit;
+  position: relative;
+  top: 2rem;
+  width: 1.2em;
+  height: 1.2em;
+}
+label.range_label {
+  font-size: 0.7em;
+  color: lightgray;
+  text-align: center;
+  position: absolute;
+  top: -18px;
+  width: 100%;
+}
+a.toggle {
+  position: absolute;
+  right: 0px;
+}
+a.toggle:hover {
+  text-decoration: none !important;
+}
+table.totals td.periods {
+  position: relative;
+  padding-right: 20px;
+}
+table.totals td.periods .periods > div {
+  column-gap: 10rem;
+}
+table.totals td.periods .count {
+  display: none;
+}
+table.totals td.periods.collapsed .count {
+  display: block;
+  white-space: nowrap;
+}
+table.totals td.periods.collapsed .periods {
+  display: none;
+}
+table.totals td.periods .periods a.day {
+  margin-left: 10px;
+}
+table.totals td.periods .periods span {
+  margin-left: auto;
+}
+#stats.sessions tr:first-child {
+  font-weight: bold;
+}
+#stats.sessions tr:not(:first-child) td:last-child {
+  text-align: right;
+}
+#stats.sessions tr:first-child td:nth-child(2) {
+  max-width: 200px;
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+}
+body.session.index #header,
+body.session.input #header {
+  justify-content: start;
+}
+body.session.index #header > *,
+body.session.input #header > * {
+  margin: 0;
+}
+body.session.index #header > #headerlinks,
+body.session.input #header > #headerlinks {
+  margin-right: 60rem;
+}
+body.session.input td.periods a.day {
+  margin-left: 0;
+}
+#overlay {
+  display: none;
+  align-items: center;
+  bottom: 0;
+  justify-content: center;
+  left: 0;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 10000;
+}
+#overlay.visible {
+  display: flex;
+}
+#overlay #overshadow {
+  background: black;
+  bottom: 0;
+  height: 100%;
+  left: 0;
+  opacity: 0.5;
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 100%;
+}
+#overlay #overcontent {
+  background: white;
+  border-radius: 5px;
+  opacity: 1;
+  padding: 10px;
+  z-index: 10001;
+  max-width: calc(100% - 2 * 10px);
+  max-height: calc(100% - 2 * 10px);
+  overflow: auto;
+}
+#overlay #overcontent > * {
+  display: block;
+  margin: 0 auto;
+}
+#overlay #overcontent td {
+  word-break: break-word;
+}
+#overlay #overcontent td:first-child {
+  font-weight: bold;
+}
+th {
+  font-weight: bold;
+  text-align: left;
+  text-transform: uppercase;
+  vertical-align: top;
+  font-size: 0.8em;
+}
+td {
+  vertical-align: top;
+  font-size: 0.9em;
+}
+#counts th:first-child,
+#counts td:first-child,
+#stats td:first-child,
+table.totals th:not(:last-child),
+table.totals td:not(:last-child) {
+  padding-right: 10px;
+}
+#counts th:last-child,
+#counts td:last-child {
+  text-align: right;
+}
+#counts td,
+#stats td {
+  word-break: break-word;
+}
+table.totals th:first-child,
+#counts th:first-child {
+  min-width: 80rem;
+}
+body.index table .flex-row {
+  column-gap: 10px;
+  justify-content: unset;
+}
+body.index table .flex-row > * {
+  margin: 0;
+}
+body.index table .flex-row > :first-child {
+  min-width: 80rem;
+}

@@ -6,16 +6,24 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    19.10.2021
+@modified    16.07.2022
 """
 import collections
 import datetime
+import io
 import math
 import os
 import re
 import sys
 import time
-import bottle
+try:  # Workaround for Py3 bug in W7: sys.stdout and .stderr are set to None
+      # when using pythonw.exe, but bottle expects output streams to exist.
+    _stdout, _stderr = sys.stdout, sys.stderr
+    if sys.stdout is None: sys.stdout = io.StringIO()
+    if sys.stderr is None: sys.stderr = io.StringIO()
+    import bottle
+finally:
+    sys.stdout, sys.stderr = _stdout, _stderr
 from bottle import hook, request, route
 
 from . import conf
@@ -190,6 +198,7 @@ def stats_keyboard(events, table, count):
     UNBROKEN_DELTA = datetime.timedelta(seconds=conf.KeyboardSessionMaxDelta)
     blank = collections.defaultdict(lambda: collections.defaultdict(int))
     collated = [blank.copy()] # [{dt, keys: {key: count}}]
+    uniques = set()
     for e in events:
         e.pop("id") # Decrease memory overhead
         e["dt"] = datetime.datetime.fromtimestamp(e.pop("stamp"))
@@ -208,6 +217,7 @@ def stats_keyboard(events, table, count):
                 tsession.append(delta)
         collated[-1]["dt"] = e["dt"]
         collated[-1]["keys"][e["realkey"]] += 1
+        uniques.add(e["key"])
         last = e
 
     longest_session = max(tsessions + [[datetime.timedelta()]], key=lambda x: sum(x, datetime.timedelta()))
@@ -233,6 +243,7 @@ def stats_keyboard(events, table, count):
         ("Most keys in session",
          max(len(x) + 1 for x in tsessions) if tsessions else 0),
     ] if deltas and "keys" == table else []
+    stats += [("Total unique %s" % table, len(uniques))]
     if deltas:
         stats += [("Total time interval", format_timedelta(last["dt"] - first["dt"]))]
     return stats, collated[:conf.MaxEventsForReplay]
@@ -297,7 +308,7 @@ def stats_mouse(events, table, count):
     elif "scrolls" == table and count:
         stats = list(filter(bool, [("Scrolls per hour", 
                   int(count / (timedelta_seconds(last["dt"] - first["dt"]) / 3600 or 1))),
-                 ("Average interval", totaldelta / (count or 1)),
+                 ("Average interval", format_timedelta(totaldelta / (count or 1))),
                  ("Scrolls down",  counts["-dy"]),
                  ("Scrolls up",    counts["dy"]), 
                  ("Scrolls left",  counts["dx"])  if counts["dx"]  else None, 
@@ -306,7 +317,7 @@ def stats_mouse(events, table, count):
         NAMES = {"1": "Left", "2": "Right", "3": "Middle"}
         stats = [("Clicks per hour", 
                   int(count / (timedelta_seconds(last["dt"] - first["dt"]) / 3600 or 1))),
-                 ("Average interval between clicks", totaldelta / (count or 1)),
+                 ("Average interval between clicks", format_timedelta(totaldelta / (count or 1))),
                  ("Average distance between clicks",
                   "%.1f pixels" % (distance / (count or 1))), ]
         for k, v in sorted(counts.items()):
@@ -354,6 +365,7 @@ def stats_db(filename):
         countstr = "{:,}".format(sum(cmap.get(t) or 0 for t in tables))
         result += [("%s events" % name.capitalize(), countstr)]
     result += [("Sessions", db.fetchone("sessions", "COUNT(*) AS count")["count"])]
+    result += [("%s version" % conf.Title, "%s (%s)" % (conf.Version, conf.VersionDate))]
     return result
 
 

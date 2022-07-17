@@ -20,9 +20,10 @@ the declared ones in source code. File is deleted if all values are at default.
 
 @author      Erki Suurjaak
 @created     26.03.2015
-@modified    22.01.2022
+@modified    16.07.2022
 ------------------------------------------------------------------------------
 """
+import ast
 try: import ConfigParser as configparser # Py2
 except ImportError: import configparser  # Py3
 import datetime
@@ -35,8 +36,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.5"
-VersionDate = "22.01.2022"
+Version = "1.6.dev21"
+VersionDate = "16.07.2022"
 
 """TCP port of the web user interface."""
 WebHost = "localhost"
@@ -82,19 +83,25 @@ InputFlags = {
     "combos"  : "KeyboardCombosEnabled",
 }
 
+"""Extra configured keys, as {virtual keycode: "key name"}."""
+CustomKeys = {}
+
 """Maximum keypress interval to count as one typing session, in seconds."""
 KeyboardSessionMaxDelta = 3
 
-"""Maximum interval between linear move events for event reduction, in seconds."""
+"""Maximum interval between same key/combo presses for event reduction, in seconds (0 disables)."""
+KeyboardJoinInterval = 0.05
+
+"""Maximum interval between linear move events for event reduction, in seconds (0 disables)."""
 MouseMoveJoinInterval = 0.5
 
 """Fuzz radius for linear move events for event reduction, in heatmap pixels."""
 MouseMoveJoinRadius = 5
 
-"""Maximum interval between scroll events for event reduction, in seconds."""
+"""Maximum interval between scroll events for event reduction, in seconds (0 disables)."""
 MouseScrollJoinInterval = 0.5
 
-"""Interval between writings events to database, in seconds."""
+"""Interval between writing events to database, in seconds."""
 EventsWriteInterval = 5
 
 """Interval between checking and saving screen size, in seconds."""
@@ -105,6 +112,9 @@ MaxEventsForStats = 1000 * 1000
 
 """Maximum number of events to replay on statistics page."""
 MaxEventsForReplay = 100 * 1000
+
+"""Maximum number of events to queue for database insertion, excess is discarded."""
+MaxEventsForQueue = 1000
 
 """Maximum number of sessions listed in tray menu."""
 MaxSessionsInMenu = 20
@@ -319,22 +329,33 @@ DbUpdateStatements = [
         "ALTER TABLE scrolls ADD COLUMN dx INTEGER DEFAULT 0"]],
 ]
 
+"""List of attribute names that are always saved to ConfigFile."""
+FileDirectives = ["CustomKeys", "DefaultScreenSize", "EventsWriteInterval", "MaxEventsForStats",
+    "MaxEventsForReplay", "KeyboardEnabled", "KeyboardKeysEnabled", "KeyboardCombosEnabled",
+    "KeyboardJoinInterval", "MouseEnabled", "MouseMovesEnabled", "MouseClicksEnabled",
+    "MouseScrollsEnabled", "MouseHeatmapSize", "MouseMoveJoinInterval", "MouseMoveJoinRadius",
+    "MouseScrollJoinInterval", "PixelLength", "ScreenSizeInterval", "WebPort",
+]
 
 try: text_types = (str, unicode)       # Py2
 except Exception: text_types = (str, ) # Py3
 
-def init(filename=ConfigPath):
-    """Loads INI configuration into this module's attributes."""
+def init(filename=ConfigPath, create=True):
+    """Loads INI configuration into this module's attributes; creates file if not present."""
     section, parts = "DEFAULT", filename.rsplit(":", 1)
     if len(parts) > 1 and os.path.isfile(parts[0]): filename, section = parts
-    if not os.path.isfile(filename): return
+    if not os.path.isfile(filename):
+        if create: save()
+        return
 
     vardict, parser = globals(), configparser.RawConfigParser()
     parser.optionxform = str # Force case-sensitivity on names
     try:
         def parse_value(raw):
             try: return json.loads(raw) # Try to interpret as JSON
-            except ValueError: return raw # JSON failed, fall back to raw
+            except ValueError:
+                try: return ast.literal_eval(raw) # JSON failed, fall back to eval
+                except (SyntaxError, ValueError): raw # Fall back to raw
         with open(filename, "r") as f:
             txt = f.read()
         try: txt = txt.decode()
@@ -344,6 +365,7 @@ def init(filename=ConfigPath):
         for k, v in parser.items(section): vardict[k] = parse_value(v)
     except Exception:
         logging.warn("Error reading config from %s.", filename, exc_info=True)
+    validate()
 
 
 def save(filename=ConfigPath):
@@ -354,22 +376,34 @@ def save(filename=ConfigPath):
     try:
         save_types = text_types + (int, float, tuple, list, dict, type(None))
         for k, v in sorted(globals().items()):
-            if not isinstance(v, save_types) or k.startswith("_") \
-            or k not in default_values or default_values[k] == v \
-            or isinstance(default_values[k], tuple) and isinstance(v, list) \
-            and default_values[k] == tuple(v): continue # for k, v
+            if not isinstance(v, save_types) or k.startswith("_") or k not in default_values \
+            or k not in FileDirectives and default_values[k] == v: continue # for k, v
             try: parser.set("DEFAULT", k, json.dumps(v))
             except Exception: pass
-        if parser.defaults():
-            with open(filename, "w") as f:
-                f.write("# %s %s configuration written on %s.\n" % (Title, Version,
-                        datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-                parser.write(f)
-        else: # Nothing to write: delete configuration file
-            try: os.unlink(filename)
-            except Exception: pass
+        with open(filename, "w") as f:
+            f.write("# %s %s configuration written on %s.\n" % (Title, Version,
+                    datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+            parser.write(f)
     except Exception:
         logging.warn("Error writing config to %s.", filename, exc_info=True)
+
+
+def validate():
+    """Validates configuration values, discarding invalids."""
+    global CustomKeys
+    default_values = defaults()
+    for k, v in sorted(globals().items()):
+        v0 = default_values.get(k)
+        if isinstance(v, list) and isinstance(v0, tuple):
+            globals()[k] = tuple(v)
+    try:
+        keys, _ = CustomKeys.copy(), CustomKeys.clear()
+        for k, v in keys.items():
+            try: CustomKeys[int(k)] = v
+            except Exception:
+                try: CustomKeys[int(k, 16)] = v
+                except Exception: pass
+    except Exception: CustomKeys = defaults()["CustomKeys"]
 
 
 def defaults(values={}):

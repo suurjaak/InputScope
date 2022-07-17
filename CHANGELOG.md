@@ -1,6 +1,26 @@
 CHANGELOG
 =========
 
+1.6, 2022-07-13
+---------------
+- take display index into account when discarding close mouse move events
+- add missing Numpad-Delete key (issue #14)
+- add more OEM keys (issue #14)
+- add support for user-configured keys
+- add support for larger fonts in statistics
+- add unique count to keyboard pages (issue #21)
+- add program version to database info box in statistics (issue #21)
+- register key being held down as one keypress (issue #15)
+- fix potential error on unplugging monitor (issue #12)
+- fix registering Ctrl-NUM combos (issue #14)
+- fix error on closing program with Ctrl-C in Linux (issue #16)
+- fix running listener from main application in Linux (issue #17)
+- fix tray icon menu error in Linux (issue #18)
+- fix running application with pythonw.exe in Py3 W7
+- always save basic config directives to config file
+- rearrange source code in src-layout
+
+
 1.5, 2022-01-22
 ---------------
 - add named sessions functionality

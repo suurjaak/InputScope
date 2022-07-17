@@ -5,7 +5,7 @@ command-line echoer otherwise. Launches the event listener and web UI server.
 
 @author      Erki Suurjaak
 @created     05.05.2015
-@modified    21.10.2021
+@modified    07.07.2022
 """
 import calendar
 import datetime
@@ -20,9 +20,9 @@ import sys
 import threading
 import time
 import webbrowser
+win32com = wx = tk = None
 try: import win32com.client # For creating startup shortcut
 except ImportError: pass
-wx = tk = None
 try: import wx, wx.adv, wx.py.shell
 except ImportError:
     try: import Tkinter as tk   # For getting screen size if wx unavailable
@@ -109,7 +109,10 @@ class Model(threading.Thread):
 
     def stop(self, exit=False):
         self.running = False
-        if self.listener: self.listenerqueue.put("exit"), self.listener.terminate()
+        if self.listenerqueue:
+            try: self.listenerqueue.put("exit")
+            except Exception: pass
+        if self.listener: self.listener.terminate()
         if self.webui: self.webui.terminate()
         if exit: sys.exit()
 
@@ -136,9 +139,18 @@ class Model(threading.Thread):
             pkg = os.path.basename(conf.ApplicationPath)
             root = os.path.dirname(conf.ApplicationPath)
             args = lambda *x: [sys.executable, "-m", "%s.%s" % (pkg, x[0])] + list(x[1:])
-            self.listener = subprocess.Popen(args("listener", "--quiet"), cwd=root, shell=True,
-                                             stdin=subprocess.PIPE, universal_newlines=True)
-            self.webui = subprocess.Popen(args("webui", "--quiet"), cwd=root)
+            lprocargs = dict(cwd=root, stdin=subprocess.PIPE, universal_newlines=True)
+            wprocargs = dict(cwd=root)
+            if "win32" == sys.platform:
+                lprocargs.update(shell=True)
+                if "pythonw.exe" == os.path.basename(sys.executable).lower():
+                    # Workaround for Py3 bug in W7: pythonw sets sys.stdout and .stderr to None
+                    lprocargs.update(stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    if hasattr(subprocess, "DEVNULL"):  # Python 3.3+
+                        wprocargs.update({k: subprocess.DEVNULL
+                                          for k in ("stdin", "stdout", "stderr")})
+            self.listener = subprocess.Popen(args("listener", "--quiet"), **lprocargs)
+            self.webui    = subprocess.Popen(args("webui",    "--quiet"), **wprocargs)
             self.listenerqueue = QueueLine(self.listener.stdin)
 
         if conf.MouseEnabled:    self.listenerqueue.put("start mouse")
@@ -232,7 +244,6 @@ class MainApp(getattr(wx, "App", object)):
         activename = format_session(activesession, quote=True, stamp=False) if activesession else None
         item_session_start = makeitem(menu, "&Start session ..")
         item_session_stop  = makeitem(menu, "Stop session%s" % (' ' + activename if activename else ""))
-        item_session_stop.Enable(bool(activename))
         for session in self.model.sessions[:conf.MaxSessionsInMenu]:
             sessmenu = wx.Menu()
             item_session_open   = makeitem(sessmenu, "Open statistics")
@@ -309,6 +320,7 @@ class MainApp(getattr(wx, "App", object)):
         item_keys    .Check(conf.KeyboardEnabled and conf.KeyboardKeysEnabled)
         item_combos  .Check(conf.KeyboardEnabled and conf.KeyboardCombosEnabled)
         item_console .Check(self.frame_console.Shown)
+        item_session_stop.Enable(bool(activename))
 
         menu.Bind(wx.EVT_MENU, self.OnOpenUI,           item_ui)
         menu.Bind(wx.EVT_MENU, self.OnVacuum,           item_vacuum)
@@ -362,12 +374,14 @@ class MainApp(getattr(wx, "App", object)):
     def OnLogResolution(self, event=None):
         if not self: return
         def make_size(geometry, w, h):
+            """Returns [scaled x, scaled y, w, h]."""
             scale = geometry.Width / float(w)
             return [int(geometry.X * scale), int(geometry.Y * scale), w, h]
         sizes = [make_size(d.Geometry, m.Width, m.Height)
                  for i in range(wx.Display.GetCount())
-                 for d in [wx.Display(i)] for m in [d.GetCurrentMode()]]
-        self.model.log_resolution(sizes)
+                 for d in [wx.Display(i)] for m in [d.GetCurrentMode()]
+                 if m.Width and m.Height and all(d.Geometry.Size)]
+        if sizes: self.model.log_resolution(sizes)
 
     def OnOpenUI(self, event):
         webbrowser.open(conf.WebUrl)
@@ -454,7 +468,7 @@ class StartupService(object):
 
     def can_start(self):
         """Whether startup can be set on this system at all."""
-        return ("win32" == sys.platform)
+        return win32com and ("win32" == sys.platform)
 
     def is_started(self):
         """Whether the program has been added to startup."""
@@ -470,7 +484,7 @@ class StartupService(object):
     def stop(self):
         """Stops the program from running at system startup."""
         try: os.unlink(self.get_shortcut_path())
-        except StandardError: pass
+        except Exception: pass
 
     def get_shortcut_path(self):
         path = "~\\Start Menu\\Programs\\Startup\\%s.lnk" % conf.Title

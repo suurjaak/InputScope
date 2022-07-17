@@ -14,7 +14,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    17.10.2021
+@modified    16.07.2022
 %"""
 %from inputscope.util import format_session
 %WEBROOT = get_url("/")
@@ -23,6 +23,7 @@ Template arguments:
 %if session:
 %    INPUTURL, URLARGS = "/sessions/<session>" + INPUTURL, dict(URLARGS, session=session["id"])
 %end # if session
+%bodycls = " ".join(set(filter(bool, get("page", "").split() + ["session" if session else ""])))
 <!DOCTYPE html>
 <html>
 <head>
@@ -33,8 +34,8 @@ Template arguments:
   <link rel="stylesheet" href="{{ WEBROOT }}static/site.css" />
   <script src="{{ WEBROOT }}static/heatmap.min.js"></script>
 </head>
-<body{{! ' class="%s"' % page if get("page") else "" }}>
-<div id="header" style="position: relative;">
+<body{{! ' class="%s"' % bodycls if bodycls else "" }}>
+<div id="header" class="flex-row">
 
   <span id="headerlinks">
     <a href="{{ WEBROOT }}" id="indexlink">{{ conf.Title }}</a>
@@ -44,6 +45,10 @@ Template arguments:
 %end # for x
     </span>
   </span>
+
+%if session or days:
+<span class="flex-row">
+%end # if session or days
 
 %if session:
   <span id="session" title="session {{ format_session(session, maxlen=0, quote=True) }}">
@@ -61,7 +66,7 @@ Template arguments:
 %end # if defined("session")
 
 %if days:
-<span id="daysection">
+<span id="daysection" class="flex-row">
     %prevperiod, nextperiod = None, None
     %if period and len(period) < 8:
     %    prevperiod = next((x["day"][:7] for x in days[::-1] if x["day"][:7] < period), None)
@@ -73,8 +78,11 @@ Template arguments:
     %    end # if dayidx is not None
     %    prevperiod = prevperiod or None if period else days[-1]["day"]
     %end # if period and len(period) < 8
+
     %if prevperiod:
   <a href="{{ get_url("%s/<table>/<period>" % INPUTURL, table=table, period=prevperiod, **URLARGS) }}">&lt; {{ prevperiod }}</a>
+    %else:
+  <a></a>
     %end # if prevperiod
 
   <select id="dayselector">
@@ -93,13 +101,19 @@ Template arguments:
 
     %if nextperiod:
   <a href="{{ get_url("%s/<table>/<period>" % INPUTURL, table=table, period=nextperiod, **URLARGS) }}">{{ nextperiod }} &gt;</a>
+    %else:
+  <a></a>
     %end # if nextperiod
 </span>
 %end # if days
 
+%if session or days:
+</span>
+%end # if session or days
+
 </div>
 
-<div id="content" style="position: relative;">
+<div id="content">
 {{! base }}
 </div>
 
@@ -111,15 +125,14 @@ Template arguments:
       <tr><td>{{ k }}:</td><td>{{ v }}</td></tr>
 %end # for k, v
     </table>
-    <button id="overlayclose">OK</button>
+    <input type="button" id="overlayclose" value="OK" />
   </div>
 </div>
 
-<div id="footer">
-<div>
+<div id="footer" class="flex-row">
   <a href="#" id="overlaylink">database info</a>
-  Mouse and keyboard input visualizer. <a href="{{ conf.HomepageUrl }}" target="_blank">github</a>
-</div>
+  <span>Mouse and keyboard input visualizer.</span>
+  <a href="{{ conf.HomepageUrl }}" target="_blank">github</a>
 </div>
 
 <script type="text/javascript">

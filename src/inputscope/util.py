@@ -4,7 +4,7 @@ Utilities.
 
 @author      Erki Suurjaak
 @created     17.10.2021
-@modified    18.10.2021
+@modified    16.07.2022
 """
 import datetime
 import errno
@@ -50,10 +50,11 @@ def format_stamp(stamp, fmt="%Y-%m-%d %H:%M"):
 
 
 def format_timedelta(timedelta):
-    """Formats the timedelta as "3d 40h 23min 23.1sec"."""
+    """Formats the timedelta as "3d 40h 23min 23sec"."""
     dd, rem = divmod(timedelta_seconds(timedelta), 24*3600)
     hh, rem = divmod(rem, 3600)
     mm, ss  = divmod(rem, 60)
+    if mm or hh or dd: ss = int(ss)
     items = []
     for c, n in (dd, "d"), (hh, "h"), (mm, "min"), (ss, "sec"):
         f = "%d" % c if "sec" != n else str(round(c, 2)).rstrip("0").rstrip(".")

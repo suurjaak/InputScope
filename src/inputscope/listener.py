@@ -21,11 +21,11 @@ session delete ID
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    18.10.2021
+@modified    09.07.2022
 """
 from __future__ import print_function
+from collections import defaultdict
 import datetime
-import math
 try: import Queue as queue        # Py2
 except ImportError: import queue  # Py3
 import sys
@@ -175,10 +175,9 @@ class DataHandler(threading.Thread):
 
     def __init__(self, output):
         threading.Thread.__init__(self)
-        self.counts = {} # {type: count}
+        self.counts = defaultdict(int) # {type: count}
         self.output = output
         self.inqueue = queue.Queue()
-        self.lasts = {"moves": None}
         self.screen_sizes = [[0, 0] + list(conf.DefaultScreenSize)]
         self.running = False
         self.start()
@@ -193,7 +192,8 @@ class DataHandler(threading.Thread):
             for i, size in enumerate(self.screen_sizes):
                 # Point falls exactly into display
                 if  size[0] <= pt[0] <= size[0] + size[2] \
-                and size[1] <= pt[1] <= size[1] + size[3]: return i, size
+                and size[1] <= pt[1] <= size[1] + size[3]:
+                    return i, size
             if pt[0] >= self.screen_sizes[-1][0] + self.screen_sizes[-1][2] \
             or pt[1] >= self.screen_sizes[-1][1] + self.screen_sizes[-1][3]:
                 # Point is beyond the last display
@@ -201,7 +201,8 @@ class DataHandler(threading.Thread):
             for i, size in enumerate(self.screen_sizes):
                 # One coordinate falls into display, other is off screen
                 if size[0] <= pt[0] <= size[0] + size[2] \
-                or size[1] <= pt[1] <= size[1] + size[3]: return i, size
+                or size[1] <= pt[1] <= size[1] + size[3]:
+                    return i, size
             return 0, self.screen_sizes[0] # Fall back to first display
 
         def rescale(pt):
@@ -220,7 +221,8 @@ class DataHandler(threading.Thread):
 
         def sign(v): return -1 if v < 0 else 1 if v > 0 else 0
 
-
+        stamps0, stamps1 = defaultdict(float), defaultdict(float) # {category: stamp}
+        lasts = {"moves": None, "keys": None, "combos": None} # {event category: [values]}
         while self.running:
             data, items = self.inqueue.get(), []
             while data:
@@ -229,42 +231,54 @@ class DataHandler(threading.Thread):
                 except queue.Empty: data = None
             if not items or not self.running: continue # while self.running
 
-            move0, move1, scroll0 = None, None, None
+            move0, move1, scroll0 = None, None, None # For merging events in this iteration
             for data in items:
                 category = data.pop("type")
                 if category in conf.InputEvents["mouse"]:
                     data["display"], _ = get_display([data["x"], data["y"]])
-                if category in self.lasts: # Skip event if same position as last
-                    pos = rescale([data["x"], data["y"]])
-                    if self.lasts[category] == pos: continue # for data
-                    self.lasts[category] = pos
+                stamps0.update(stamps1)
+                stamps1[category] = data["stamp"]
 
-                if "moves" == category: # Reduce move events
-                    if move0 and move1 and move1["stamp"] - move0["stamp"] < conf.MouseMoveJoinInterval \
-                    and data["stamp"] - move1["stamp"] < conf.MouseMoveJoinInterval \
-                    and move0["display"] == move1["display"] == data["display"]:
-                        if one_line(*[(v["x"], v["y"]) for v in (move0, move1, data)]):
-                            move1.update(data)
-                            continue # for data
+                if category in lasts:
+                    if category in conf.InputEvents["mouse"]: # Skip if same downscaled pos as last
+                        INTERVAL = conf.MouseMoveJoinInterval
+                        newlast = [data["display"]] + rescale([data["x"], data["y"]])
+                    else: # Skip if key appears held down (same value repeating rapidly)
+                        INTERVAL = conf.KeyboardJoinInterval
+                        newlast = [data["key"], data["realkey"]]
+                    if INTERVAL and lasts[category] == newlast \
+                    and data["stamp"] - stamps0[category] < INTERVAL:
+                        if "moves" == category: move0, move1 = move1, data
+                        continue # for data
+                    lasts[category] = newlast
+
+                if "moves" == category: # Reduce mouse move events
+                    if conf.MouseMoveJoinInterval and move0 and move1 \
+                    and move1["stamp"] - move0["stamp"] < conf.MouseMoveJoinInterval \
+                    and data["stamp"]  - move1["stamp"] < conf.MouseMoveJoinInterval \
+                    and move0["display"] == move1["display"] == data["display"] \
+                    and one_line(*[(v["x"], v["y"]) for v in (move0, move1, data)]):
+                        move1.update(data)
+                        continue # for data
                     move0, move1 = move1, data
-                elif "scrolls" == category: # Reduce scroll events
-                    if scroll0 and scroll0["display"] == data["display"] \
+                elif "scrolls" == category: # Reduce mouse scroll events
+                    if scroll0 and conf.MouseScrollJoinInterval \
+                    and scroll0["display"] == data["display"] \
                     and sign(scroll0["dx"]) == sign(data["dx"]) \
                     and sign(scroll0["dy"]) == sign(data["dy"]) \
-                    and data["stamp"] - scroll0["stamp"] < conf.MouseScrollJoinInterval:
-                        for k in ("dx", "dy"):        scroll0[k] += data[k]
-                        for k in ("stamp", "x", "y"): scroll0[k]  = data[k]
+                    and data["stamp"] - stamps0[category] < conf.MouseScrollJoinInterval:
+                        for k in ("dx", "dy"): scroll0[k] += data[k]
+                        for k in ( "x",  "y"): scroll0[k]  = data[k]
                         continue # for data
                     scroll0 = data
 
-                if category not in self.counts: self.counts[category] = 0
                 self.counts[category] += 1
                 dbqueue.append((category, data))
 
             try:
                 while dbqueue: db.insert(*dbqueue.pop(0))
-            except StandardError as e: print(e)
-            self.output(self.counts)
+            except Exception as e: print(e)
+            self.output(dict(self.counts))
             if conf.EventsWriteInterval > 0: time.sleep(conf.EventsWriteInterval)
 
     def stop(self):
@@ -276,7 +290,7 @@ class DataHandler(threading.Thread):
         category = kwargs.get("type")
         if not getattr(conf, conf.InputFlags.get(category), False): return
         kwargs.update(day=datetime.date.today(), stamp=time.time())
-        self.inqueue.put(kwargs)
+        if self.inqueue.qsize() < conf.MaxEventsForQueue: self.inqueue.put(kwargs)
 
 
 
@@ -347,15 +361,29 @@ class KeyHandler(object):
         105: "Numpad9",
 
          12: "Numpad-Clear", # Numpad5 without NumLock
-        111: "Numpad-Divide",
         106: "Numpad-Multiply",
-        109: "Numpad-Subtract",
         107: "Numpad-Add",
+        109: "Numpad-Subtract",
+        110: "Numpad-Delete",
+        111: "Numpad-Divide",
+
+         21: "IME Hangul/Kana",
+         23: "IME Junja",
+         24: "IME final",
+         25: "IME Hanja/Kanji",
 
         172: "Web/Home", # Extra top keys
+        173: "Volume Mute",
+        174: "Volume Down",
+        175: "Volume Up",
+        176: "Media Next",
+        177: "Media Prev",
+        178: "Media Stop",
+        179: "Media Play/Pause",
         180: "Email",
-        181: "Media",
-        183: "Calculator",
+        181: "Media Select",
+        182: "Application 1",
+        183: "Application 2",
     }
     OTHER_VK_NAMES = { # Not Windows
         65027:     "AltGr",
@@ -372,7 +400,7 @@ class KeyHandler(object):
 
 
     def __init__(self, output):
-        self.KEYNAMES = {k: v for k, v in self.PYNPUT_NAMES.items()} # pynput.Key.xyz.name: label
+        self.KEYNAMES = self.PYNPUT_NAMES.copy() # pynput.Key.xyz.name: label
         for key in pynput.keyboard.Key:
             if key.name not in self.KEYNAMES:
                 self.KEYNAMES[key.name] = self.nicename(key.name)
@@ -435,7 +463,8 @@ class KeyHandler(object):
             name = realname = self.RENAMES.get(name, name)
             if vk and (name, self._is_extended) in self.NUMPAD_SPECIALS:
                 name = realname = "Numpad-" + name
-        elif ord("A") <= vk <= ord("Z"): # Common A..Z keys, whatever the chars
+        elif ord("A") <= vk <= ord("Z") or ord("0") <= vk <= ord("9"):
+            # Common A..Z 0..9 keys, whatever the chars
             name, realname = char.upper() if char else chr(vk), chr(vk)
 
         if not name and "win32" != sys.platform:
@@ -458,6 +487,9 @@ class KeyHandler(object):
             # Combos can also produce control codes, e.g. Ctrl-Y: End-of-Medium
             if self._modifiers["Ctrl"]: name = realname
             else: name = self.CONTROLCODES[name]
+
+        if vk in conf.CustomKeys:
+            name = realname = conf.CustomKeys[vk]
 
         return name, realname
 
@@ -491,8 +523,9 @@ def start(inqueue, outqueue=None):
     try: db.execute("PRAGMA journal_mode = WAL")
     except Exception: pass
 
-    try: Listener(inqueue, outqueue).run()
-    except KeyboardInterrupt: pass
+    listener = Listener(inqueue, outqueue)
+    try: listener.run()
+    except KeyboardInterrupt: listener.stop()
 
 
 def main():
