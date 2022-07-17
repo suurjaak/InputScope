@@ -1,7 +1,7 @@
 CHANGELOG
 =========
 
-1.6, 2022-07-13
+1.6, 2022-07-17
 ---------------
 - take display index into account when discarding close mouse move events
 - add missing Numpad-Delete key (issue #14)
