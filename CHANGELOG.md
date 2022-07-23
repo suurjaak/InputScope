@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+1.7, 2022-07-23
+---------------
+- make all keys sticky during long keypress by default (issue #22)
+
+
 1.6, 2022-07-13
 ---------------
 - take display index into account when discarding close mouse move events
