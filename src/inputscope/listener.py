@@ -25,6 +25,7 @@ session delete ID
 """
 from __future__ import print_function
 from collections import defaultdict
+import ast
 import datetime
 try: import Queue as queue        # Py2
 except ImportError: import queue  # Py3
@@ -117,6 +118,9 @@ class Listener(threading.Thread):
                         retain = retain or db.fetchone(table, "1", where=where)
                     if not retain:
                         db.delete("sessions", id=session["id"])
+        elif command.startswith("configure "):
+            name, valstr = command.split()[1:]
+            setattr(conf, name, ast.literal_eval(valstr))
         elif command.startswith("screen_size "):
             # "screen_size [0, 0, 1920, 1200] [1920, 0, 1000, 800]"
             sizestrs = list(filter(bool, (x.strip() for x in command[12:].replace("[", "").split("]"))))

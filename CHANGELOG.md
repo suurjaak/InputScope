@@ -3,7 +3,8 @@ CHANGELOG
 
 1.7, 2022-07-23
 ---------------
-- make all keys sticky during long keypress by default (issue #22)
+- count a long keypress as a single event by default (issue #22)
+- add tray menu option to toggle sticky long keypress
 
 
 1.6, 2022-07-13
