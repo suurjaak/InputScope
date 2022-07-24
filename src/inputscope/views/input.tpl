@@ -9,10 +9,10 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    16.07.2022
+@modified    24.07.2022
 %"""
 %from inputscope import conf
-%from inputscope.util import format_stamp
+%from inputscope.util import format_stamp, format_weekday
 %WEBROOT = get_url("/")
 %INPUTURL, URLARGS = ("/<input>", dict(input=input))
 %if get("session"):
@@ -38,7 +38,15 @@ Template arguments:
     <div class="periods">
 %    for item in data["periods"]:
       <div class="flex-row">
-        <a class="{{ item["class"] }}" href="{{ get_url("%s/<table>/<period>" % INPUTURL, table=table, period=item["period"], **URLARGS) }}#{{ item["count"] }}">{{ item["period"] }}</a>
+        <a class="{{ item["class"] }}" href="{{ get_url("%s/<table>/<period>" % INPUTURL, table=table, period=item["period"], **URLARGS) }}#{{ item["count"] }}">
+          {{ item["period"] }}
+%        if "day" == item["class"]:
+%            try:
+          <span class="weekday" title="{{ format_weekday(item["period"], long=True) }}">{{ format_weekday(item["period"]) }}</span>
+%            except Exception: pass
+%            end # try
+%        end # if "day"
+        </a>
         <span>({{ "{:,}".format(item["count"])  }})</span>
       </div>
 %    end # for item
