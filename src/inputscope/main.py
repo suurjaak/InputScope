@@ -5,12 +5,13 @@ command-line echoer otherwise. Launches the event listener and web UI server.
 
 @author      Erki Suurjaak
 @created     05.05.2015
-@modified    23.07.2022
+@modified    24.07.2022
 """
 import calendar
 import datetime
 import errno
 import functools
+import locale
 import multiprocessing
 import os
 import re
@@ -174,8 +175,16 @@ class Model(threading.Thread):
 class MainApp(getattr(wx, "App", object)):
 
     def InitLocale(self):
-        # Avoid dialog buttons in native language
-        pass
+        self.ResetLocale()
+        if "win32" == sys.platform:  # Avoid dialog buttons in native language
+            mylocale = wx.Locale(wx.LANGUAGE_ENGLISH_US, wx.LOCALE_LOAD_DEFAULT)
+            mylocale.AddCatalog("wxstd")
+            self._initial_locale = mylocale  # Override wx.App._initial_locale
+            # Workaround for MSW giving locale as "en-US"; standard format is "en_US".
+            # Py3 provides "en[-_]US" in wx.Locale names and accepts "en" in locale.setlocale();
+            # Py2 provides "English_United States.1252" in wx.Locale.SysName and accepts only that.
+            name = mylocale.SysName if sys.version_info < (3, ) else mylocale.Name.split("_", 1)[0]
+            locale.setlocale(locale.LC_ALL, name)
 
     def OnInit(self):
         self.model = Model()
