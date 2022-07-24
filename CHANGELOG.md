@@ -1,7 +1,14 @@
 CHANGELOG
 =========
 
-1.6, 2022-07-17
+1.7, 2022-07-24
+---------------
+- count a long keypress as a single event by default (issue #22)
+- add tray menu option to toggle sticky long keypress
+- add weekdays to statistics pages
+
+
+1.6, 2022-07-13
 ---------------
 - take display index into account when discarding close mouse move events
 - add missing Numpad-Delete key (issue #14)

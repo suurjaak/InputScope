@@ -4,7 +4,7 @@ Utilities.
 
 @author      Erki Suurjaak
 @created     17.10.2021
-@modified    16.07.2022
+@modified    24.07.2022
 """
 import datetime
 import errno
@@ -60,6 +60,13 @@ def format_timedelta(timedelta):
         f = "%d" % c if "sec" != n else str(round(c, 2)).rstrip("0").rstrip(".")
         if f != "0": items += [f + n]
     return " ".join(items or ["0 seconds"])
+
+
+def format_weekday(value, long=False):
+    """Formats datetime/date instance or string as weekday name."""
+    if isinstance(value, str):
+        value = datetime.datetime.strptime(value[:10], "%Y-%m-%d")
+    return value.strftime("%A" if long else "%a")
 
 
 def run_later(function, millis=0):

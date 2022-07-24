@@ -20,7 +20,7 @@ the declared ones in source code. File is deleted if all values are at default.
 
 @author      Erki Suurjaak
 @created     26.03.2015
-@modified    17.07.2022
+@modified    24.07.2022
 ------------------------------------------------------------------------------
 """
 import ast
@@ -36,8 +36,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.6"
-VersionDate = "17.07.2022"
+Version = "1.7.dev3"
+VersionDate = "24.07.2022"
 
 """TCP port of the web user interface."""
 WebHost = "localhost"
@@ -89,8 +89,8 @@ CustomKeys = {}
 """Maximum keypress interval to count as one typing session, in seconds."""
 KeyboardSessionMaxDelta = 3
 
-"""Maximum interval between same key/combo presses for event reduction, in seconds (0 disables)."""
-KeyboardJoinInterval = 0.05
+"""Whether to ignore repeated keyboard events from long keypresses."""
+KeyboardStickyEnabled = True
 
 """Maximum interval between linear move events for event reduction, in seconds (0 disables)."""
 MouseMoveJoinInterval = 0.5
@@ -332,7 +332,7 @@ DbUpdateStatements = [
 """List of attribute names that are always saved to ConfigFile."""
 FileDirectives = ["CustomKeys", "DefaultScreenSize", "EventsWriteInterval", "MaxEventsForStats",
     "MaxEventsForReplay", "KeyboardEnabled", "KeyboardKeysEnabled", "KeyboardCombosEnabled",
-    "KeyboardJoinInterval", "MouseEnabled", "MouseMovesEnabled", "MouseClicksEnabled",
+    "KeyboardStickyEnabled", "MouseEnabled", "MouseMovesEnabled", "MouseClicksEnabled",
     "MouseScrollsEnabled", "MouseHeatmapSize", "MouseMoveJoinInterval", "MouseMoveJoinRadius",
     "MouseScrollJoinInterval", "PixelLength", "ScreenSizeInterval", "WebPort",
 ]

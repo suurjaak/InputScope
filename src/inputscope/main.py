@@ -5,12 +5,13 @@ command-line echoer otherwise. Launches the event listener and web UI server.
 
 @author      Erki Suurjaak
 @created     05.05.2015
-@modified    07.07.2022
+@modified    24.07.2022
 """
 import calendar
 import datetime
 import errno
 import functools
+import locale
 import multiprocessing
 import os
 import re
@@ -100,6 +101,13 @@ class Model(threading.Thread):
         q.put("%s %s" % ("start" if on else "stop", category))
 
 
+    def set_config(self, name, value):
+        """Sets flag value in configuration and sends to listener."""
+        setattr(conf, name, value)
+        conf.save()
+        q = self.listenerqueue or self.initialqueue
+        q.put("configure %s %r" % (name, value))
+
     def session_action(self, action, session=None, arg=None):
         """Carries out session action."""
         q = self.listenerqueue or self.initialqueue
@@ -167,8 +175,16 @@ class Model(threading.Thread):
 class MainApp(getattr(wx, "App", object)):
 
     def InitLocale(self):
-        # Avoid dialog buttons in native language
-        pass
+        self.ResetLocale()
+        if "win32" == sys.platform:  # Avoid dialog buttons in native language
+            mylocale = wx.Locale(wx.LANGUAGE_ENGLISH_US, wx.LOCALE_LOAD_DEFAULT)
+            mylocale.AddCatalog("wxstd")
+            self._initial_locale = mylocale  # Override wx.App._initial_locale
+            # Workaround for MSW giving locale as "en-US"; standard format is "en_US".
+            # Py3 provides "en[-_]US" in wx.Locale names and accepts "en" in locale.setlocale();
+            # Py2 provides "English_United States.1252" in wx.Locale.SysName and accepts only that.
+            name = mylocale.SysName if sys.version_info < (3, ) else mylocale.Name.split("_", 1)[0]
+            locale.setlocale(locale.LC_ALL, name)
 
     def OnInit(self):
         self.model = Model()
@@ -224,6 +240,7 @@ class MainApp(getattr(wx, "App", object)):
         on_session  = lambda k, s=None: functools.partial(self.OnSessionAction, k, session=s)
         on_clear    = lambda p, c, s=False: functools.partial(self.OnSessionAction, "clear", category=c) \
                                             if s else functools.partial(self.OnClearHistory, p, c)
+        on_toggle  = lambda n: functools.partial(self.OnToggleFlag, n)
 
         item_ui       = makeitem(menu, "&Open statistics")
         item_startup  = makeitem(menu, "Start with &Windows",  kind=wx.ITEM_CHECK) \
@@ -238,6 +255,7 @@ class MainApp(getattr(wx, "App", object)):
         item_scrolls  = makeitem(keyboardmenu, "Log mouse &scrolls",    kind=wx.ITEM_CHECK)
         item_keys     = makeitem(keyboardmenu, "Log individual &keys",  kind=wx.ITEM_CHECK)
         item_combos   = makeitem(keyboardmenu, "Log key &combinations", kind=wx.ITEM_CHECK)
+        item_sticky   = makeitem(keyboardmenu, "&Sticky long keypress", kind=wx.ITEM_CHECK)
 
         lastsession = self.model.sessions[0] if self.model.sessions else None
         activesession = lastsession if lastsession and not lastsession["end"] else None
@@ -293,6 +311,8 @@ class MainApp(getattr(wx, "App", object)):
         mousemenu.Append(item_scrolls)
         keyboardmenu.Append(item_keys)
         keyboardmenu.Append(item_combos)
+        keyboardmenu.AppendSeparator()
+        keyboardmenu.Append(item_sticky)
 
         menu.Append(item_ui)
         menu.Append(item_startup) if item_startup else None
@@ -319,6 +339,7 @@ class MainApp(getattr(wx, "App", object)):
         item_keyboard.Check(conf.KeyboardEnabled)
         item_keys    .Check(conf.KeyboardEnabled and conf.KeyboardKeysEnabled)
         item_combos  .Check(conf.KeyboardEnabled and conf.KeyboardCombosEnabled)
+        item_sticky  .Check(conf.KeyboardStickyEnabled)
         item_console .Check(self.frame_console.Shown)
         item_session_stop.Enable(bool(activename))
 
@@ -336,6 +357,7 @@ class MainApp(getattr(wx, "App", object)):
         menu.Bind(wx.EVT_MENU, on_session("stop"),      item_session_stop)
         menu.Bind(wx.EVT_MENU, self.OnToggleConsole,    item_console)
         menu.Bind(wx.EVT_MENU, self.OnClose,            item_exit)
+        menu.Bind(wx.EVT_MENU, on_toggle("KeyboardStickyEnabled"), item_sticky)
         self.trayicon.PopupMenu(menu)
 
 
@@ -398,6 +420,8 @@ class MainApp(getattr(wx, "App", object)):
     def OnToggleCategory(self, category, event):
         self.model.toggle(category)
 
+    def OnToggleFlag(self, name, event):
+        self.model.set_config(name, not getattr(conf, name))
 
     def OnSessionAction(self, action, event, session=None, category=None):
         arg = None

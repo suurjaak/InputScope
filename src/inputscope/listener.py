@@ -21,10 +21,11 @@ session delete ID
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    09.07.2022
+@modified    23.07.2022
 """
 from __future__ import print_function
 from collections import defaultdict
+import ast
 import datetime
 try: import Queue as queue        # Py2
 except ImportError: import queue  # Py3
@@ -117,6 +118,9 @@ class Listener(threading.Thread):
                         retain = retain or db.fetchone(table, "1", where=where)
                     if not retain:
                         db.delete("sessions", id=session["id"])
+        elif command.startswith("configure "):
+            name, valstr = command.split()[1:]
+            setattr(conf, name, ast.literal_eval(valstr))
         elif command.startswith("screen_size "):
             # "screen_size [0, 0, 1920, 1200] [1920, 0, 1000, 800]"
             sizestrs = list(filter(bool, (x.strip() for x in command[12:].replace("[", "").split("]"))))
@@ -222,7 +226,7 @@ class DataHandler(threading.Thread):
         def sign(v): return -1 if v < 0 else 1 if v > 0 else 0
 
         stamps0, stamps1 = defaultdict(float), defaultdict(float) # {category: stamp}
-        lasts = {"moves": None, "keys": None, "combos": None} # {event category: [values]}
+        scaledmove = None # [display, x scaled to heatmap, y scaled to heatmap]
         while self.running:
             data, items = self.inqueue.get(), []
             while data:
@@ -239,29 +243,24 @@ class DataHandler(threading.Thread):
                 stamps0.update(stamps1)
                 stamps1[category] = data["stamp"]
 
-                if category in lasts:
-                    if category in conf.InputEvents["mouse"]: # Skip if same downscaled pos as last
-                        INTERVAL = conf.MouseMoveJoinInterval
-                        newlast = [data["display"]] + rescale([data["x"], data["y"]])
-                    else: # Skip if key appears held down (same value repeating rapidly)
-                        INTERVAL = conf.KeyboardJoinInterval
-                        newlast = [data["key"], data["realkey"]]
-                    if INTERVAL and lasts[category] == newlast \
-                    and data["stamp"] - stamps0[category] < INTERVAL:
-                        if "moves" == category: move0, move1 = move1, data
+                if "moves" == category: # Skip mouse move events if same scaled position on heatmap
+                    newscaled = [data["display"]] + rescale([data["x"], data["y"]])
+                    if conf.MouseMoveJoinInterval and scaledmove == newscaled \
+                    and data["stamp"] - stamps0[category] < conf.MouseMoveJoinInterval:
+                        move0, move1 = move1, data
                         continue # for data
-                    lasts[category] = newlast
+                    scaledmove = newscaled
 
-                if "moves" == category: # Reduce mouse move events
-                    if conf.MouseMoveJoinInterval and move0 and move1 \
+                if "moves" == category: # Reduce mouse move events in linear movement
+                    if move0 and move1 and conf.MouseMoveJoinInterval \
+                    and move0["display"] == move1["display"] == data["display"] \
                     and move1["stamp"] - move0["stamp"] < conf.MouseMoveJoinInterval \
                     and data["stamp"]  - move1["stamp"] < conf.MouseMoveJoinInterval \
-                    and move0["display"] == move1["display"] == data["display"] \
                     and one_line(*[(v["x"], v["y"]) for v in (move0, move1, data)]):
                         move1.update(data)
                         continue # for data
                     move0, move1 = move1, data
-                elif "scrolls" == category: # Reduce mouse scroll events
+                elif "scrolls" == category: # Reduce mouse scroll events, can be 100s per second
                     if scroll0 and conf.MouseScrollJoinInterval \
                     and scroll0["display"] == data["display"] \
                     and sign(scroll0["dx"]) == sign(data["dx"]) \
@@ -432,8 +431,9 @@ class KeyHandler(object):
             self._modifiers[self.MODIFIERNAMES[realkey]] = pressed
             self._realmodifiers[realkey] = pressed
 
-        if realkey in self.STICKY_KEYS and self._downs.get(realkey) == pressed:
-            return # Avoid multiple events on holding down Shift etc
+        if (conf.KeyboardStickyEnabled or realkey in self.STICKY_KEYS) \
+        and self._downs.get(realkey) == pressed:
+            return # Avoid multiple events from holding down key
         self._downs[realkey] = pressed
         if not conf.KeyboardEnabled or not pressed: return
 

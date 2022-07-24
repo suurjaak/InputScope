@@ -2,7 +2,7 @@
 Keyboard heatmap and statistics page.
 
 Template arguments:
-  input           "mouse"
+  input           "keyboard"
   table           events table to show, like "keys" or "combos"
   period          period for events, if any (day like "2020-02-20" or month like "2020-02")
   days            list of available days
@@ -16,9 +16,10 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    13.07.2022
+@modified    24.07.2022
 %"""
 %import json
+%from inputscope.util import format_weekday
 %WEBROOT = get_url("/")
 %INPUTURL, URLARGS = ("/sessions/<session>", dict(session=session["id"])) if get("session") else ("", {})
 %title = "%s %s" % (input.capitalize(), table)
@@ -40,7 +41,14 @@ Template arguments:
 
 <div id="heading" class="flex-row">
   <span>
-    <h3>{{ title }}</h3>{{ ", %s" % period if period else "" }} ({{ "{:,}".format(count) }})
+    <h3>{{ title }}</h3>{{ ", %s" % period if period else "" }}
+%if period:
+%    try:
+          <span class="weekday" title="{{ format_weekday(period, long=True) }}">{{ format_weekday(period) }}</span>
+%    except Exception: pass
+%    end # try
+%end # if period
+    ({{ "{:,}".format(count) }})
   </span>
 
   <span id="replaysection">
