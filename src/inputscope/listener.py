@@ -10,7 +10,10 @@ Commands from stdin:
 start          CATEGORY
 stop           CATEGORY
 clear          CATEGORY ?DATE1 ?DATE2
+configure      FLAG VALUE
 screen_size    [DISPLAY0 x, y, w, h], ..
+vacuum
+exit
 
 session start  NAME
 session stop
