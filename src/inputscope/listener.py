@@ -21,12 +21,13 @@ session delete ID
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    23.07.2022
+@modified    08.07.2022
 """
 from __future__ import print_function
 from collections import defaultdict
 import ast
 import datetime
+import math
 try: import Queue as queue        # Py2
 except ImportError: import queue  # Py3
 import sys
@@ -127,7 +128,7 @@ class Listener(threading.Thread):
             sizes = sorted([[int(x) for x in s.replace(",", "").split()] for s in sizestrs])
             for i, size in enumerate(sizes):
                 db.insert("screen_sizes", x=size[0], y=size[1], w=size[2], h=size[3], display=i)
-            self.data_handler.screen_sizes = sizes
+            self.data_handler.set_screen_sizes(sizes)
         elif command.startswith("session "):
             parts = command.split()[1:]
             action, args = parts[0], parts[1:]
@@ -182,7 +183,9 @@ class DataHandler(threading.Thread):
         self.counts = defaultdict(int) # {type: count}
         self.output = output
         self.inqueue = queue.Queue()
-        self.screen_sizes = [[0, 0] + list(conf.DefaultScreenSize)]
+        self.rois = {} # Mouse regions of interest, as {screen index: [(x, y, w, h), ]}
+        self.rods = {} # Mouse regions of disinterest, as {screen index: [(x, y, w, h), ]}
+        self.screen_sizes = []
         self.running = False
         self.start()
 
@@ -190,6 +193,10 @@ class DataHandler(threading.Thread):
         self.running = True
         dbqueue = [] # Data queued for later after first insert failed
         db.insert("app_events", type="start")
+        try: self.set_screen_sizes([[0, 0] + list(conf.DefaultScreenSize)])
+        except Exception:
+            print("Error configuring screen sizes.")
+            traceback.print_exc()
 
         def get_display(pt):
             """Returns (display index, [x, y, w, h]) for mouse event position."""
@@ -208,6 +215,11 @@ class DataHandler(threading.Thread):
                 or size[1] <= pt[1] <= size[1] + size[3]:
                     return i, size
             return 0, self.screen_sizes[0] # Fall back to first display
+
+        def in_area(pt, area):
+            """Returns whether point (x, y) is within the area (x, y, w, h)."""
+            (x, y), (ax, ay, aw, ah) = pt, area
+            return (ax <= x <= ax + aw) and (ay <= y <= ay + ah)
 
         def rescale(pt):
             """Remaps point to heatmap size for less granularity."""
@@ -240,6 +252,10 @@ class DataHandler(threading.Thread):
                 category = data.pop("type")
                 if category in conf.InputEvents["mouse"]:
                     data["display"], _ = get_display([data["x"], data["y"]])
+                    x, y, screen = data["x"], data["y"], data["display"]
+                    if screen in self.rois and not any(in_area((x, y), a) for a in self.rois[screen]) \
+                    or screen in self.rods and any(in_area((x, y), a) for a in self.rods[screen]):
+                        continue # for data
                 stamps0.update(stamps1)
                 stamps1[category] = data["stamp"]
 
@@ -279,6 +295,23 @@ class DataHandler(threading.Thread):
             except Exception as e: print(e)
             self.output(dict(self.counts))
             if conf.EventsWriteInterval > 0: time.sleep(conf.EventsWriteInterval)
+
+    def set_screen_sizes(self, sizes):
+        """Updates screens list for mouse events."""
+        is_ratio = lambda a: isinstance(a, float) and 0 <= a <= 1
+        rescale  = lambda a, s, ceil: int((math.ceil if ceil else math.floor)(a * s))
+        screens = dict(enumerate(sizes))
+        self.rois.clear(), self.rods.clear()
+        self.screen_sizes = [s[:] for s in sizes]
+        for target, entries in [(self.rois, conf.MouseRegionsOfInterest),
+                                (self.rods, conf.MouseRegionsOfDisinterest)]:
+            for entry in entries or []:
+                screen, (x, y, w, h) = entry if len(entry) == 2 else (None, entry)
+                for index in screens if screen is None else [screen] if screen in screens else []:
+                    sw, sh = screens[index][2:4]
+                    x, w = (rescale(a, sw, i) if is_ratio(a) else a for i, a in enumerate([x, w]))
+                    y, h = (rescale(a, sh, i) if is_ratio(a) else a for i, a in enumerate([y, h]))
+                    target.setdefault(index, []).append((x, y, w, h))
 
     def stop(self):
         self.running = False

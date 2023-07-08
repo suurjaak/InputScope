@@ -20,7 +20,7 @@ the declared ones in source code. File is deleted if all values are at default.
 
 @author      Erki Suurjaak
 @created     26.03.2015
-@modified    24.07.2022
+@modified    08.07.2022
 ------------------------------------------------------------------------------
 """
 import ast
@@ -36,8 +36,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.7.dev3"
-VersionDate = "24.07.2022"
+Version = "1.8.dev0"
+VersionDate = "08.07.2022"
 
 """TCP port of the web user interface."""
 WebHost = "localhost"
@@ -118,6 +118,20 @@ MaxEventsForQueue = 1000
 
 """Maximum number of sessions listed in tray menu."""
 MaxSessionsInMenu = 20
+
+"""
+List of screen areas to monitor for mouse events if not all,
+as [[x, y, w, h], ] or [[screen index, [x, y, w, h]], ]; coordinates
+can be given as pixels, or as percentages of screen size (decimal fractions 0..1).
+"""
+MouseRegionsOfInterest = []
+
+"""
+List of screen areas to ignore for mouse events,
+as [[x, y, w, h], ] or [[screen index, [x, y, w, h]], ]; coordinates
+can be given as pixels, or as percentages of screen size (decimal fractions 0..1).
+"""
+MouseRegionsOfDisinterest = []
 
 """Physical length of a pixel, in meters."""
 PixelLength = 0.00024825
@@ -334,7 +348,8 @@ FileDirectives = ["CustomKeys", "DefaultScreenSize", "EventsWriteInterval", "Max
     "MaxEventsForReplay", "KeyboardEnabled", "KeyboardKeysEnabled", "KeyboardCombosEnabled",
     "KeyboardStickyEnabled", "MouseEnabled", "MouseMovesEnabled", "MouseClicksEnabled",
     "MouseScrollsEnabled", "MouseHeatmapSize", "MouseMoveJoinInterval", "MouseMoveJoinRadius",
-    "MouseScrollJoinInterval", "PixelLength", "ScreenSizeInterval", "WebPort",
+    "MouseScrollJoinInterval", "MouseRegionsOfInterest", "MouseRegionsOfDisinterest", "PixelLength",
+    "ScreenSizeInterval", "WebPort",
 ]
 
 try: text_types = (str, unicode)       # Py2

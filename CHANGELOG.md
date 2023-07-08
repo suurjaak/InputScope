@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+1.8, 2023-07-08
+---------------
+- add option to configure regions of interest and disinterest for mouse events (issue #25)
+
+
 1.7, 2022-07-24
 ---------------
 - count a long keypress as a single event by default (issue #22)
