@@ -26,12 +26,25 @@ Note: keyboard logging can interfere with remote control desktop,
 UI automation scripts, and sticky keys.
 
 Non-standard keys can be added in configuration file, as:
-```javascript
+```python
 CustomKeys = {numeric key code: "text label for key"}
 ```
 e.g.
-```javascript
+```python
 CustomKeys = {21: "IME Han/Yeong", 25: "IME Hanja"}
+```
+
+Screen areas to monitor for mouse events can be specified in configuration file,
+allowing to log events from specific areas only or to skip events from blacklisted areas:
+```python
+# Coordinates given as pixels, or as percentages of screen size (decimal fractions 0..1).
+MouseRegionsOfInterest    = [[x, y, w, h], ] or [[screen index, [x, y, w, h]], ]
+MouseRegionsOfDisinterest = [[x, y, w, h], ] or [[screen index, [x, y, w, h]], ]
+```
+e.g.
+```python
+# Ignore mouse events from center of all screens
+MouseRegionsOfDisinterest = [[0.49, 0.49, 0.02, 0.02]]
 ```
 
 Data is kept in an SQLite database.
