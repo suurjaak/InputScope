@@ -36,7 +36,7 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.8.dev2"
+Version = "1.8.dev3"
 VersionDate = "10.07.2022"
 
 """TCP port of the web user interface."""
@@ -338,14 +338,15 @@ DbStatements = (
     "CREATE TABLE IF NOT EXISTS screen_sizes (id INTEGER NOT NULL PRIMARY KEY, dt TIMESTAMP DEFAULT (DATETIME('now', 'localtime')), x INTEGER, y INTEGER, w INTEGER, h INTEGER, display INTEGER)",
     "CREATE TABLE IF NOT EXISTS counts (id INTEGER NOT NULL PRIMARY KEY, type TEXT, day DATETIME, count INTEGER, UNIQUE(type, day))",
     "CREATE TABLE IF NOT EXISTS sessions (id INTEGER NOT NULL PRIMARY KEY, name TEXT, day1 DATETIME, day2 DATETIME, start REAL, end REAL)",
+    "CREATE TABLE IF NOT EXISTS programs (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, path TEXT NOT NULL)",
 ) + tuple(TriggerTemplate .format(t) for _, tt in InputTables for t in tt
 ) + tuple(DayIndexTemplate.format(t) for _, tt in InputTables for t in tt)
 
 """
-Statements to update database v<1.3 to new schema,
-as {(table, column to check if exists): [ALTER SQLs]}.
+Statements to update database to new schema, as {(table, column to check if exists): [ALTER SQLs]}.
 """
 DbUpdateStatements = [
+    # v1.3+
     [("moves",   "display"), ["ALTER TABLE moves ADD COLUMN display INTEGER DEFAULT 0"]],
     [("clicks",  "display"), ["ALTER TABLE clicks ADD COLUMN display INTEGER DEFAULT 0"]],
     [("scrolls", "display"), ["ALTER TABLE scrolls ADD COLUMN display INTEGER DEFAULT 0"]],
@@ -359,6 +360,12 @@ DbUpdateStatements = [
         "ALTER TABLE scrolls RENAME COLUMN wheel TO dy"]],
     [("scrolls", "dx"),  [
         "ALTER TABLE scrolls ADD COLUMN dx INTEGER DEFAULT 0"]],
+    # v1.8+ 
+    [("clicks",  "fk_program"), ["ALTER TABLE clicks ADD COLUMN fk_program INTEGER"]],
+    [("combos",  "fk_program"), ["ALTER TABLE combos ADD COLUMN fk_program INTEGER"]],
+    [("keys",    "fk_program"), ["ALTER TABLE keys ADD COLUMN fk_program INTEGER"]],
+    [("moves",   "fk_program"), ["ALTER TABLE moves ADD COLUMN fk_program INTEGER"]],
+    [("scrolls", "fk_program"), ["ALTER TABLE scrolls ADD COLUMN fk_program INTEGER"]],
 ]
 
 """List of attribute names that are always saved to ConfigFile."""

@@ -5,6 +5,7 @@ CHANGELOG
 ---------------
 - add option to blacklist or whitelist applications (issue #23, #25)
 - add option to configure regions of interest and disinterest for mouse events (issue #25)
+- store information on the active application in database together with input events
 
 
 1.7, 2022-07-24

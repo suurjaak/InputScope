@@ -312,6 +312,7 @@ class DataHandler(threading.Thread):
                 or "scrolls" == category and is_same_scroll(data):
                     continue # for data
 
+                data["fk_program"] = Programs.get_id(pid)
                 self.counts[category] += 1
                 dbqueue.append((category, data))
 
@@ -579,11 +580,16 @@ class Programs(object):
     ## Cache of blacklist/whitelist regexes as {program entry: re.Pattern for executable path}
     PATTERNS = {}
 
+    ## Cache of programs in database, as {executable path: primary key}
+    PATH_IDS = {}
+
     @classmethod
     def init(cls):
         """Initializes process functionality if supported by OS."""
         try: cls.ENABLED = bool(ctypes.windll)
         except Exception: cls.ENABLED = False
+        if cls.ENABLED:
+            cls.PATH_IDS.update((x["path"].lower(), x["id"]) for x in db.select("programs"))
 
     @classmethod
     def get_active(cls):
@@ -595,6 +601,16 @@ class Programs(object):
             ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(out))
             return out.value
         except Exception: return None
+
+    @classmethod
+    def get_id(cls, pid):
+        """Returns the primary key value for program in database, inserting row if missing."""
+        exe = cls.get_path(pid)
+        key = exe.lower() if exe else None
+        try:
+            if exe and key not in cls.PATH_IDS: cls.PATH_IDS[key] = db.insert("programs", path=exe)
+        except Exception as e: print(e)
+        return cls.PATH_IDS.get(key)
 
     @classmethod
     def get_path(cls, pid):
