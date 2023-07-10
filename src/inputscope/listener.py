@@ -24,20 +24,24 @@ session delete ID
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    08.07.2022
+@modified    10.07.2022
 """
 from __future__ import print_function
 from collections import defaultdict
 import ast
+import ctypes
 import datetime
 import math
+import os
 try: import Queue as queue        # Py2
 except ImportError: import queue  # Py3
+import re
 import sys
 import threading
 import time
 import traceback
 
+import psutil
 import pynput
 
 from . import conf
@@ -252,13 +256,18 @@ class DataHandler(threading.Thread):
 
             move0, move1, scroll0 = None, None, None # For merging events in this iteration
             for data in items:
-                category = data.pop("type")
+                category, pid = data.pop("type"), data.pop("pid", None)
                 if category in conf.InputEvents["mouse"]:
                     data["display"], _ = get_display([data["x"], data["y"]])
+
+                if category in conf.InputEvents["mouse"]:
                     x, y, screen = data["x"], data["y"], data["display"]
                     if screen in self.rois and not any(in_area((x, y), a) for a in self.rois[screen]) \
                     or screen in self.rods and any(in_area((x, y), a) for a in self.rods[screen]):
                         continue # for data
+                if Programs.is_blocked(pid, category):
+                    continue # for data
+
                 stamps0.update(stamps1)
                 stamps1[category] = data["stamp"]
 
@@ -324,7 +333,7 @@ class DataHandler(threading.Thread):
     def handle(self, **kwargs):
         category = kwargs.get("type")
         if not getattr(conf, conf.InputFlags.get(category), False): return
-        kwargs.update(day=datetime.date.today(), stamp=time.time())
+        kwargs.update(day=datetime.date.today(), stamp=time.time(), pid=Programs.get_active())
         if self.inqueue.qsize() < conf.MaxEventsForQueue: self.inqueue.put(kwargs)
 
 
@@ -546,10 +555,83 @@ class KeyHandler(object):
     def stop(self): self._listener.stop()
 
 
+class Programs(object):
+    """Application processes functionality; Windows-only."""
+
+    ENABLED = None
+
+    ## Cache of application processes, as {pid: (psutil.Process, discard deadline)}
+    PIDS = {}
+
+    ## Cache of blacklist/whitelist regexes as {program entry: re.Pattern for executable path}
+    PATTERNS = {}
+
+    @classmethod
+    def init(cls):
+        """Initializes process functionality if supported by OS."""
+        try: cls.ENABLED = bool(ctypes.windll)
+        except Exception: cls.ENABLED = False
+
+    @classmethod
+    def get_active(cls):
+        """Returns the PID of the current foreground process."""
+        if not cls.ENABLED: return None
+        try:
+            hwnd = ctypes.windll.user32.GetForegroundWindow()
+            out = ctypes.c_ulong()
+            ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(out))
+            return out.value
+        except Exception: return None
+
+    @classmethod
+    def get_path(cls, pid):
+        """Returns the executable path for specified PID."""
+        if not cls.ENABLED: return None
+        try:
+            proc, deadline = cls.PIDS.get(pid, (None, None))
+            if not proc or time.time() >= deadline or not proc.is_running():
+                proc = psutil.Process(pid)
+                cls.PIDS[pid] = proc, time.time() + 30
+            return proc.exe()
+        except Exception: return None
+
+    @classmethod
+    def get_pattern(cls, v):
+        """
+        Returns re.Pattern from application entry.
+
+        Relative paths are made to match any path ending with entry,
+        and shell-style "*" wildcards are converted to Python regex wildcards.
+        """
+        if v in cls.PATTERNS: return cls.PATTERNS[v]
+        prefix = "^" if os.sep in v else "^(.*%s)?" % re.escape(os.sep)
+        middle, suffix = ".*".join(map(re.escape, v.split("*"))), "$"
+        cls.PATTERNS[v] = re.compile(prefix + middle + suffix, flags=re.I)
+        return cls.PATTERNS[v]
+
+    @classmethod
+    def is_blocked(cls, pid, category):
+        """
+        Returns whether specified input from the specified process should be ignored
+        as blacklisted or not whitelisted.
+        """
+        if not cls.ENABLED or not conf.ProgramBlacklist and not conf.ProgramWhitelist:
+            return False
+        exe = cls.get_path(pid)
+        input = next((k for k, vv in conf.InputEvents.items() if category in vv), None)
+        for xlist in (conf.ProgramWhitelist, conf.ProgramBlacklist) if exe else ():
+            for path, inputs in xlist.items():
+                if cls.get_pattern(path).match(exe) \
+                and (not inputs or input in inputs or category in inputs):
+                    return xlist is conf.ProgramBlacklist
+            if xlist and xlist is conf.ProgramWhitelist: return True # Not in whitelist -> block
+        return False
+
 
 def start(inqueue, outqueue=None):
     """Starts the listener with incoming and outgoing queues."""
     conf.init(), db.init(conf.DbPath, conf.DbStatements)
+    Programs.init()
 
     # Carry out db update for tables lacking expected new columns
     for (table, col), sqls in conf.DbUpdateStatements:

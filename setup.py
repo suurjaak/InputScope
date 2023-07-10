@@ -4,7 +4,7 @@ Setup.py for InputScope.
 
 @author      Erki Suurjaak
 @created     29.04.2015
-@modified    28.02.2022
+@modified    10.07.2023
 ------------------------------------------------------------------------------
 """
 import os
@@ -47,7 +47,7 @@ setuptools.setup(
     platforms            = ["any"],
     keywords             = "mouse keyboard logging heatmap",
 
-    install_requires     = ["bottle", "pynput", "wxPython>=4.0"],
+    install_requires     = ["bottle", "psutil", "pynput", "wxPython>=4.0"],
     entry_points         = {"gui_scripts": ["{0} = {0}.main:main".format(PACKAGE)],
                             "console_scripts": ["{0}-listener = {0}.listener:main".format(PACKAGE),
                                                 "{0}-webui = {0}.webui:main".format(PACKAGE)]},

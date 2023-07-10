@@ -1,8 +1,9 @@
 CHANGELOG
 =========
 
-1.8, 2023-07-08
+1.8, 2023-07-10
 ---------------
+- add option to blacklist or whitelist applications (issue #23, #25)
 - add option to configure regions of interest and disinterest for mouse events (issue #25)
 
 

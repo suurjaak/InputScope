@@ -25,6 +25,33 @@ Keypresses are logged as physical keys, ignoring Unicode mappings.
 Note: keyboard logging can interfere with remote control desktop, 
 UI automation scripts, and sticky keys.
 
+Data is kept in an SQLite database.
+
+The local web page is viewable at http://localhost:8099/,
+port can be changed in configuration file.
+
+
+### Configuration
+
+When running under Windows, specific applications to monitor can be blacklisted
+or whitelisted in configuration file, as:
+```python
+# Path can be absolute or relative like "C:\Python\python.exe" or "python.exe",
+# and can contain wildcards like "python*".
+ProgramBlacklist = {executable path: [] if all inputs else [input or event type, ]}
+ProgramWhitelist = {executable path: [] if all inputs else [input or event type, ]}
+```
+e.g.
+```python
+# Monitor all inputs from Notepad only
+ProgramWhitelist = {"notepad.exe": []}
+```
+or
+```python
+# Ignore keypress events from command prompts, and all mouse events from Paint.
+ProgramBlacklist = {"cmd.exe": ["keys"], "mspaint.exe": ["mouse"]}
+```
+
 Non-standard keys can be added in configuration file, as:
 ```python
 CustomKeys = {numeric key code: "text label for key"}
@@ -46,11 +73,6 @@ e.g.
 # Ignore mouse events from center of all screens
 MouseRegionsOfDisinterest = [[0.49, 0.49, 0.02, 0.02]]
 ```
-
-Data is kept in an SQLite database.
-
-The local web page is viewable at http://localhost:8099/,
-port can be changed in configuration file.
 
 
 Installation
@@ -82,6 +104,7 @@ Dependencies
 
 * Python 2.7 or Python 3.5+
 * bottle
+* psutil
 * pynput
 * pywin32 (optional, for toggling "Start with Windows")
 * wxPython (optional)

@@ -20,7 +20,7 @@ the declared ones in source code. File is deleted if all values are at default.
 
 @author      Erki Suurjaak
 @created     26.03.2015
-@modified    08.07.2022
+@modified    10.07.2022
 ------------------------------------------------------------------------------
 """
 import ast
@@ -36,8 +36,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.8.dev0"
-VersionDate = "08.07.2022"
+Version = "1.8.dev1"
+VersionDate = "10.07.2022"
 
 """TCP port of the web user interface."""
 WebHost = "localhost"
@@ -135,6 +135,24 @@ MouseRegionsOfDisinterest = []
 
 """Physical length of a pixel, in meters."""
 PixelLength = 0.00024825
+
+"""
+Applications to ignore for inputs events,
+as {executable path: [] if all inputs else [input or event type, ]}.
+
+Path can be absolute or relative like "C:\Python\python.exe" or "python.exe",
+and can contain wildcards like "python*".
+"""
+ProgramBlacklist = {}
+
+"""
+Applications to monitor inputs from if not all,
+as {executable path: [] if all inputs else [input or event type, ]}.
+
+Path can be absolute or relative like "C:\Python\python.exe" or "python.exe",
+and can contain wildcards like "python*".
+"""
+ProgramWhitelist = {}
 
 """Ordered mapping of tables to input types."""
 InputTables = [("mouse", ["moves", "clicks", "scrolls"]), ("keyboard", ["keys", "combos"])]
@@ -349,7 +367,7 @@ FileDirectives = ["CustomKeys", "DefaultScreenSize", "EventsWriteInterval", "Max
     "KeyboardStickyEnabled", "MouseEnabled", "MouseMovesEnabled", "MouseClicksEnabled",
     "MouseScrollsEnabled", "MouseHeatmapSize", "MouseMoveJoinInterval", "MouseMoveJoinRadius",
     "MouseScrollJoinInterval", "MouseRegionsOfInterest", "MouseRegionsOfDisinterest", "PixelLength",
-    "ScreenSizeInterval", "WebPort",
+    "ProgramBlacklist", "ProgramWhitelist", "ScreenSizeInterval", "WebPort",
 ]
 
 try: text_types = (str, unicode)       # Py2
