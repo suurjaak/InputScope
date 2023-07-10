@@ -15,7 +15,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    24.07.2022
+@modified    10.07.2023
 %"""
 %from inputscope.util import format_weekday
 %WEBROOT = get_url("/")
@@ -75,6 +75,7 @@ Template arguments:
 
     %for display in positions:
 <div id="heatmap{{ display }}" class="heatmap {{ input }}" style="width: {{ conf.MouseHeatmapSize[0] }}px; height: {{ conf.MouseHeatmapSize[1] }}px; margin-left: calc(-10rem + {{ (700 - conf.MouseHeatmapSize[0]) // 2 }}px - 1px);"></div>
+<a id="heatmap{{ display }}_full" class="heatmap_helper" title="Expand heatmap to full screen" style="margin-right: calc(-10rem + {{ (700 - conf.MouseHeatmapSize[0]) // 2 }}px - 3px);">full screen</a>
     %end # for display
 
 
@@ -128,6 +129,11 @@ Template arguments:
     %end # for display
     %for display in positions:
     myHeatmaps[{{ display }}].setData({data: positions[{{ display }}], max: positions[{{ display }}].length ? positions[{{ display }}][0].value : 0});
+    %end # for display
+
+    var on_fullscreen = function() { this.previousElementSibling.requestFullscreen(); return false; };
+    %for display in positions:
+    document.getElementById("heatmap{{ display }}_full").addEventListener("click", on_fullscreen);
     %end # for display
 
     if (elm_button) elm_button.addEventListener("click", function() {

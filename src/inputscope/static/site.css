@@ -3,7 +3,7 @@
  *
  * @author      Erki Suurjaak
  * @created     07.04.2015
- * @modified    24.07.2022
+ * @modified    10.07.2023
  */
 :root {
   font-size: 6.25%; /** Root font size to 1px @ default font size 16px */
@@ -151,6 +151,18 @@ body {
 }
 .heatmap.mouse {
   border: 1px solid #1abc9c;
+}
+.heatmap.mouse:fullscreen canvas {
+  background-color: white;
+  height: 100%;
+  width: 100%;
+}
+a.heatmap_helper {
+  color: #1abc9c;
+  cursor: pointer;
+  float: right;
+  font-size: 0.8em;
+  text-decoration: underline !important;
 }
 #status {
   font-size: 0.8em;
