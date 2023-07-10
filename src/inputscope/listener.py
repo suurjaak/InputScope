@@ -228,6 +228,49 @@ class DataHandler(threading.Thread):
             (x, y), (ax, ay, aw, ah) = pt, area
             return (ax <= x <= ax + aw) and (ay <= y <= ay + ah)
 
+        def is_area_ignored(data):
+            """Returns whether to ignore mouse event if area blacklisted or not whitelisted."""
+            x, y, screen = data["x"], data["y"], data["display"]
+            if screen in self.rois and not any(in_area((x, y), a) for a in self.rois[screen]) \
+            or screen in self.rods and any(in_area((x, y), a) for a in self.rods[screen]):
+                return True
+            return False
+
+        def is_same_position(data):
+            """Returns whether to skip mouse move event if same scaled position on heatmap."""
+            newscaled = [data["display"]] + rescale([data["x"], data["y"]])
+            if conf.MouseMoveJoinInterval and scaledmove == newscaled \
+            and data["stamp"] - stamps0[category] < conf.MouseMoveJoinInterval:
+                move0.update(move1), move1.update(data)
+                return True
+            scaledmove[:] = newscaled
+            return False
+
+        def is_linear_movement(data):
+            """Returns whether to skip mouse event if linear movement; updates previous unsaved move."""
+            if move0 and move1 and conf.MouseMoveJoinInterval \
+            and move0["display"] == move1["display"] == data["display"] \
+            and move1["stamp"] - move0["stamp"] < conf.MouseMoveJoinInterval \
+            and data["stamp"]  - move1["stamp"] < conf.MouseMoveJoinInterval \
+            and one_line(*[(v["x"], v["y"]) for v in (move0, move1, data)]):
+                move1.update(data)
+                return True
+            move0.update(move1), move1.update(data)
+            return False
+
+        def is_same_scroll(data):
+            """Returns whether to skip mouse scroll event if in same direction; updates previous unsaved scroll."""
+            if scroll0 and conf.MouseScrollJoinInterval \
+            and scroll0["display"] == data["display"] \
+            and sign(scroll0["dx"]) == sign(data["dx"]) \
+            and sign(scroll0["dy"]) == sign(data["dy"]) \
+            and data["stamp"] - stamps0[category] < conf.MouseScrollJoinInterval:
+                for k in ("dx", "dy"): scroll0[k] += data[k]
+                for k in ( "x",  "y"): scroll0[k]  = data[k]
+                return True
+            scroll0.update(data)
+            return False
+
         def rescale(pt):
             """Remaps point to heatmap size for less granularity."""
             HS = conf.MouseHeatmapSize
@@ -245,7 +288,7 @@ class DataHandler(threading.Thread):
         def sign(v): return -1 if v < 0 else 1 if v > 0 else 0
 
         stamps0, stamps1 = defaultdict(float), defaultdict(float) # {category: stamp}
-        scaledmove = None # [display, x scaled to heatmap, y scaled to heatmap]
+        scaledmove = [] # [display, x scaled to heatmap, y scaled to heatmap]
         while self.running:
             data, items = self.inqueue.get(), []
             while data:
@@ -254,50 +297,20 @@ class DataHandler(threading.Thread):
                 except queue.Empty: data = None
             if not items or not self.running: continue # while self.running
 
-            move0, move1, scroll0 = None, None, None # For merging events in this iteration
+            move0, move1, scroll0 = {}, {}, {} # For merging events in this iteration
             for data in items:
                 category, pid = data.pop("type"), data.pop("pid", None)
                 if category in conf.InputEvents["mouse"]:
                     data["display"], _ = get_display([data["x"], data["y"]])
 
-                if category in conf.InputEvents["mouse"]:
-                    x, y, screen = data["x"], data["y"], data["display"]
-                    if screen in self.rois and not any(in_area((x, y), a) for a in self.rois[screen]) \
-                    or screen in self.rods and any(in_area((x, y), a) for a in self.rods[screen]):
-                        continue # for data
-                if Programs.is_blocked(pid, category):
+                if category in conf.InputEvents["mouse"] and is_area_ignored(data) \
+                or Programs.is_blocked(pid, category):
                     continue # for data
-
                 stamps0.update(stamps1)
                 stamps1[category] = data["stamp"]
-
-                if "moves" == category: # Skip mouse move events if same scaled position on heatmap
-                    newscaled = [data["display"]] + rescale([data["x"], data["y"]])
-                    if conf.MouseMoveJoinInterval and scaledmove == newscaled \
-                    and data["stamp"] - stamps0[category] < conf.MouseMoveJoinInterval:
-                        move0, move1 = move1, data
-                        continue # for data
-                    scaledmove = newscaled
-
-                if "moves" == category: # Reduce mouse move events in linear movement
-                    if move0 and move1 and conf.MouseMoveJoinInterval \
-                    and move0["display"] == move1["display"] == data["display"] \
-                    and move1["stamp"] - move0["stamp"] < conf.MouseMoveJoinInterval \
-                    and data["stamp"]  - move1["stamp"] < conf.MouseMoveJoinInterval \
-                    and one_line(*[(v["x"], v["y"]) for v in (move0, move1, data)]):
-                        move1.update(data)
-                        continue # for data
-                    move0, move1 = move1, data
-                elif "scrolls" == category: # Reduce mouse scroll events, can be 100s per second
-                    if scroll0 and conf.MouseScrollJoinInterval \
-                    and scroll0["display"] == data["display"] \
-                    and sign(scroll0["dx"]) == sign(data["dx"]) \
-                    and sign(scroll0["dy"]) == sign(data["dy"]) \
-                    and data["stamp"] - stamps0[category] < conf.MouseScrollJoinInterval:
-                        for k in ("dx", "dy"): scroll0[k] += data[k]
-                        for k in ( "x",  "y"): scroll0[k]  = data[k]
-                        continue # for data
-                    scroll0 = data
+                if "moves" == category and (is_same_position(data) or is_linear_movement(data)) \
+                or "scrolls" == category and is_same_scroll(data):
+                    continue # for data
 
                 self.counts[category] += 1
                 dbqueue.append((category, data))
