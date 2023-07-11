@@ -6,7 +6,7 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    16.07.2022
+@modified    11.07.2023
 """
 import collections
 import datetime
@@ -146,9 +146,9 @@ def inputdetail(input, table, period=None, session=None):
 
     events = db.select(table, where=where, order="stamp", limit=conf.MaxEventsForStats)
     if "mouse" == input:
-        stats, positions, events = stats_mouse(events, table, count)
+        stats, app_stats, positions, events = stats_mouse(events, table, count)
     else:
-        stats, events = stats_keyboard(events, table, count)
+        stats, app_stats, events = stats_keyboard(events, table, count)
     dbinfo, session = stats_db(conf.DbPath), sess
     template = "heatmap_mouse.tpl" if "mouse" == input else "heatmap_keyboard.tpl"
     return bottle.template(template, locals(), conf=conf)
@@ -192,7 +192,10 @@ def index():
 
 
 def stats_keyboard(events, table, count):
-    """Return (statistics, collated and max-limited events) for keyboard events."""
+    """Return (statistics, app statistics, collated and max-limited events) for keyboard events."""
+    KEYNAME = "realkey" if "keys" == table else "key"
+    appmap = {x["id"]: x["path"] for x in db.select("programs")}
+    app_stats = {}  # {path: Counter(key: count)}
     deltas, first, last = [], None, None
     tsessions, tsession = [], None
     UNBROKEN_DELTA = datetime.timedelta(seconds=conf.KeyboardSessionMaxDelta)
@@ -202,6 +205,8 @@ def stats_keyboard(events, table, count):
     for e in events:
         e.pop("id") # Decrease memory overhead
         e["dt"] = datetime.datetime.fromtimestamp(e.pop("stamp"))
+        app = appmap.get(e.pop("fk_program"))
+        app_stats.setdefault(app, collections.Counter()).update([e[KEYNAME]])
         if not first: first = e
         if last:
             if last["dt"].timetuple()[:6] != e["dt"].timetuple()[:6]: # Ignore usecs
@@ -246,19 +251,28 @@ def stats_keyboard(events, table, count):
     stats += [("Total unique %s" % table, len(uniques))]
     if deltas:
         stats += [("Total time interval", format_timedelta(last["dt"] - first["dt"]))]
-    return stats, collated[:conf.MaxEventsForReplay]
+    app_results = [{"path": k, "top": [a for a, _ in v.most_common(conf.MaxTopKeysForPrograms)],
+                    "total": sum(v.values())} for k, v in app_stats.items()]
+    app_results.sort(key=lambda x: x["total"], reverse=True)
+    return stats, app_results, collated[:conf.MaxEventsForReplay]
 
 
 def stats_mouse(events, table, count):
-    """Returns (statistics, positions, max-limited events)."""
+    """Returns (statistics, app statistics, positions, max-limited events)."""
+    BUTTON_NAMES = collections.OrderedDict([("1", "Left"), ("2", "Right"), ("3", "Middle")])
+    SCROLL_NAMES = collections.OrderedDict([("dy", "down"), ("-dy", "up"),
+                                            ("-dx", "left"), ("dx", "right")])
+    appmap = {x["id"]: x["path"] for x in db.select("programs")}
+    app_stats = {}  # {path: Counter(button: count)}
     first, last, totaldelta = None, None, datetime.timedelta()
     all_events = []
     HS = conf.MouseHeatmapSize
     SZ = dict((k + 2, conf.DefaultScreenSize[k] / float(HS[k])) for k in [0, 1])
     SZ.update({"dt": datetime.datetime.min, 0: 0, 1: 0}) # {0,1,2,3: x,y,w,h}
     displayxymap  = collections.defaultdict(lambda: collections.defaultdict(int))
-    counts, lasts = collections.Counter(), {} # {display: last event}
-    distances     = collections.defaultdict(int)
+    counts, distances = collections.Counter(), collections.defaultdict(float)
+    app_deltas = collections.defaultdict(datetime.timedelta)
+    app_distances = collections.defaultdict(float)
     SIZES = {} # Scale by desktop size at event time; {display: [{size}, ]}
     for row in db.fetch("screen_sizes", order="dt"):
         row.update({0: row["x"], 2: row["w"] / float(HS[0]),
@@ -267,12 +281,16 @@ def stats_mouse(events, table, count):
     cursizes = {k: None for k in SIZES}
     for e in events:
         e["dt"] = datetime.datetime.fromtimestamp(e.pop("stamp"))
+        app = appmap.get(e["fk_program"])
+        app_stats.setdefault(app, collections.Counter())
         if not first: first = e
-        if e["display"] in lasts:
-            mylast = lasts[e["display"]]
-            totaldelta += e["dt"] - mylast["dt"]
-            distances[e["display"]] += math.sqrt(sum(abs(e[k] - mylast[k])**2 for k in "xy"))
-        last = lasts[e["display"]] = dict(e) # Copy, as we modify coordinates for heatmap
+        if last and last["display"] == e["display"]:
+            totaldelta += e["dt"] - last["dt"]
+            distances[e["display"]] += math.sqrt(sum(abs(e[k] - last[k])**2 for k in "xy"))
+            if last["fk_program"] == e["fk_program"]:
+                app_deltas[app] += e["dt"] - last["dt"]
+                app_distances[app] += math.sqrt(sum(abs(e[k] - last[k])**2 for k in "xy"))
+        last = dict(e) # Copy, as we modify coordinates for heatmap
 
         sz, sizes = cursizes.get(e["display"]), SIZES.get(e["display"], [SZ])
         if not sz or sz["dt"] > e["dt"]:
@@ -285,17 +303,23 @@ def stats_mouse(events, table, count):
         # Constraint within heatmap, events at edges can have off-screen coordinates
         e["x"], e["y"] = [max(0, min(e["xy"[k]], HS[k])) for k in [0, 1]]
         displayxymap[e["display"]][(e["x"], e["y"])] += 1
-        if "clicks" == table: counts.update(str(e["button"]))
-        elif "scrolls" == table: counts.update({
-            ("-" if e[k] < 0 else "") + k: abs(e[k]) for k in ("dx", "dy")
-        })
+        if "moves" == table: app_stats[app].update([table])
+        elif "clicks" == table:
+            counts.update(str(e["button"]))
+            app_stats[app].update([str(e["button"])])
+        elif "scrolls" == table:
+            for k in ("dx", "dy"):
+                key, value = "%s%s" % ("-" if e[k] < 0 else "", k), abs(e[k])
+                counts[key] += value
+                app_stats[app][key] += value
         if len(all_events) < conf.MaxEventsForReplay:
-            for k in ("id", "day", "button", "dx", "dy"): e.pop(k, None)
+            for k in ("id", "day", "button", "dx", "dy", "fk_program"): e.pop(k, None)
             all_events.append(e)
 
     positions = {i: [dict(x=x, y=y, count=v) for (x, y), v in displayxymap[i].items()]
                  for i in sorted(displayxymap)}
     stats, distance = [], sum(distances.values())
+    app_results = []
     if "moves" == table and count:
         px = re.sub(r"(\d)(?=(\d{3})+(?!\d))", r"\1,", "%d" % math.ceil(distance))
         seconds = timedelta_seconds(last["dt"] - first["dt"])
@@ -305,26 +329,39 @@ def stats_mouse(events, table, count):
                  ("Average speed", "%.1f pixels per second" % (distance / (seconds or 1))),
                  ("", "%.4f meters per second" %
                   (distance * conf.PixelLength / (seconds or 1))), ]
+        app_results = [{"path": k, "total": sum(v.values()),
+                        "cols": collections.OrderedDict([
+                            ("pixels", re.sub(r"(\d)(?=(\d{3})+(?!\d))", r"\1,", "%d px" % d)),
+                            ("meters", re.sub(r"(\d)(?=(\d{3})+(?!\d))", r"\1,", "%.1f m" %
+                                       (d * conf.PixelLength))),
+                            ("time", format_timedelta(app_deltas[k])),
+                       ])} for k, v in app_stats.items() for d in [math.ceil(app_distances[k])]]
     elif "scrolls" == table and count:
         stats = list(filter(bool, [("Scrolls per hour", 
                   int(count / (timedelta_seconds(last["dt"] - first["dt"]) / 3600 or 1))),
                  ("Average interval", format_timedelta(totaldelta / (count or 1))),
-                 ("Scrolls down",  counts["-dy"]),
-                 ("Scrolls up",    counts["dy"]), 
-                 ("Scrolls left",  counts["dx"])  if counts["dx"]  else None, 
-                 ("Scrolls right", counts["-dx"]) if counts["-dx"] else None, ]))
+                 ] + [("Scrolls %s" % SCROLL_NAMES[k], counts[k])
+                      for k in SCROLL_NAMES if "dy" in k or counts[k]]))
+        app_results = [{"path": k, "total": sum(v.values()),
+                        "cols": collections.OrderedDict((b, v[a]) for a, b in SCROLL_NAMES.items()
+                                                        if v.get(a))}
+                       for k, v in app_stats.items()]
     elif "clicks" == table and count:
-        NAMES = {"1": "Left", "2": "Right", "3": "Middle"}
         stats = [("Clicks per hour", 
                   int(count / (timedelta_seconds(last["dt"] - first["dt"]) / 3600 or 1))),
                  ("Average interval between clicks", format_timedelta(totaldelta / (count or 1))),
                  ("Average distance between clicks",
                   "%.1f pixels" % (distance / (count or 1))), ]
         for k, v in sorted(counts.items()):
-            stats += [("%s button clicks" % NAMES.get(k, "%s." % k), v)]
+            stats += [("%s button clicks" % BUTTON_NAMES.get(k, "%s." % k), v)]
+        app_results = [{"path": k, "total": sum(v.values()),
+                        "cols": collections.OrderedDict((b, v[a]) for a, b in BUTTON_NAMES.items()
+                                                        if v.get(a))}
+                       for k, v in app_stats.items()]
     if count:
         stats += [("Total time interval", format_timedelta(last["dt"] - first["dt"]))]
-    return stats, positions, all_events
+    app_results.sort(key=lambda x: x["total"], reverse=True)
+    return stats, app_results, positions, all_events
 
 
 def stats_sessions(input=None):

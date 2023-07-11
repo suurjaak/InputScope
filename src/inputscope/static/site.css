@@ -194,7 +194,7 @@ a.heatmap_helper {
   display: flex;
   flex-direction: row-reverse;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: space-between;
 }
 #tables > table:last-child {
   margin-right: auto;
@@ -367,6 +367,26 @@ td {
   vertical-align: top;
   font-size: 0.9em;
 }
+#app_stats {
+  width: 100%;
+}
+#app_stats th:not(:last-child),
+#app_stats td:not(:last-child) {
+  padding-right: 10px;
+  white-space: nowrap;
+}
+#app_stats.mouse th:not(:first-child),
+#app_stats.mouse td:not(:first-child) {
+  text-align: right;
+}
+#app_stats td:first-child {
+  min-width: 0;
+  max-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  width: 100%;
+}
 #counts th:first-child,
 #counts td:first-child,
 #stats td:first-child,
@@ -374,6 +394,8 @@ table.totals th:not(:last-child),
 table.totals td:not(:last-child) {
   padding-right: 10px;
 }
+#app_stats th:last-child,
+#app_stats td:last-child,
 #counts th:last-child,
 #counts td:last-child {
   text-align: right;

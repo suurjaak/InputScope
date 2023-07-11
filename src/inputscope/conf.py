@@ -36,7 +36,7 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.8.dev5"
+Version = "1.8.dev6"
 VersionDate = "11.07.2022"
 
 """TCP port of the web user interface."""
@@ -118,6 +118,9 @@ MaxEventsForQueue = 1000
 
 """Maximum number of sessions listed in tray menu."""
 MaxSessionsInMenu = 20
+
+"""Maxinum number of most common keys/combos for applications on statistics page."""
+MaxTopKeysForPrograms = 5
 
 """
 List of screen areas to monitor for mouse events if not all,

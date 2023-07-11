@@ -11,12 +11,14 @@ Template arguments:
   positions       mouse position counts, as {display: [{x, y, count}, ]}
   session         session data, if any
   stats           mouse statistics, as [(label, text)]
+  app_stats       per-application mouse statistics, as [{path, cols, total}]
   tabledays       set of tables that have events for specified day
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    10.07.2023
+@modified    11.07.2023
 %"""
+%import os
 %from inputscope.util import format_weekday
 %WEBROOT = get_url("/")
 %INPUTURL, URLARGS = ("/sessions/<session>", dict(session=session["id"])) if get("session") else ("", {})
@@ -90,6 +92,30 @@ Template arguments:
     <tr><td colspan="2">Statistics and heatmap limited to a maximum of {{ "{:,}".format(conf.MaxEventsForStats) }} events.</td></tr>
 %end # if count > conf.MaxEventsForStats
   </table>
+
+%if app_stats and len(app_stats) > 1:
+%    labels = []
+%    for label in (l for x in app_stats for l in x["cols"]):
+%        labels.append(label) if label not in labels else label
+%    end # for label
+  <table id="app_stats" class="{{ input }}">
+    <tr><th>Application</th>
+%    for label in labels:
+    <th>{{ label }}</th>
+%    end # for label
+    <th>Total</th></tr>
+%    for item in app_stats:
+    <tr>
+      <td title="{{ item["path"] }}">{{ os.path.split(item["path"] or "")[-1] or "(unknown)" }}</td>
+%        for label in labels:
+%            v = item["cols"].get(label, "")
+      <td>{{ "{:,}".format(v) if isinstance(v, int) else v }}</td>
+%        end # for label
+      <td>{{ "{:,}".format(item["total"]) }}</td>
+    </tr>
+%    end # for item
+  </table>
+%end # if app_stats and ..
 
 </div>
 
