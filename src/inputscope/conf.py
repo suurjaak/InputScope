@@ -36,7 +36,7 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.8.dev8"
+Version = "1.8.dev9"
 VersionDate = "12.07.2022"
 
 """TCP port of the web user interface."""
@@ -156,6 +156,9 @@ Path can be absolute or relative like "C:\Python\python.exe" or "python.exe",
 and can contain wildcards like "python*".
 """
 ProgramWhitelist = {}
+
+"""Whether active application logging, filtering and statistics are enabled."""
+ProgramsEnabled = True
 
 """Ordered mapping of tables to input types."""
 InputTables = [("mouse", ["moves", "clicks", "scrolls"]), ("keyboard", ["keys", "combos"])]
@@ -377,7 +380,7 @@ FileDirectives = ["CustomKeys", "DefaultScreenSize", "EventsWriteInterval", "Max
     "KeyboardStickyEnabled", "MouseEnabled", "MouseMovesEnabled", "MouseClicksEnabled",
     "MouseScrollsEnabled", "MouseHeatmapSize", "MouseMoveJoinInterval", "MouseMoveJoinRadius",
     "MouseScrollJoinInterval", "MouseRegionsOfInterest", "MouseRegionsOfDisinterest", "PixelLength",
-    "ProgramBlacklist", "ProgramWhitelist", "ScreenSizeInterval", "WebPort",
+    "ProgramBlacklist", "ProgramWhitelist", "ProgramsEnabled", "ScreenSizeInterval", "WebPort",
 ]
 
 try: text_types = (str, unicode)       # Py2

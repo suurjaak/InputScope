@@ -6,7 +6,7 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    11.07.2023
+@modified    12.07.2023
 """
 import collections
 import datetime
@@ -194,7 +194,7 @@ def index():
 def stats_keyboard(events, table, count):
     """Return (statistics, app statistics, collated and max-limited events) for keyboard events."""
     KEYNAME = "realkey" if "keys" == table else "key"
-    appmap = {x["id"]: x["path"] for x in db.select("programs")}
+    appmap = {x["id"]: x["path"] for x in db.select("programs")} if conf.ProgramsEnabled else {}
     app_stats = {}  # {path: Counter(key: count)}
     deltas, first, last = [], None, None
     tsessions, tsession = [], None
@@ -205,9 +205,9 @@ def stats_keyboard(events, table, count):
     for e in events:
         e.pop("id") # Decrease memory overhead
         e["dt"] = datetime.datetime.fromtimestamp(e.pop("stamp"))
-        app = appmap.get(e.pop("fk_program"))
-        app_stats.setdefault(app, collections.Counter()).update([e[KEYNAME]])
         if not first: first = e
+        app = appmap.get(e.pop("fk_program"))
+        if appmap: app_stats.setdefault(app, collections.Counter()).update([e[KEYNAME]])
         if last:
             if last["dt"].timetuple()[:6] != e["dt"].timetuple()[:6]: # Ignore usecs
                 collated.append(blank.copy())
@@ -262,7 +262,7 @@ def stats_mouse(events, table, count):
     BUTTON_NAMES = collections.OrderedDict([("1", "Left"), ("2", "Right"), ("3", "Middle")])
     SCROLL_NAMES = collections.OrderedDict([("dy", "down"), ("-dy", "up"),
                                             ("-dx", "left"), ("dx", "right")])
-    appmap = {x["id"]: x["path"] for x in db.select("programs")}
+    appmap = {x["id"]: x["path"] for x in db.select("programs")} if conf.ProgramsEnabled else {}
     app_stats = {}  # {path: Counter(button: count)}
     first, last, totaldelta = None, None, datetime.timedelta()
     all_events = []
@@ -281,13 +281,13 @@ def stats_mouse(events, table, count):
     cursizes = {k: None for k in SIZES}
     for e in events:
         e["dt"] = datetime.datetime.fromtimestamp(e.pop("stamp"))
-        app = appmap.get(e["fk_program"])
-        app_stats.setdefault(app, collections.Counter())
         if not first: first = e
+        app = appmap.get(e["fk_program"])
+        if appmap: app_stats.setdefault(app, collections.Counter())
         if last and last["display"] == e["display"]:
             totaldelta += e["dt"] - last["dt"]
             distances[e["display"]] += math.sqrt(sum(abs(e[k] - last[k])**2 for k in "xy"))
-            if last["fk_program"] == e["fk_program"]:
+            if appmap and last["fk_program"] == e["fk_program"]:
                 app_deltas[app] += e["dt"] - last["dt"]
                 app_distances[app] += math.sqrt(sum(abs(e[k] - last[k])**2 for k in "xy"))
         last = dict(e) # Copy, as we modify coordinates for heatmap
@@ -303,15 +303,16 @@ def stats_mouse(events, table, count):
         # Constraint within heatmap, events at edges can have off-screen coordinates
         e["x"], e["y"] = [max(0, min(e["xy"[k]], HS[k])) for k in [0, 1]]
         displayxymap[e["display"]][(e["x"], e["y"])] += 1
-        if "moves" == table: app_stats[app].update([table])
+        if "moves" == table:
+            if appmap: app_stats[app].update([table])
         elif "clicks" == table:
             counts.update(str(e["button"]))
-            app_stats[app].update([str(e["button"])])
+            if appmap: app_stats[app].update([str(e["button"])])
         elif "scrolls" == table:
             for k in ("dx", "dy"):
                 key, value = "%s%s" % ("-" if e[k] < 0 else "", k), abs(e[k])
                 counts[key] += value
-                app_stats[app][key] += value
+                if appmap: app_stats[app][key] += value
         if len(all_events) < conf.MaxEventsForReplay:
             for k in ("id", "day", "button", "dx", "dy", "fk_program"): e.pop(k, None)
             all_events.append(e)

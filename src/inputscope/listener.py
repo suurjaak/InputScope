@@ -587,6 +587,8 @@ class Programs(object):
     @classmethod
     def init(cls):
         """Initializes process functionality if supported by OS."""
+        cls.ENABLED = conf.ProgramsEnabled
+        if not cls.ENABLED: return
         if "win32" == sys.platform:
             try: cls.ENABLED = bool(ctypes.windll)
             except Exception: cls.ENABLED = False
@@ -617,6 +619,7 @@ class Programs(object):
     @classmethod
     def get_id(cls, pid):
         """Returns the primary key value for program in database, inserting row if missing."""
+        if not cls.ENABLED: return None
         exe = cls.get_path(pid)
         key = exe.lower() if exe else None
         try:
