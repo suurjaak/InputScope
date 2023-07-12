@@ -658,15 +658,16 @@ class Programs(object):
         """
         if not cls.ENABLED or not conf.ProgramBlacklist and not conf.ProgramWhitelist:
             return False
-        exe = cls.get_path(pid)
         input = next((k for k, vv in conf.InputEvents.items() if category in vv), None)
+        exe, matches = cls.get_path(pid), []
         for xlist in (conf.ProgramWhitelist, conf.ProgramBlacklist) if exe else ():
             for path, inputs in xlist.items():
                 if cls.get_pattern(path).match(exe) \
                 and (not inputs or input in inputs or category in inputs):
-                    return xlist is conf.ProgramBlacklist
-            if xlist and xlist is conf.ProgramWhitelist: return True # Not in whitelist -> block
-        return False
+                    matches.append(xlist)
+                    break # for path
+        if conf.ProgramBlacklist in matches: return True
+        return False if conf.ProgramWhitelist in matches else bool(conf.ProgramWhitelist)
 
 
 def start(inqueue, outqueue=None):
