@@ -33,7 +33,7 @@ port can be changed in configuration file.
 
 ### Configuration
 
-When running under Windows, specific applications to monitor can be blacklisted
+Specific applications to monitor can be blacklisted
 or whitelisted in configuration file, as:
 ```python
 # Path can be absolute or relative like "C:\Python\python.exe" or "python.exe",
@@ -111,6 +111,8 @@ Dependencies
 
 If wxPython is not available, InputScope will not have its tray program,
 and will not recognize multi-monitor setups in mouse statistics.
+
+For application statistics in Linux, the `x11-utils` system package needs to be installed.
 
 
 Attribution

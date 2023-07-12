@@ -24,7 +24,7 @@ session delete ID
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    10.07.2022
+@modified    12.07.2022
 """
 from __future__ import print_function
 from collections import defaultdict
@@ -36,6 +36,7 @@ import os
 try: import Queue as queue        # Py2
 except ImportError: import queue  # Py3
 import re
+import subprocess
 import sys
 import threading
 import time
@@ -570,7 +571,7 @@ class KeyHandler(object):
 
 
 class Programs(object):
-    """Application processes functionality; Windows-only."""
+    """Application processes functionality; supports Windows and Linux. Linux requires x11-utils."""
 
     ENABLED = None
 
@@ -586,8 +587,12 @@ class Programs(object):
     @classmethod
     def init(cls):
         """Initializes process functionality if supported by OS."""
-        try: cls.ENABLED = bool(ctypes.windll)
-        except Exception: cls.ENABLED = False
+        if "win32" == sys.platform:
+            try: cls.ENABLED = bool(ctypes.windll)
+            except Exception: cls.ENABLED = False
+        else:
+            try: cls.ENABLED = bool(subprocess.check_output(["xprop", "-version"]))
+            except Exception: cls.ENABLED = False
         if cls.ENABLED:
             cls.PATH_IDS.update((x["path"].lower(), x["id"]) for x in db.select("programs"))
 
@@ -596,10 +601,17 @@ class Programs(object):
         """Returns the PID of the current foreground process."""
         if not cls.ENABLED: return None
         try:
-            hwnd = ctypes.windll.user32.GetForegroundWindow()
-            out = ctypes.c_ulong()
-            ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(out))
-            return out.value
+            if "win32" == sys.platform:
+                hwnd = ctypes.windll.user32.GetForegroundWindow()
+                out = ctypes.c_ulong()
+                ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(out))
+                return out.value
+            else:
+                pargs = dict(stderr=subprocess.STDOUT, universal_newlines=True)
+                out = subprocess.check_output(["xprop", "-root", "_NET_ACTIVE_WINDOW"], **pargs)
+                wid = out.split()[-1] # _NET_ACTIVE_WINDOW(WINDOW): window id # 0x300000a
+                out = subprocess.check_output(["xprop", "-id", wid, "_NET_WM_PID"], **pargs)
+                return int(out.split()[-1]) # _NET_WM_PID(CARDINAL) = 4059
         except Exception: return None
 
     @classmethod
