@@ -3,7 +3,7 @@
  *
  * @author      Erki Suurjaak
  * @created     07.04.2015
- * @modified    24.07.2022
+ * @modified    11.07.2023
  */
 :root {
   font-size: 6.25%; /** Root font size to 1px @ default font size 16px */
@@ -126,6 +126,7 @@ body {
   min-height: 1.2em;
 }
 #daysection select {
+  color: black;
   font-size: 1em;
   text-align: center;
 }
@@ -151,6 +152,18 @@ body {
 }
 .heatmap.mouse {
   border: 1px solid #1abc9c;
+}
+.heatmap.mouse:fullscreen canvas {
+  background-color: white;
+  height: 100%;
+  width: 100%;
+}
+a.heatmap_helper {
+  color: #1abc9c;
+  cursor: pointer;
+  float: right;
+  font-size: 0.8em;
+  text-decoration: underline !important;
 }
 #status {
   font-size: 0.8em;
@@ -181,7 +194,7 @@ body {
   display: flex;
   flex-direction: row-reverse;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: space-between;
 }
 #tables > table:last-child {
   margin-right: auto;
@@ -203,6 +216,7 @@ tbody {
   padding: 5rem;
 }
 input[type="button"] {
+  color: black;
   font-size: 0.85em;
   width: fit-content;
 }
@@ -353,6 +367,26 @@ td {
   vertical-align: top;
   font-size: 0.9em;
 }
+#app_stats {
+  width: 100%;
+}
+#app_stats th:not(:last-child),
+#app_stats td:not(:last-child) {
+  padding-right: 10px;
+  white-space: nowrap;
+}
+#app_stats.mouse th:not(:first-child),
+#app_stats.mouse td:not(:first-child) {
+  text-align: right;
+}
+#app_stats td:first-child {
+  min-width: 0;
+  max-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  width: 100%;
+}
 #counts th:first-child,
 #counts td:first-child,
 #stats td:first-child,
@@ -360,6 +394,8 @@ table.totals th:not(:last-child),
 table.totals td:not(:last-child) {
   padding-right: 10px;
 }
+#app_stats th:last-child,
+#app_stats td:last-child,
 #counts th:last-child,
 #counts td:last-child {
   text-align: right;

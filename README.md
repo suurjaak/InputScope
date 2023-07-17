@@ -25,19 +25,54 @@ Keypresses are logged as physical keys, ignoring Unicode mappings.
 Note: keyboard logging can interfere with remote control desktop, 
 UI automation scripts, and sticky keys.
 
-Non-standard keys can be added in configuration file, as:
-```javascript
-CustomKeys = {numeric key code: "text label for key"}
-```
-e.g.
-```javascript
-CustomKeys = {21: "IME Han/Yeong", 25: "IME Hanja"}
-```
-
 Data is kept in an SQLite database.
 
 The local web page is viewable at http://localhost:8099/,
 port can be changed in configuration file.
+
+
+### Configuration
+
+Specific applications to monitor can be blacklisted
+or whitelisted in configuration file, as:
+```python
+# Path can be absolute or relative like "C:\Python\python.exe" or "python.exe",
+# and can contain wildcards like "python*".
+ProgramBlacklist = {executable path: [] if all inputs else [input or event type, ]}
+ProgramWhitelist = {executable path: [] if all inputs else [input or event type, ]}
+```
+e.g.
+```python
+# Monitor all inputs from Notepad only
+ProgramWhitelist = {"notepad.exe": []}
+```
+or
+```python
+# Ignore keypress events from command prompts, and all mouse events from Paint.
+ProgramBlacklist = {"cmd.exe": ["keys"], "mspaint.exe": ["mouse"]}
+```
+
+Non-standard keys can be added in configuration file, as:
+```python
+CustomKeys = {numeric key code: "text label for key"}
+```
+e.g.
+```python
+CustomKeys = {21: "IME Han/Yeong", 25: "IME Hanja"}
+```
+
+Screen areas to monitor for mouse events can be specified in configuration file,
+allowing to log events from specific areas only or to skip events from blacklisted areas:
+```python
+# Coordinates given as pixels, or as percentages of screen size (decimal fractions 0..1).
+MouseRegionsOfInterest    = [[x, y, w, h], ] or [[screen index, [x, y, w, h]], ]
+MouseRegionsOfDisinterest = [[x, y, w, h], ] or [[screen index, [x, y, w, h]], ]
+```
+e.g.
+```python
+# Ignore mouse events from center of all screens
+MouseRegionsOfDisinterest = [[0.49, 0.49, 0.02, 0.02]]
+```
 
 
 Installation
@@ -69,12 +104,15 @@ Dependencies
 
 * Python 2.7 or Python 3.5+
 * bottle
+* psutil
 * pynput
 * pywin32 (optional, for toggling "Start with Windows")
 * wxPython (optional)
 
 If wxPython is not available, InputScope will not have its tray program,
 and will not recognize multi-monitor setups in mouse statistics.
+
+For application statistics in Linux, the `x11-utils` system package needs to be installed.
 
 
 Attribution

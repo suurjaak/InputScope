@@ -12,13 +12,14 @@ Template arguments:
   events          list of replayable events
   session         session data, if any
   stats           keyboard statistics
+  app_stats       per-application keyboard statistics, as [{path, top, total}]
   tabledays       set of tables that have events for specified day
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    24.07.2022
+@modified    11.07.2023
 %"""
-%import json
+%import json, os
 %from inputscope.util import format_weekday
 %WEBROOT = get_url("/")
 %INPUTURL, URLARGS = ("/sessions/<session>", dict(session=session["id"])) if get("session") else ("", {})
@@ -98,6 +99,19 @@ Template arguments:
     <tr><td>{{ item["key"] }}</td><td>{{ item["count"] }}</td></tr>
     %end # for item
   </table>
+
+%if app_stats and len(app_stats) > 1:
+  <table id="app_stats">
+    <tr><th>Application</th><th>Most used</th><th>Total</th></tr>
+    %for item in app_stats:
+    <tr>
+      <td title="{{ item["path"] }}">{{ os.path.split(item["path"] or "")[-1] or "(unknown)" }}</td>
+      <td>{{ ", ".join(item["top"]) }}</td>
+      <td>{{ "{:,}".format(item["total"]) }}</td>
+    </tr>
+    %end # for item
+  </table>
+%end # if app_stats and ..
 
 </div>
 
