@@ -1,7 +1,12 @@
 CHANGELOG
 =========
 
-1.8, 2023-07-11
+1.9, 2023-07-22
+---------------
+- improve compatibility between Py3 minor versions
+
+
+1.8, 2023-07-17
 ---------------
 - add fullscreen view to mouse heatmaps
 - add applications data to statistics pages (issue #23)
