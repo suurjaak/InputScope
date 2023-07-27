@@ -20,7 +20,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    26.07.2023
+@modified    27.07.2023
 %"""
 %import json, os, re
 %import bottle
@@ -57,7 +57,7 @@ Template arguments:
   </span>
 
   <span id="replaysection">
-    <input type="button" id="button_replay" value="Replay" />
+    <input type="button" id="replay_start" value="Replay" />
     <span class="range" title="Animation interval (100..1 milliseconds)">
       <label for="replay_interval" class="range_label">speed</label>
       <input type="range" id="replay_interval" min="1" max="100" value="50" />
@@ -160,10 +160,6 @@ Template arguments:
 </div>
 
 <script type="text/javascript">
-
-  var RADIUS     = 20;
-  var resumeFunc = null;
-  var myHeatmap  = null;
   var positions  = [\\
     %for item in counts:
         %data = []
@@ -192,90 +188,12 @@ Template arguments:
 {dt: "{{ str(item["dt"]) }}", data: {{! data }}}, \\
     %end # for item
 ];
-  var elm_heatmap = document.getElementById("heatmap");
-
 
   window.addEventListener("load", function() {
-
-    var elm_step      = document.getElementById("replay_step"),
-        elm_interval  = document.getElementById("replay_interval"),
-        elm_button    = document.getElementById("button_replay"),
-        elm_progress  = document.getElementById("progressbar"),
-        elm_statusdiv = document.getElementById("status"),
-        elm_status    = document.getElementById("statustext"),
-        elm_show_hm   = document.getElementById("show_heatmap"),
-        elm_show_kb   = document.getElementById("show_keyboard"),
-        elm_stop      = document.getElementById("replay_stop"),
-        elm_keyboard  = document.getElementById("keyboard");
-    myHeatmap = h337.create({container: elm_heatmap, radius: RADIUS});
-    if (positions.length) myHeatmap.setData({data: positions, max: positions[0].value});
-
-%URL_RULE = re.sub("/app/.+$", "", bottle.request.route.rule)
-%URL_ARGS = dict(input=input, table=table, period=period)
-%URL_ARGS.update(session=session) if session else None
+%url_rule = re.sub("/app/.+$", "", bottle.request.route.rule)
+%url_args = dict(input=input, table=table, period=period, **dict(session=session) if session else {})
 %appidstr = "" if app_search else ",".join(map(str, app_ids or []))
-    initAppsFilter("{{ get_url(URL_RULE, **URL_ARGS) }}", "{{ app_search or "" }}", "{{ appidstr }}");
-
-    if (elm_show_kb) elm_show_kb.addEventListener("click", function() {
-      elm_keyboard.style.display = this.checked ? "" : "none";
-    });
-    if (elm_show_hm) elm_show_hm.addEventListener("click", function() {
-      elm_heatmap.getElementsByTagName("canvas")[0].style.display = this.checked ? "" : "none";
-    });
-
-    if (elm_button) elm_button.addEventListener("click", function() {
-      if ("Replay" == elm_button.value) {
-        elm_statusdiv.classList.add("playing");
-        myHeatmap.setData({data: [], max: 0});
-        elm_button.value = "Pause";
-        replay(0);
-      } else if ("Continue" != elm_button.value) {
-        elm_button.value = "Continue";
-      } else {
-        elm_button.value = "Pause";
-        resumeFunc && resumeFunc();
-        resumeFunc = undefined;
-      };
-    });
-
-    if (elm_stop) elm_stop.addEventListener("click", function() {
-      elm_button.value = "Replay";
-      elm_status.innerHTML = "<br />";
-      elm_progress.style.width = 0;
-      elm_statusdiv.classList.remove("playing");
-      resumeFunc = undefined;
-      myHeatmap.setData({data: positions, max: positions.length ? positions[0].value : 0});
-    });
-
-    var replay = function(index) {
-      if (!elm_statusdiv.classList.contains("playing")) return;
-
-      if (index <= events.length - 1) {
-        var step = parseInt(elm_step.value);
-        if (step > 1) {
-          index = Math.min(index + step - 1, events.length - 1);
-          myHeatmap.setData({data: events.slice(0, index + 1).reduce(function(o, v) { o.push.apply(o, v.data); return o; }, []), max: 0});
-        } else myHeatmap.addData(events[index].data);
-
-        var percent = (100 * index / events.length).toFixed() + "%";
-        if (index == events.length - 1) percent = "100%";
-        else if ("100%" == percent && index < events.length - 1) percent = "99%";
-        elm_status.innerHTML = events[index]["dt"] + " " + percent;
-        elm_progress.style.width = percent;
-
-        var interval = elm_interval.max - elm_interval.value + parseInt(elm_interval.min);
-        if ("Pause" != elm_button.value)
-          resumeFunc = function() { setTimeout(replay, interval, index + 1); };
-        else
-          setTimeout(replay, interval, index + 1);
-
-      } else {
-        myHeatmap.setData({data: positions, max: positions.length ? positions[0].value : 0});
-        elm_button.value = "Replay";
-        elm_statusdiv.classList.remove("playing");
-        replayevents = {};
-      }
-    };
-
+    initKeyboardHeatmap(positions, events);
+    initAppsFilter("{{ get_url(url_rule, **url_args) }}", "{{ app_search or "" }}", "{{ appidstr }}");
   });
 </script>

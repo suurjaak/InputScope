@@ -19,7 +19,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    26.07.2023
+@modified    27.07.2023
 %"""
 %import os, re
 %import bottle
@@ -56,7 +56,7 @@ Template arguments:
   </span>
 
   <span id="replaysection">
-    <input type="button" id="button_replay" value="Replay" />
+    <input type="button" id="replay_start" value="Replay" />
     <span class="range" title="Animation interval (100..1 milliseconds)">
       <label for="replay_interval" class="range_label">speed</label>
       <input type="range" id="replay_interval" min="1" max="100" value="50" />
@@ -80,12 +80,14 @@ Template arguments:
 %end # if events
 
 %for i, display in enumerate(positions):
-<div id="heatmap{{ display }}" class="heatmap {{ input }}" style="width: {{ conf.MouseHeatmapSize[0] }}px; height: {{ conf.MouseHeatmapSize[1] }}px; margin-left: calc(-10rem + {{ (700 - conf.MouseHeatmapSize[0]) // 2 }}px - 1px);"></div>
-<div class="heatmap_helpers">
+<div class="heatmap-container">
+  <div class="heatmap {{ input }}" style="width: {{ conf.MouseHeatmapSize[0] }}px; height: {{ conf.MouseHeatmapSize[1] }}px; margin-left: calc(-10rem + {{ (700 - conf.MouseHeatmapSize[0]) // 2 }}px - 1px);"></div>
+  <div class="heatmap_helpers">
     %if apps:
-  <a id="apps_form_show" title="Select applications" style="margin-left: calc(-10rem + {{ (700 - conf.MouseHeatmapSize[0]) // 2 }}px - 1px);">applications</a>
+    <a id="apps_form_show" title="Select applications" style="margin-left: calc(-10rem + {{ (700 - conf.MouseHeatmapSize[0]) // 2 }}px - 1px);">applications</a>
     %end # if apps
-  <a id="heatmap{{ display }}_full" title="Expand heatmap to full screen" style="margin-right: calc(-10rem + {{ (700 - conf.MouseHeatmapSize[0]) // 2 }}px - 3px);">full screen</a>
+    <a class="fullscreen" title="Expand heatmap to full screen" style="margin-right: calc(-10rem + {{ (700 - conf.MouseHeatmapSize[0]) // 2 }}px - 3px);">full screen</a>
+  </div>
 </div>
 
     %if apps and not i:
@@ -164,9 +166,6 @@ Template arguments:
 
 <script type="text/javascript">
 
-  var RADIUS     = 10;
-  var resumeFunc = null;
-  var myHeatmaps = {};
   var positions  = {\\
     %for display, poses in positions.items():
 {{ display }}: [\\
@@ -182,105 +181,11 @@ Template arguments:
     %end # for evt
 ];
 
-
   window.addEventListener("load", function() {
-
-    var elm_step      = document.getElementById("replay_step"),
-        elm_interval  = document.getElementById("replay_interval"),
-        elm_button    = document.getElementById("button_replay"),
-        elm_progress  = document.getElementById("progressbar"),
-        elm_statusdiv = document.getElementById("status"),
-        elm_status    = document.getElementById("statustext"),
-        elm_stop      = document.getElementById("replay_stop");
-    var replayevents = {};
-    %for display in positions:
-    myHeatmaps[{{ display }}] = h337.create({container: document.getElementById("heatmap{{ display }}"), radius: RADIUS});
-    %end # for display
-    %for display in positions:
-    myHeatmaps[{{ display }}].setData({data: positions[{{ display }}], max: positions[{{ display }}].length ? positions[{{ display }}][0].value : 0});
-    %end # for display
-
-%URL_RULE = re.sub("/app/.+$", "", bottle.request.route.rule)
-%URL_ARGS = dict(input=input, table=table, period=period)
-%URL_ARGS.update(session=session) if session else None
+%url_rule = re.sub("/app/.+$", "", bottle.request.route.rule)
+%url_args = dict(input=input, table=table, period=period, **dict(session=session) if session else {})
 %appidstr = "" if app_search else ",".join(map(str, app_ids or []))
-    initAppsFilter("{{ get_url(URL_RULE, **URL_ARGS) }}", "{{ app_search or "" }}", "{{ appidstr }}");
-
-    var on_fullscreen = function() { this.parentNode.previousElementSibling.requestFullscreen(); return false; };
-    %for display in positions:
-    document.getElementById("heatmap{{ display }}_full").addEventListener("click", on_fullscreen);
-    %end # for display
-
-    if (elm_button) elm_button.addEventListener("click", function() {
-      if ("Replay" == elm_button.value) {
-        elm_statusdiv.classList.add("playing");
-        replayevents = {};
-        Object.keys(myHeatmaps).forEach(function(display) {
-          myHeatmaps[display].setData({data: [], max: positions[display].length ? positions[display][0].value : 0});
-        });
-        elm_button.value = "Pause";
-        replay(0);
-      } else if ("Continue" != elm_button.value) {
-        elm_button.value = "Continue";
-      } else {
-        elm_button.value = "Pause";
-        resumeFunc && resumeFunc();
-        resumeFunc = undefined;
-      };
-    });
-
-    if (elm_stop) elm_stop.addEventListener("click", function() {
-      elm_button.value = "Replay";
-      elm_status.innerHTML = "<br />";
-      elm_progress.style.width = 0;
-      elm_statusdiv.classList.remove("playing");
-      resumeFunc = undefined;
-      replayevents = {};
-      Object.keys(myHeatmaps).forEach(function(display) {
-        myHeatmaps[display].setData({data: positions[display], max: positions[display].length ? positions[display][0].value : 0});
-      });
-    });
-
-    var replay = function(index) {
-      if (!elm_statusdiv.classList.contains("playing")) return;
-
-      if (index <= events.length - 1) {
-        var step = parseInt(elm_step.value);
-        if (step > 1) {
-          var index2 = Math.min(index + step - 1, events.length - 1);
-          var changeds = {}; // {display index: true}
-          for (var i = index; i <= index2; i++) {
-            var evt = events[i];
-            changeds[evt.display] = true;
-            (replayevents[evt.display] = replayevents[evt.display] || []).push(evt);
-          };
-          index = index2;
-          Object.keys(changeds).forEach(function(display) {
-            myHeatmaps[display].setData({data: replayevents[display], max: 0});
-          });
-        } else {
-          myHeatmaps[events[index].display].addData(events[index]);
-          (replayevents[events[index].display] = replayevents[events[index].display] || []).push(events[index]);
-        };
-
-        var percent = (100 * index / events.length).toFixed() + "%";
-        if (index == events.length - 1) percent = "100%";
-        else if ("100%" == percent && index < events.length - 1) percent = "99%";
-        elm_status.innerHTML = events[index]["dt"] + " " + percent;
-        elm_progress.style.width = percent;
-
-        var interval = elm_interval.max - elm_interval.value + parseInt(elm_interval.min);
-        if ("Pause" != elm_button.value)
-          resumeFunc = function() { setTimeout(replay, interval, index + 1); };
-        else
-          setTimeout(replay, interval, index + 1);
-
-      } else {
-        elm_button.value = "Replay";
-        elm_statusdiv.classList.remove("playing");
-        replayevents = {};
-      }
-    };
-
+    initMouseHeatmaps(positions, events);
+    initAppsFilter("{{ get_url(url_rule, **url_args) }}", "{{ app_search or "" }}", "{{ appidstr }}");
   });
 </script>

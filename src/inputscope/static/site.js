@@ -3,7 +3,7 @@
  *
  * @author      Erki Suurjaak
  * @created     26.07.2023
- * @modified    26.07.2023
+ * @modified    27.07.2023
  */
 
 
@@ -76,6 +76,234 @@ var initAppsFilter = function(base_url, text_now, ids_now, selectors) {
     elm_apps.querySelectorAll("input[type=checkbox]").forEach(function(x) { x.checked = false; });
     filterApps();
   });
+
+};
+
+
+/**
+ * Initializes keyboard heatmap.
+ *
+ * Requires the "h337" heatmap library.
+ *
+ * @param   positions  list of heatmap positions, as [{x, y, value, label}]
+ * @param   events     list of keyboard events, as [{dt, data: [{x, y, count, key}]}]
+ * @param   selectors  map of {heatmap,replay_start,replay_stop,interval,step,progress,status,
+ *                             statustext,toggle_heatmap,toggle_keyboard,keyboard: query selector},
+ *                     defaults to {heatmap: "#heatmap", replay_start: "#replay_start",
+ *                       replay_stop: "#replay_stop", interval: "#replay_interval",
+ *                       step: "#replay_step", progress: "#progressbar", status: "#status",
+ *                       statustext: "#statustext", toggle_heatmap: "#show_heatmap",
+ *                       toggle_keyboard: "#show_keyboard", keyboard: "#keyboard"}
+ */
+var initKeyboardHeatmap = function(positions, events, selectors) {
+
+  var RADIUS    = 20;
+  var SELECTORS = {heatmap: "#heatmap", replay_start: "#replay_start",
+                   replay_stop: "#replay_stop", interval: "#replay_interval",
+                   step: "#replay_step", progress: "#progressbar", status: "#status",
+                   statustext: "#statustext", toggle_heatmap: "#show_heatmap",
+                   toggle_keyboard: "#show_keyboard", keyboard: "#keyboard"};
+  Object.keys(selectors || {}).forEach(function(k) { SELECTORS[k] = selectors[k] || SELECTORS[k]; });
+
+  var elm_heatmap   = document.querySelector(SELECTORS.heatmap),
+      elm_start     = document.querySelector(SELECTORS.replay_start),
+      elm_stop      = document.querySelector(SELECTORS.replay_stop),
+      elm_step      = document.querySelector(SELECTORS.step),
+      elm_interval  = document.querySelector(SELECTORS.interval),
+      elm_progress  = document.querySelector(SELECTORS.progress),
+      elm_statusdiv = document.querySelector(SELECTORS.status),
+      elm_status    = document.querySelector(SELECTORS.statustext),
+      elm_show_hm   = document.querySelector(SELECTORS.toggle_heatmap),
+      elm_show_kb   = document.querySelector(SELECTORS.toggle_keyboard),
+      elm_keyboard  = document.querySelector(SELECTORS.keyboard);
+  if (!elm_heatmap) return;
+
+  var resumeFunc = null;
+  var myHeatmap = h337.create({container: elm_heatmap, radius: RADIUS});
+  if (positions.length) myHeatmap.setData({data: positions, max: positions[0].value});
+
+  elm_show_kb && elm_show_kb.addEventListener("click", function() {
+    elm_keyboard.classList[this.checked ? "remove" : "add"]("hidden");
+  });
+
+  elm_show_hm && elm_show_hm.addEventListener("click", function() {
+    elm_heatmap.querySelector("canvas").classList[this.checked ? "remove" : "add"]("hidden");
+  });
+
+  elm_start && elm_start.addEventListener("click", function() {
+    if ("Replay" == elm_start.value) {
+      elm_statusdiv.classList.add("playing");
+      myHeatmap.setData({data: [], max: 0});
+      elm_start.value = "Pause";
+      replay(0);
+    } else if ("Continue" != elm_start.value) {
+      elm_start.value = "Continue";
+    } else {
+      elm_start.value = "Pause";
+      resumeFunc && resumeFunc();
+      resumeFunc = undefined;
+    };
+  });
+
+  elm_stop && elm_stop.addEventListener("click", function() { // Restore replay form and reload heatmap
+    elm_start.value = "Replay";
+    elm_status.innerHTML = "<br />";
+    elm_progress.style.width = 0;
+    elm_statusdiv.classList.remove("playing");
+    resumeFunc = undefined;
+    myHeatmap.setData({data: positions, max: positions.length ? positions[0].value : 0});
+  });
+
+  var replay = function(index) { // Start populating heatmap incrementally
+    if (!elm_statusdiv.classList.contains("playing")) return;
+
+    if (index <= events.length - 1) {
+      var step = parseInt(elm_step.value);
+      if (step > 1) {
+        index = Math.min(index + step - 1, events.length - 1);
+        myHeatmap.setData({data: events.slice(0, index + 1).reduce(function(o, v) {
+          o.push.apply(o, v.data); return o;
+        }, []), max: 0});
+      } else myHeatmap.addData(events[index].data);
+
+      var percent = (100 * index / events.length).toFixed() + "%";
+      if (index == events.length - 1) percent = "100%";
+      else if ("100%" == percent && index < events.length - 1) percent = "99%";
+      elm_status.innerHTML = events[index]["dt"] + " " + percent;
+      elm_progress.style.width = percent;
+
+      var interval = elm_interval.max - elm_interval.value + parseInt(elm_interval.min);
+      if ("Pause" != elm_start.value)
+        resumeFunc = function() { setTimeout(replay, interval, index + 1); };
+      else
+        setTimeout(replay, interval, index + 1);
+
+    } else {
+      myHeatmap.setData({data: positions, max: positions.length ? positions[0].value : 0});
+      elm_start.value = "Replay";
+      elm_statusdiv.classList.remove("playing");
+    }
+  };
+
+};
+
+
+/**
+ * Initializes mouse heatmaps.
+ *
+ * Requires the "h337" heatmap library.
+ *
+ * @param   positions  heatmap positions, as {display index: [{x, y, value, label}], }
+ * @param   events     list of mouse events, as [{x, y, display, dt}]
+ * @param   selectors  map of {heatmap,replay_start,replay_stop,interval,step,progress,status,
+ *                             statustext,fullscreen: query selector},
+ *                     defaults to {heatmap: "heatmap-container .heatmap", replay_start: "#replay_start",
+ *                       replay_stop: "#replay_stop", interval: "#replay_interval",
+ *                       step: "#replay_step", progress: "#progressbar", status: "#status",
+ *                       statustext: "#statustext", fullscreen: ".heatmap-container .fullscreen"}
+ */
+var initMouseHeatmaps = function(positions, events, selectors) {
+
+  var RADIUS    = 10;
+  var SELECTORS = {heatmap: ".heatmap-container .heatmap", replay_start: "#replay_start",
+                   replay_stop: "#replay_stop", interval: "#replay_interval",
+                   step: "#replay_step", progress: "#progressbar", status: "#status",
+                   statustext: "#statustext", fullscreen: ".heatmap-container .fullscreen"};
+  Object.keys(selectors || {}).forEach(function(k) { SELECTORS[k] = selectors[k] || SELECTORS[k]; });
+
+  var elm_start     = document.querySelector(SELECTORS.replay_start),
+      elm_stop      = document.querySelector(SELECTORS.replay_stop),
+      elm_step      = document.querySelector(SELECTORS.step),
+      elm_interval  = document.querySelector(SELECTORS.interval),
+      elm_progress  = document.querySelector(SELECTORS.progress),
+      elm_statusdiv = document.querySelector(SELECTORS.status),
+      elm_status    = document.querySelector(SELECTORS.statustext);
+
+  var replayevents = {};
+  var resumeFunc = null;
+  var myHeatmaps = Array.prototype.map.call(document.querySelectorAll(SELECTORS.heatmap), function(elm, display) {
+    return h337.create({container: elm, radius: RADIUS});
+  });
+
+  Object.keys(positions).forEach(function(display) {
+    myHeatmaps[display].setData({data: positions[display], max: positions[display].length ? positions[display][0].value : 0});
+  });
+
+  var on_fullscreen = function() { this.parentNode.previousElementSibling.requestFullscreen(); return false; };
+  document.querySelectorAll(SELECTORS.fullscreen).forEach(function(elm) {
+    elm.addEventListener("click", on_fullscreen);
+  });
+
+  elm_start && elm_start.addEventListener("click", function() {
+    if ("Replay" == elm_start.value) {
+      elm_statusdiv.classList.add("playing");
+      replayevents = {};
+      Object.keys(myHeatmaps).forEach(function(display) {
+        myHeatmaps[display].setData({data: [], max: positions[display].length ? positions[display][0].value : 0});
+      });
+      elm_start.value = "Pause";
+      replay(0);
+    } else if ("Continue" != elm_start.value) {
+      elm_start.value = "Continue";
+    } else {
+      elm_start.value = "Pause";
+      resumeFunc && resumeFunc();
+      resumeFunc = undefined;
+    };
+  });
+
+  elm_stop && elm_stop.addEventListener("click", function() { // Restore replay form and reload heatmaps
+    elm_start.value = "Replay";
+    elm_status.innerHTML = "<br />";
+    elm_progress.style.width = 0;
+    elm_statusdiv.classList.remove("playing");
+    resumeFunc = undefined;
+    replayevents = {};
+    Object.keys(myHeatmaps).forEach(function(display) {
+      myHeatmaps[display].setData({data: positions[display], max: positions[display].length ? positions[display][0].value : 0});
+    });
+  });
+
+  var replay = function(index) { // Start populating heatmaps incrementally
+    if (!elm_statusdiv.classList.contains("playing")) return;
+
+    if (index <= events.length - 1) {
+      var step = parseInt(elm_step.value);
+      if (step > 1) {
+        var index2 = Math.min(index + step - 1, events.length - 1);
+        var changeds = {}; // {display index: true}
+        for (var i = index; i <= index2; i++) {
+          var evt = events[i];
+          changeds[evt.display] = true;
+          (replayevents[evt.display] = replayevents[evt.display] || []).push(evt);
+        };
+        index = index2;
+        Object.keys(changeds).forEach(function(display) {
+          myHeatmaps[display].setData({data: replayevents[display], max: 0});
+        });
+      } else {
+        myHeatmaps[events[index].display].addData(events[index]);
+        (replayevents[events[index].display] = replayevents[events[index].display] || []).push(events[index]);
+      };
+
+      var percent = (100 * index / events.length).toFixed() + "%";
+      if (index == events.length - 1) percent = "100%";
+      else if ("100%" == percent && index < events.length - 1) percent = "99%";
+      elm_status.innerHTML = events[index]["dt"] + " " + percent;
+      elm_progress.style.width = percent;
+
+      var interval = elm_interval.max - elm_interval.value + parseInt(elm_interval.min);
+      if ("Pause" != elm_start.value)
+        resumeFunc = function() { setTimeout(replay, interval, index + 1); };
+      else
+        setTimeout(replay, interval, index + 1);
+
+    } else {
+      elm_start.value = "Replay";
+      elm_statusdiv.classList.remove("playing");
+      replayevents = {};
+    }
+  };
 
 };
 
