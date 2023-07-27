@@ -14,7 +14,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    16.07.2022
+@modified    26.07.2022
 %"""
 %from inputscope.util import format_session
 %WEBROOT = get_url("/")
@@ -33,6 +33,7 @@ Template arguments:
   <link rel="icon" type="image/x-icon" href="{{ WEBROOT }}static/icon.ico" />
   <link rel="stylesheet" href="{{ WEBROOT }}static/site.css" />
   <script src="{{ WEBROOT }}static/heatmap.min.js"></script>
+  <script src="{{ WEBROOT }}static/site.js"></script>
 </head>
 <body{{! ' class="%s"' % bodycls if bodycls else "" }}>
 <div id="header" class="flex-row">
@@ -120,7 +121,7 @@ Template arguments:
 <div id="overlay">
   <div id="overshadow"></div>
   <div id="overcontent">
-    <table>
+    <table class="outlined">
 %for k, v in dbinfo:
       <tr><td>{{ k }}:</td><td>{{ v }}</td></tr>
 %end # for k, v

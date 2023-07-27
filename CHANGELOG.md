@@ -1,8 +1,9 @@
 CHANGELOG
 =========
 
-1.9, 2023-07-22
+1.9, 2023-07-26
 ---------------
+- add applications filter
 - improve compatibility between Py3 minor versions
 
 

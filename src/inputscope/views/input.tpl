@@ -9,7 +9,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    24.07.2022
+@modified    26.07.2022
 %"""
 %from inputscope import conf
 %from inputscope.util import format_stamp, format_weekday
@@ -22,7 +22,7 @@ Template arguments:
 %rebase("base.tpl", **locals())
 
 <div>
-<table class="totals">
+<table class="totals outlined">
 %for table, data in stats.items():
 %    if not data["count"]:
 %        continue # for table, data
@@ -60,7 +60,7 @@ Template arguments:
 %did_sessions = False
 %for sess in (s for s in sessions if s["count"]):
 %    if not did_sessions:
-<table class="sessions">
+<table class="sessions outlined">
   <tbody>
   <tr><th>sessions</th><th></th><th></th></tr>
 %    end # if sessions

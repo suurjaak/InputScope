@@ -3,7 +3,7 @@
  *
  * @author      Erki Suurjaak
  * @created     07.04.2015
- * @modified    11.07.2023
+ * @modified    25.07.2023
  */
 :root {
   font-size: 6.25%; /** Root font size to 1px @ default font size 16px */
@@ -158,12 +158,20 @@ body {
   height: 100%;
   width: 100%;
 }
-a.heatmap_helper {
+.heatmap_helpers {
+  display: flex;
+  justify-content: space-between;
+}
+.heatmap_helpers a {
   color: #1abc9c;
   cursor: pointer;
   float: right;
   font-size: 0.8em;
   text-decoration: underline !important;
+}
+.heatmap_helpers label:first-of-type,
+.heatmap_helpers :only-child {
+  margin-left: auto;
 }
 #status {
   font-size: 0.8em;
@@ -208,7 +216,7 @@ a:visited {
 h3 {
   display: inline;
 }
-tbody {
+table.outlined tbody {
   display: table;
   border: 1px dashed #1abc9c;
   margin-bottom: 20px;
@@ -363,7 +371,7 @@ th {
   vertical-align: top;
   font-size: 0.8em;
 }
-td {
+table.outlined td {
   vertical-align: top;
   font-size: 0.9em;
 }
@@ -417,4 +425,52 @@ body.index table .flex-row > * {
 }
 body.index table .flex-row > :first-child {
   min-width: 80rem;
+}
+
+#apps_form {
+  display: block;
+  position: relative;
+  top: -14px;
+}
+#apps_form .items {
+  font-size: 0.9em;
+  max-height: 300px;
+  min-height: 30px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+#apps_form .items table {
+  width: 100%;
+}
+#apps_form table td {
+  white-space: nowrap;
+}
+#apps_form table td:first-child {
+  min-width: 0;
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+#apps_form table td:last-child {
+  text-align: right;
+}
+#apps_form .active {
+  font-weight: bold;
+}
+#apps_form input[type=submit],
+#apps_form input[type=reset],
+#apps_form input[type=button] {
+  color: black;
+  font-size: 0.85em;
+}
+#apps_current {
+  font-size: 0.7em;
+  margin-left: 10px;
+}
+#apps_current .inactive {
+  opacity: 0.5;
+}
+.hidden {
+  display: none !important;
 }

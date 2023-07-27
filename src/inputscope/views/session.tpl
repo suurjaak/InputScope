@@ -7,7 +7,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     15.10.2021
-@modified    24.07.2022
+@modified    26.07.2022
 %"""
 %from inputscope import conf
 %from inputscope.util import format_weekday
@@ -17,7 +17,7 @@ Template arguments:
 
 <div>
 
-<table id="stats" class="sessions">
+<table id="stats" class="sessions outlined">
   <tr>
     <td>Session name</td>
     <td title="{{ session["name"] }}">{{ session["name"] }}</td>
@@ -27,7 +27,7 @@ Template arguments:
 %end # for key
 </tr></table>
 
-<table class="totals">
+<table class="totals outlined">
 %for input, table in ((k, t) for k, tt in conf.InputTables for t in tt):
 %    data = stats.get(table, {})
 %    if not data.get("count"):

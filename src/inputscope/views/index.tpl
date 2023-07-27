@@ -7,7 +7,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    16.07.2022
+@modified    26.07.2022
 %"""
 %import datetime
 %from inputscope import conf
@@ -17,7 +17,7 @@ Template arguments:
 %rebase("base.tpl", **locals())
 
 <div>
-<table class="totals">
+<table class="totals outlined">
 %for input, data in stats.items():
   <tbody><tr><th>{{ input }}</th></tr><tr>
   <td>
@@ -35,7 +35,7 @@ Template arguments:
 </table>
 
 %if sessions:
-<table class="sessions">
+<table class="sessions outlined">
   <tbody><tr><th>sessions</th></tr>
 %end # if sessions
 %for sess in sessions:

@@ -7,19 +7,23 @@ Template arguments:
   period          period for events, if any (day like "2020-02-20" or month like "2020-02")
   days            list of available days
   count           count of all events
-  counts          keyboard event counts
-  counts_display  displayed event counts for keyboard combos
+  counts          keyboard event counts, as {key: count}
+  counts_display  displayed event counts for keyboard combos, as {key: count}
   events          list of replayable events
   session         session data, if any
   stats           keyboard statistics
-  app_stats       per-application keyboard statistics, as [{path, top, total}]
+  apps            list of all registered applications, as [{id, path}]
+  app_ids         list of application IDs currently filtered by
+  app_search      application filter search text
+  app_stats       per-application keyboard statistics, as OrderedDict({id: {path, top, total}})
   tabledays       set of tables that have events for specified day
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    11.07.2023
+@modified    26.07.2023
 %"""
-%import json, os
+%import json, os, re
+%import bottle
 %from inputscope.util import format_weekday
 %WEBROOT = get_url("/")
 %INPUTURL, URLARGS = ("/sessions/<session>", dict(session=session["id"])) if get("session") else ("", {})
@@ -77,14 +81,54 @@ Template arguments:
 %end # if events
 
 <div id="heatmap" class="heatmap {{ input }}" style="width: {{ conf.KeyboardHeatmapSize[0] }}px; height: {{ conf.KeyboardHeatmapSize[1] }}px;"><img id="keyboard" src="{{ WEBROOT }}static/keyboard.svg" width="{{ conf.KeyboardHeatmapSize[0] }}" height="{{ conf.KeyboardHeatmapSize[1] }}" alt="" /></div>
+<div class="heatmap_helpers">
+%if apps:
+  <a id="apps_form_show" title="Select applications">applications</a>
+%end # if apps
+  <label for="show_heatmap" class="check_label"><input type="checkbox" id="show_heatmap" checked="checked" />Show heatmap</label>
+  <label for="show_keyboard" class="check_label"><input type="checkbox" id="show_keyboard" checked="checked" />Show keyboard</label>
+</div>
 
-<label for="show_heatmap" class="check_label"><input type="checkbox" id="show_heatmap" checked="checked" />Show heatmap</label>
-<label for="show_keyboard" class="check_label"><input type="checkbox" id="show_keyboard" checked="checked" />Show keyboard</label>
+%if apps:
+<form id="apps_form" class="hidden">
+<input type="search" value="{{ app_search or "" }}" 
+       placeholder="Filter applications" title="Enter words or phrases to filter applications by" />
+  <div class="items"><table>
+    %for item in apps:
+        %is_active = app_ids and item["id"] in app_ids
+        %is_hidden = app_search and not is_active
+        %cls = "active" if is_active else "hidden" if is_hidden else None
+    <tr{{! ' class="%s"' % cls if cls else "" }}>
+      <td>
+        <label title="{{ item["path"] }}">
+          <input type="checkbox" value="{{ item["id"] }}"
+                 {{! 'checked="checked"' if not app_search and is_active else "" }} />
+          {{ item["path"] or "(unknown)" }}
+        </label>
+      </td>
+      <td>{{ " ({:,})".format(app_stats[item["id"]]["total"]) if item["id"] in app_stats else "" }}</td>
+    </tr>
+    %end # for item
+  </table></div>
+  <input type="submit" value="Apply" />
+  <input type="button" value="Clear"  id="apps_form_clear" />
+  <input type="reset"  value="Cancel" />
+</form>
+    %if app_ids:
+<div id="apps_current">
+        %for item in (x for x in apps if x["id"] in app_ids):
+  <div title="{{ item["path"] }}"{{! ' class="inactive"' if item["id"] not in app_stats else "" }}>
+    {{ os.path.split(item["path"] or "")[-1] or "(unknown)" }}{{ " ({:,})".format(app_stats[item["id"]]["total"]) if item["id"] in app_stats else "" }}</span>
+  </div>
+        %end # for item
+</div>
+    %end # if app_ids
+%end # if apps
 
 
 <div id="tables">
 
-  <table id="stats" class="{{ input }}">
+  <table id="stats" class="{{ input }} outlined">
 %for key, val in stats:
     <tr><td>{{ key }}</td><td>{{ val }}</td></tr>
 %end # for key, val
@@ -93,7 +137,7 @@ Template arguments:
 %end # if count > conf.MaxEventsForStats
   </table>
 
-  <table id="counts">
+  <table id="counts" class="outlined">
     <tr><th>Key</th><th>Count</th></tr>
     %for item in counts_display:
     <tr><td>{{ item["key"] }}</td><td>{{ item["count"] }}</td></tr>
@@ -101,9 +145,9 @@ Template arguments:
   </table>
 
 %if app_stats and len(app_stats) > 1:
-  <table id="app_stats">
+  <table id="app_stats" class="outlined">
     <tr><th>Application</th><th>Most used</th><th>Total</th></tr>
-    %for item in app_stats:
+    %for item in app_stats.values():
     <tr>
       <td title="{{ item["path"] }}">{{ os.path.split(item["path"] or "")[-1] or "(unknown)" }}</td>
       <td>{{ ", ".join(item["top"]) }}</td>
@@ -141,7 +185,8 @@ Template arguments:
                 %if key not in conf.KeyPositions:
                     %continue # for key
                 %end # if key not in
-                %data.append({"x": conf.KeyPositions[key][0], "y": conf.KeyPositions[key][1], "count": count, "key": json.dumps(key)})
+                %data.append({"x": conf.KeyPositions[key][0], "y": conf.KeyPositions[key][1],
+                %             "count": count, "key": json.dumps(key)})
             %end # for key
         %end # for fullkey
 {dt: "{{ str(item["dt"]) }}", data: {{! data }}}, \\
@@ -164,6 +209,12 @@ Template arguments:
         elm_keyboard  = document.getElementById("keyboard");
     myHeatmap = h337.create({container: elm_heatmap, radius: RADIUS});
     if (positions.length) myHeatmap.setData({data: positions, max: positions[0].value});
+
+%URL_RULE = re.sub("/app/.+$", "", bottle.request.route.rule)
+%URL_ARGS = dict(input=input, table=table, period=period)
+%URL_ARGS.update(session=session) if session else None
+%appidstr = "" if app_search else ",".join(map(str, app_ids or []))
+    initAppsFilter("{{ get_url(URL_RULE, **URL_ARGS) }}", "{{ app_search or "" }}", "{{ appidstr }}");
 
     if (elm_show_kb) elm_show_kb.addEventListener("click", function() {
       elm_keyboard.style.display = this.checked ? "" : "none";

@@ -11,14 +11,18 @@ Template arguments:
   positions       mouse position counts, as {display: [{x, y, count}, ]}
   session         session data, if any
   stats           mouse statistics, as [(label, text)]
-  app_stats       per-application mouse statistics, as [{path, cols, total}]
+  apps            list of all registered applications, as [{id, path}]
+  app_ids         list of application IDs currently filtered by
+  app_search      application filter search text
+  app_stats       per-application keyboard statistics, as OrderedDict({id: {path, total, cols: {label: count}}})
   tabledays       set of tables that have events for specified day
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    11.07.2023
+@modified    26.07.2023
 %"""
-%import os
+%import os, re
+%import bottle
 %from inputscope.util import format_weekday
 %WEBROOT = get_url("/")
 %INPUTURL, URLARGS = ("/sessions/<session>", dict(session=session["id"])) if get("session") else ("", {})
@@ -75,16 +79,55 @@ Template arguments:
 </div>
 %end # if events
 
-    %for display in positions:
+%for i, display in enumerate(positions):
 <div id="heatmap{{ display }}" class="heatmap {{ input }}" style="width: {{ conf.MouseHeatmapSize[0] }}px; height: {{ conf.MouseHeatmapSize[1] }}px; margin-left: calc(-10rem + {{ (700 - conf.MouseHeatmapSize[0]) // 2 }}px - 1px);"></div>
-<a id="heatmap{{ display }}_full" class="heatmap_helper" title="Expand heatmap to full screen" style="margin-right: calc(-10rem + {{ (700 - conf.MouseHeatmapSize[0]) // 2 }}px - 3px);">full screen</a>
-    %end # for display
+<div class="heatmap_helpers">
+    %if apps:
+  <a id="apps_form_show" title="Select applications" style="margin-left: calc(-10rem + {{ (700 - conf.MouseHeatmapSize[0]) // 2 }}px - 1px);">applications</a>
+    %end # if apps
+  <a id="heatmap{{ display }}_full" title="Expand heatmap to full screen" style="margin-right: calc(-10rem + {{ (700 - conf.MouseHeatmapSize[0]) // 2 }}px - 3px);">full screen</a>
+</div>
 
-
+    %if apps and not i:
+<form id="apps_form" class="hidden">
+<input type="search" value="{{ app_search or "" }}" 
+       placeholder="Filter applications" title="Enter words or phrases to filter applications by" />
+  <div class="items"><table>
+        %for item in apps:
+            %is_active = app_ids and item["id"] in app_ids
+            %is_hidden = app_search and not is_active
+            %cls = "active" if is_active else "hidden" if is_hidden else None
+    <tr{{! ' class="%s"' % cls if cls else "" }}>
+      <td>
+        <label title="{{ item["path"] }}">
+          <input type="checkbox" value="{{ item["id"] }}"
+                 {{! 'checked="checked"' if not app_search and is_active else "" }} />
+          {{ item["path"] or "(unknown)" }}
+        </label>
+      </td>
+      <td>{{ " ({:,})".format(app_stats[item["id"]]["total"]) if item["id"] in app_stats else "" }}</td>
+    </tr>
+        %end # for item
+  </table></div>
+  <input type="submit" value="Apply" />
+  <input type="button" value="Clear"  id="apps_form_clear" />
+  <input type="reset"  value="Cancel" />
+</form>
+        %if app_ids:
+<div id="apps_current">
+            %for item in (x for x in apps if x["id"] in app_ids):
+  <div title="{{ item["path"] }}"{{! ' class="inactive"' if item["id"] not in app_stats else "" }}>
+    {{ os.path.split(item["path"] or "")[-1] or "(unknown)" }}{{ " ({:,})".format(app_stats[item["id"]]["total"]) if item["id"] in app_stats else "" }}</span>
+  </div>
+            %end # for item
+</div>
+        %end # if app_ids
+    %end # if apps and not i
+%end # for display
 
 <div id="tables">
 
-  <table id="stats" class="{{ input }}">
+  <table id="stats" class="{{ input }} outlined">
 %for key, val in stats:
     <tr><td>{{ key }}</td><td>{{ val }}</td></tr>
 %end # for key, val
@@ -95,16 +138,16 @@ Template arguments:
 
 %if app_stats and len(app_stats) > 1:
 %    labels = []
-%    for label in (l for x in app_stats for l in x["cols"]):
+%    for label in (l for x in app_stats.values() for l in x["cols"]):
 %        labels.append(label) if label not in labels else label
 %    end # for label
-  <table id="app_stats" class="{{ input }}">
+  <table id="app_stats" class="{{ input }} outlined">
     <tr><th>Application</th>
 %    for label in labels:
     <th>{{ label }}</th>
 %    end # for label
     <th>Total</th></tr>
-%    for item in app_stats:
+%    for item in app_stats.values():
     <tr>
       <td title="{{ item["path"] }}">{{ os.path.split(item["path"] or "")[-1] or "(unknown)" }}</td>
 %        for label in labels:
@@ -157,7 +200,13 @@ Template arguments:
     myHeatmaps[{{ display }}].setData({data: positions[{{ display }}], max: positions[{{ display }}].length ? positions[{{ display }}][0].value : 0});
     %end # for display
 
-    var on_fullscreen = function() { this.previousElementSibling.requestFullscreen(); return false; };
+%URL_RULE = re.sub("/app/.+$", "", bottle.request.route.rule)
+%URL_ARGS = dict(input=input, table=table, period=period)
+%URL_ARGS.update(session=session) if session else None
+%appidstr = "" if app_search else ",".join(map(str, app_ids or []))
+    initAppsFilter("{{ get_url(URL_RULE, **URL_ARGS) }}", "{{ app_search or "" }}", "{{ appidstr }}");
+
+    var on_fullscreen = function() { this.parentNode.previousElementSibling.requestFullscreen(); return false; };
     %for display in positions:
     document.getElementById("heatmap{{ display }}_full").addEventListener("click", on_fullscreen);
     %end # for display
