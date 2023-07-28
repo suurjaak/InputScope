@@ -19,13 +19,12 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    27.07.2023
+@modified    28.07.2023
 %"""
 %import os, re
 %import bottle
 %from inputscope.util import format_weekday
 %WEBROOT = get_url("/")
-%INPUTURL, URLARGS = ("/sessions/<session>", dict(session=session["id"])) if get("session") else ("", {})
 %title = "%s %s" % (input.capitalize(), table)
 %rebase("base.tpl", **locals())
 
@@ -35,10 +34,8 @@ Template arguments:
   <span>{{ tbl }}</span>
     %elif tabledays and tbl not in tabledays:
   <span class="inactive">{{ tbl }}</span>
-    %elif period:
-  <a href="{{ get_url("%s/<input>/<table>/<period>" % INPUTURL, input=type, table=tbl, period=period, **URLARGS) }}">{{ tbl }}</a>
     %else:
-  <a href="{{ get_url("%s/<input>/<table>" % INPUTURL, input=type, table=tbl, **URLARGS) }}">{{ tbl }}</a>
+  <a href="{{ make_url(input=type, table=tbl, period=period) }}">{{ tbl }}</a>
     %end # if tbl == table
 %end # for type, tbl
 </div>
@@ -125,7 +122,7 @@ Template arguments:
 </div>
         %end # if app_ids
     %end # if apps and not i
-%end # for display
+%end # for i, display
 
 <div id="tables">
 
@@ -182,10 +179,8 @@ Template arguments:
 ];
 
   window.addEventListener("load", function() {
-%url_rule = re.sub("/app/.+$", "", bottle.request.route.rule)
-%url_args = dict(input=input, table=table, period=period, **dict(session=session) if session else {})
 %appidstr = "" if app_search else ",".join(map(str, app_ids or []))
     initMouseHeatmaps(positions, events);
-    initAppsFilter("{{ get_url(url_rule, **url_args) }}", "{{ app_search or "" }}", "{{ appidstr }}");
+    initAppsFilter("{{ make_url(appids=None, appnames=None) }}", "{{ app_search or "" }}", "{{ appidstr }}");
   });
 </script>

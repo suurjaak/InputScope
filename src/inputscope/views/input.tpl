@@ -9,15 +9,11 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    26.07.2022
+@modified    28.07.2022
 %"""
 %from inputscope import conf
 %from inputscope.util import format_stamp, format_weekday
 %WEBROOT = get_url("/")
-%INPUTURL, URLARGS = ("/<input>", dict(input=input))
-%if get("session"):
-%    INPUTURL, URLARGS = "/sessions/<session>" + INPUTURL, dict(URLARGS, session=session["id"])
-%end # if get("session")
 %title, page = input.capitalize(), "input"
 %rebase("base.tpl", **locals())
 
@@ -30,7 +26,7 @@ Template arguments:
 %    input = "keyboard" if table in ("keys", "combos") else "mouse"
   <tbody>
   <tr><th colspan="2">{{ table }}</th></tr>
-  <tr><td>Total:</td><td><a href="{{ get_url("%s/<table>" % INPUTURL, table=table, **URLARGS) }}#{{ data["count"] }}">{{ "{:,}".format(data["count"]) }}</a></td></tr>
+  <tr><td>Total:</td><td><a href="{{ make_url(table=table) }}#{{ data["count"] }}">{{ "{:,}".format(data["count"]) }}</a></td></tr>
   <tr><td>Days:</td>
     <td id="{{ table }}_periods" class="periods">
     <a href="javascript:;" class="toggle" data-input="{{ table }}" title="Toggle days">&ndash;</a>
@@ -38,7 +34,7 @@ Template arguments:
     <div class="periods">
 %    for item in data["periods"]:
       <div class="flex-row">
-        <a class="{{ item["class"] }}" href="{{ get_url("%s/<table>/<period>" % INPUTURL, table=table, period=item["period"], **URLARGS) }}#{{ item["count"] }}">
+        <a class="{{ item["class"] }}" href="{{ make_url(table=table, period=item["period"]) }}#{{ item["count"] }}">
           {{ item["period"] }}
 %        if "day" == item["class"]:
 %            try:

@@ -6,7 +6,7 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    26.07.2023
+@modified    28.07.2023
 """
 import collections
 import datetime
@@ -95,7 +95,7 @@ def inputsessionindex(session, input):
 
 @route("/<input>/<table>")
 @route("/<input>/<table>/app/<appnames:path>")
-@route("/<input>/<table>/app/id\:<appids>")
+@route("/<input>/<table>/app/id\:<appids>") # Colon in URL needs escaping for Bottle
 @route("/<input>/<table>/<period>")
 @route("/<input>/<table>/<period>/app/<appnames:path>")
 @route("/<input>/<table>/<period>/app/id\:<appids>")
@@ -438,6 +438,31 @@ def stats_db(filename):
     return result
 
 
+def make_url(**kwargs):
+    """Returns new URL from current URL, modified with added or cleared keyword arguments."""
+    ARGORDER = collections.OrderedDict([
+        ("session",  "/sessions/<session>"),  ("input",  "/<input>"),
+        ("table",    "/<table>"),             ("period", "/<period>"),
+        ("appnames", "/app/<appnames:path>"), ("appids", "/app/id\:<appids>"),
+    ])
+    rule, ruleargs = request.route.rule, dict(request.url_args)
+    for k, v in ((k, kwargs[k]) for k in ARGORDER if k in kwargs):
+        if v is None: # Remove arg from route
+            rule = rule.replace(ARGORDER[k], "")
+            ruleargs.pop(k, None)
+        elif k not in ruleargs: # Add arg to route
+            pos, prev = 0, None
+            for arg in ARGORDER:
+                if arg == k:
+                    if prev: pos = rule.index(prev) + len(prev)
+                    break # for arg
+                elif arg in ruleargs: prev = ARGORDER[arg]
+            rule = rule[:pos] + ARGORDER[k] + rule[pos:]
+            ruleargs[k] = v
+        else: ruleargs[k] = v
+    return app.get_url(rule, **ruleargs)
+
+
 def init():
     """Initialize configuration and web application."""
     global app
@@ -448,7 +473,7 @@ def init():
 
     bottle.TEMPLATE_PATH.insert(0, conf.TemplatePath)
     app = bottle.default_app()
-    bottle.BaseTemplate.defaults.update(get_url=app.get_url)
+    bottle.BaseTemplate.defaults.update(get_url=app.get_url, make_url=make_url)
     return app
 
 

@@ -14,15 +14,11 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    26.07.2022
+@modified    28.07.2022
 %"""
 %from inputscope.util import format_session
 %WEBROOT = get_url("/")
-%INPUTURL, URLARGS = ("/<input>", dict(input=input)) if get("input") else ("/", {})
 %period, days, session = get("period", None), get("days", []), get("session", None)
-%if session:
-%    INPUTURL, URLARGS = "/sessions/<session>" + INPUTURL, dict(URLARGS, session=session["id"])
-%end # if session
 %bodycls = " ".join(set(filter(bool, get("page", "").split() + ["session" if session else ""])))
 <!DOCTYPE html>
 <html>
@@ -81,7 +77,7 @@ Template arguments:
     %end # if period and len(period) < 8
 
     %if prevperiod:
-  <a href="{{ get_url("%s/<table>/<period>" % INPUTURL, table=table, period=prevperiod, **URLARGS) }}">&lt; {{ prevperiod }}</a>
+  <a href="{{ make_url(period=prevperiod) }}">&lt; {{ prevperiod }}</a>
     %else:
   <a></a>
     %end # if prevperiod
@@ -101,7 +97,7 @@ Template arguments:
   </select>
 
     %if nextperiod:
-  <a href="{{ get_url("%s/<table>/<period>" % INPUTURL, table=table, period=nextperiod, **URLARGS) }}">{{ nextperiod }} &gt;</a>
+  <a href="{{ make_url(period=nextperiod) }}">{{ nextperiod }} &gt;</a>
     %else:
   <a></a>
     %end # if nextperiod
@@ -145,16 +141,16 @@ window.addEventListener("load", function() {
     evt && evt.preventDefault();
   };
 
-  document.getElementById("overlaylink").addEventListener("click", toggleOverlay);
+  document.getElementById("overlaylink") .addEventListener("click", toggleOverlay);
   document.getElementById("overlayclose").addEventListener("click", toggleOverlay);
-  document.getElementById("overshadow").addEventListener("click", toggleOverlay);
+  document.getElementById("overshadow")  .addEventListener("click", toggleOverlay);
   document.body.addEventListener("keydown", function(evt) {
     if (evt.keyCode == 27 && elm_overlay.classList.contains("visible")) toggleOverlay();
   });
 
 %if days:
   document.getElementById("dayselector").addEventListener("change", function() {
-    window.location.href = "{{ get_url("%s/<table>" % INPUTURL, table=table, **URLARGS) }}/" + this.value;
+    window.location.href = "{{ make_url(period="\\t\\n\\t") }}/".replace("\t\n\t", this.value);
   });
 %end # if days
 });
