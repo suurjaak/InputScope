@@ -6,7 +6,7 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    28.07.2023
+@modified    29.07.2023
 """
 import collections
 import datetime
@@ -141,7 +141,7 @@ def inputdetail(input, table, period=None, session=None, appids=None, appnames=N
         count = db.fetchone(table, "COUNT(*) AS count", where=where2)["count"]
         tabledays = set(t for _, tt in conf.InputTables for t in tt
                         if t != table and db.fetchone(t, "1", where=where2))
-    elif app_ids is None:
+    else:
         count = sum(v["count"] for v in days if not period or v["day"][:len(period)] == period)
         tabledays = set(x["type"] for x in db.fetch("counts", day=("LIKE", period + "%"))) if period else {}
 
@@ -159,10 +159,7 @@ def inputdetail(input, table, period=None, session=None, appids=None, appnames=N
         where += [("day", period)]
 
     if app_ids is not None:
-        days = db.fetch(table, "day || '' AS day, COUNT(*) AS count", where=where, group="day", order="day")
         count = db.fetchone(table, "COUNT(*) AS count", where=where)["count"]
-        tabledays = set(t for _, tt in conf.InputTables for t in tt
-                        if t != table and db.fetchone(t, "1", where=where))
     if "keyboard" == input:
         cols, group = "realkey AS key, COUNT(*) AS count", "realkey"
         counts_display = counts = db.fetch(table, cols, where, group, "count DESC")
@@ -175,6 +172,15 @@ def inputdetail(input, table, period=None, session=None, appids=None, appnames=N
         stats, app_stats, positions, events = stats_mouse(events, table, count)
     else:
         stats, app_stats, events = stats_keyboard(events, table, count)
+
+    if app_ids is not None and len(apps) - len(app_stats):
+        appmap = {x["id"]: x for x in apps}
+        where2 = [(k, v) for k, v in where if k != "fk_program"]
+        where2 += [("fk_program", ("NOT IN", app_stats))]
+        for row in db.fetch(table, "fk_program, COUNT(*) AS count", where=where2, group="fk_program"):
+            app_stats[row["fk_program"]] = {"path": appmap.get(row["fk_program"], {}).get("path"),
+                                            "total": row["count"]}
+
     dbinfo, session = stats_db(conf.DbPath), sess
     template = "heatmap_mouse.tpl" if "mouse" == input else "heatmap_keyboard.tpl"
     return bottle.template(template, locals(), conf=conf)

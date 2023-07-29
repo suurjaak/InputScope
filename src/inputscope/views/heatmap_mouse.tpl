@@ -14,12 +14,12 @@ Template arguments:
   apps            list of all registered applications, as [{id, path}]
   app_ids         list of application IDs currently filtered by
   app_search      application filter search text
-  app_stats       per-application keyboard statistics, as OrderedDict({id: {path, total, cols: {label: count}}})
+  app_stats       per-application keyboard statistics, as OrderedDict({id: {path, total, ?cols: {label: count}}})
   tabledays       set of tables that have events for specified day
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    28.07.2023
+@modified    29.07.2023
 %"""
 %import os, re
 %import bottle
@@ -104,7 +104,7 @@ Template arguments:
           {{ item["path"] or "(unknown)" }}
         </label>
       </td>
-      <td>{{ " ({:,})".format(app_stats[item["id"]]["total"]) if item["id"] in app_stats else "" }}</td>
+      <td>{{ "({:,})".format(app_stats[item["id"]]["total"]) if app_stats.get(item["id"], {}).get("total") else "" }}</td>
     </tr>
         %end # for item
   </table></div>
@@ -115,8 +115,9 @@ Template arguments:
         %if app_ids:
 <div id="apps_current">
             %for item in (x for x in apps if x["id"] in app_ids):
-  <div title="{{ item["path"] }}"{{! ' class="inactive"' if item["id"] not in app_stats else "" }}>
-    {{ os.path.split(item["path"] or "")[-1] or "(unknown)" }}{{ " ({:,})".format(app_stats[item["id"]]["total"]) if item["id"] in app_stats else "" }}</span>
+  <div title="{{ item["path"] }}"{{! ' class="inactive"' if not app_stats.get(item["id"], {}).get("total") else "" }}>
+    {{ os.path.split(item["path"] or "")[-1] or "(unknown)" }}
+    {{ "({:,})".format(app_stats[item["id"]]["total"]) if app_stats.get(item["id"], {}).get("total") else "" }}</span>
   </div>
             %end # for item
 </div>
@@ -135,9 +136,9 @@ Template arguments:
 %end # if count > conf.MaxEventsForStats
   </table>
 
-%if app_stats and len(app_stats) > 1:
+%if len([x for x in app_stats.values() if x["total"]]) > 1:
 %    labels = []
-%    for label in (l for x in app_stats.values() for l in x["cols"]):
+%    for label in (l for x in app_stats.values() for l in x.get("cols", [])):
 %        labels.append(label) if label not in labels else label
 %    end # for label
   <table id="app_stats" class="{{ input }} outlined">
@@ -146,7 +147,7 @@ Template arguments:
     <th>{{ label }}</th>
 %    end # for label
     <th>Total</th></tr>
-%    for item in app_stats.values():
+%    for item in (x for x in app_stats.values() if x.get("cols")):
     <tr>
       <td title="{{ item["path"] }}">{{ os.path.split(item["path"] or "")[-1] or "(unknown)" }}</td>
 %        for label in labels:
