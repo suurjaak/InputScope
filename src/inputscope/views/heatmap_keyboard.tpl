@@ -69,13 +69,11 @@ Template arguments:
   </span>
 </div>
 
-%if events:
 <div id="status">
 <span id="statustext"><br /></span>
 <span id="progressbar"></span>
 <a href="javascript:;" title="Stop replay and reset heatmap" id="replay_stop">x</a>
 </div>
-%end # if events
 
 <div id="heatmap" class="heatmap {{ input }}" style="width: {{ conf.KeyboardHeatmapSize[0] }}px; height: {{ conf.KeyboardHeatmapSize[1] }}px;"><img id="keyboard" src="{{ WEBROOT }}static/keyboard.svg" width="{{ conf.KeyboardHeatmapSize[0] }}" height="{{ conf.KeyboardHeatmapSize[1] }}" alt="" /></div>
 <div class="heatmap_helpers">

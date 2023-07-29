@@ -3,7 +3,7 @@
  *
  * @author      Erki Suurjaak
  * @created     26.07.2023
- * @modified    27.07.2023
+ * @modified    29.07.2023
  */
 
 
@@ -130,7 +130,7 @@ var initKeyboardHeatmap = function(positions, events, selectors) {
     elm_heatmap.querySelector("canvas").classList[this.checked ? "remove" : "add"]("hidden");
   });
 
-  elm_start && elm_start.addEventListener("click", function() {
+  positions.length && elm_start && elm_start.addEventListener("click", function() {
     if ("Replay" == elm_start.value) {
       elm_statusdiv.classList.add("playing");
       myHeatmap.setData({data: [], max: 0});
@@ -234,7 +234,7 @@ var initMouseHeatmaps = function(positions, events, selectors) {
     elm.addEventListener("click", on_fullscreen);
   });
 
-  elm_start && elm_start.addEventListener("click", function() {
+  Object.keys(positions).length && elm_start && elm_start.addEventListener("click", function() {
     if ("Replay" == elm_start.value) {
       elm_statusdiv.classList.add("playing");
       replayevents = {};

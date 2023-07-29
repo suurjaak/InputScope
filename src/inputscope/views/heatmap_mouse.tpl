@@ -68,15 +68,13 @@ Template arguments:
   </span>
 </div>
 
-%if events:
 <div id="status">
 <span id="statustext"><br /></span>
 <span id="progressbar"></span>
 <a href="javascript:;" title="Stop replay and reset heatmap" id="replay_stop">x</a>
 </div>
-%end # if events
 
-%for i, display in enumerate(positions):
+%for i, display in enumerate(positions or [None]):
 <div class="heatmap-container">
   <div class="heatmap {{ input }}" style="width: {{ conf.MouseHeatmapSize[0] }}px; height: {{ conf.MouseHeatmapSize[1] }}px; margin-left: calc(-10rem + {{ (700 - conf.MouseHeatmapSize[0]) // 2 }}px - 1px);"></div>
   <div class="heatmap_helpers">
