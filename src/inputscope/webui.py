@@ -160,20 +160,16 @@ def inputdetail(input, table, period=None, session=None, appids=None, appnames=N
 
     if app_ids is not None:
         count = db.fetchone(table, "COUNT(*) AS count", where=where)["count"]
-    if "keyboard" == input:
-        cols, group = "realkey AS key, COUNT(*) AS count", "realkey"
-        counts_display = counts = db.fetch(table, cols, where, group, "count DESC")
-        if "combos" == table:
-            counts_display = db.fetch(table, "key, COUNT(*) AS count", where,
-                                      "key", "count DESC")
-
     events = db.select(table, where=where, order="stamp", limit=conf.MaxEventsForStats)
     if "mouse" == input:
-        stats, app_stats, positions, events = stats_mouse(events, table, count)
+        stats_texts, app_stats, heatmap_stats, events = stats_mouse(events, table, count)
     else:
-        stats, app_stats, events = stats_keyboard(events, table, count)
+        stats_texts, app_stats, events = stats_keyboard(events, table, count)
+        heatmap_stats = db.fetch(table, "realkey AS key, COUNT(*) AS count", where, "realkey", "count DESC")
+        key_stats = heatmap_stats if "keys" == table else \
+                    db.fetch(table, "key, COUNT(*) AS count", where, "key", "count DESC")
 
-    if app_ids is not None and len(apps) - len(app_stats):
+    if app_ids is not None and len(apps) - len(app_stats): # Populate totals for apps outside filter
         appmap = {x["id"]: x for x in apps}
         where2 = [(k, v) for k, v in where if k != "fk_program"]
         where2 += [("fk_program", ("NOT IN", app_stats))]
@@ -182,8 +178,7 @@ def inputdetail(input, table, period=None, session=None, appids=None, appnames=N
                                             "total": row["count"]}
 
     dbinfo, session = stats_db(conf.DbPath), sess
-    template = "heatmap_mouse.tpl" if "mouse" == input else "heatmap_keyboard.tpl"
-    return bottle.template(template, locals(), conf=conf)
+    return bottle.template("heatmap.tpl", locals(), conf=conf)
 
 
 @route("/<input>")
@@ -284,7 +279,7 @@ def stats_keyboard(events, table, count):
     stats += [("Total unique %s" % table, len(uniques))]
     if deltas:
         stats += [("Total time interval", format_timedelta(last["dt"] - first["dt"]))]
-    app_items = [{"id": k, "top": [a for a, _ in v.most_common(conf.MaxTopKeysForPrograms)],
+    app_items = [{"id": k, "cols": {"top": [a for a, _ in v.most_common(conf.MaxTopKeysForPrograms)]},
                   "path": appmap.get(k), "total": sum(v.values())} for k, v in app_stats.items()]
     app_results = collections.OrderedDict(
         (x["id"], x) for x in sorted(app_items, key=lambda x: x["total"], reverse=True)
@@ -380,7 +375,7 @@ def stats_mouse(events, table, count):
                       for k in SCROLL_NAMES if "dy" in k or counts[k]]))
         app_items = [{"id": k, "path": appmap.get(k), "total": sum(v.values()),
                       "cols": collections.OrderedDict((b, v[a]) for a, b in SCROLL_NAMES.items()
-                                                        if v.get(a))}
+                                                      if v.get(a))}
                        for k, v in app_stats.items()]
     elif "clicks" == table and count:
         stats = [("Clicks per hour", 
@@ -392,7 +387,7 @@ def stats_mouse(events, table, count):
             stats += [("%s button clicks" % BUTTON_NAMES.get(k, "%s." % k), v)]
         app_items = [{"id": k, "path": appmap.get(k), "total": sum(v.values()),
                       "cols": collections.OrderedDict((b, v[a]) for a, b in BUTTON_NAMES.items()
-                                                        if v.get(a))}
+                                                      if v.get(a))}
                        for k, v in app_stats.items()]
     if count:
         stats += [("Total time interval", format_timedelta(last["dt"] - first["dt"]))]
