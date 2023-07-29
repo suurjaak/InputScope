@@ -14,7 +14,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    28.07.2022
+@modified    29.07.2022
 %"""
 %from inputscope.util import format_session
 %WEBROOT = get_url("/")
@@ -114,7 +114,7 @@ Template arguments:
 {{! base }}
 </div>
 
-<div id="overlay">
+<div id="overlay" class="hidden">
   <div id="overshadow"></div>
   <div id="overcontent">
     <table class="outlined">
@@ -137,7 +137,7 @@ window.addEventListener("load", function() {
   document.location.hash = "";
   var elm_overlay = document.getElementById("overlay");
   var toggleOverlay = function(evt) {
-    elm_overlay.classList.toggle("visible");
+    elm_overlay.classList.toggle("hidden");
     evt && evt.preventDefault();
   };
 
@@ -145,7 +145,7 @@ window.addEventListener("load", function() {
   document.getElementById("overlayclose").addEventListener("click", toggleOverlay);
   document.getElementById("overshadow")  .addEventListener("click", toggleOverlay);
   document.body.addEventListener("keydown", function(evt) {
-    if (evt.keyCode == 27 && elm_overlay.classList.contains("visible")) toggleOverlay();
+    if (evt.keyCode == 27 && !elm_overlay.classList.contains("hidden")) toggleOverlay();
   });
 
 %if days:

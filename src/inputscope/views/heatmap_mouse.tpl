@@ -74,16 +74,15 @@ Template arguments:
 <a href="javascript:;" title="Stop replay and reset heatmap" id="replay_stop">x</a>
 </div>
 
+<div class="heatmap-container" style="margin: 0 calc(-10rem + {{ (700 - conf.MouseHeatmapSize[0]) // 2 }}px - 2px);">
 %for i, display in enumerate(positions or [None]):
-<div class="heatmap-container">
-  <div class="heatmap {{ input }}" style="width: {{ conf.MouseHeatmapSize[0] }}px; height: {{ conf.MouseHeatmapSize[1] }}px; margin-left: calc(-10rem + {{ (700 - conf.MouseHeatmapSize[0]) // 2 }}px - 1px);"></div>
+  <div class="heatmap {{ input }}" style="width: {{ conf.MouseHeatmapSize[0] }}px; height: {{ conf.MouseHeatmapSize[1] }}px;"></div>
   <div class="heatmap_helpers">
     %if apps:
-    <a id="apps_form_show" title="Select applications" style="margin-left: calc(-10rem + {{ (700 - conf.MouseHeatmapSize[0]) // 2 }}px - 1px);">applications</a>
+    <a id="apps_form_show" title="Select applications">applications</a>
     %end # if apps
-    <a class="fullscreen" title="Expand heatmap to full screen" style="margin-right: calc(-10rem + {{ (700 - conf.MouseHeatmapSize[0]) // 2 }}px - 3px);">full screen</a>
+    <a class="fullscreen" title="Expand heatmap to full screen">full screen</a>
   </div>
-</div>
 
     %if apps and not i:
 <form id="apps_form" class="hidden">
@@ -122,6 +121,7 @@ Template arguments:
         %end # if app_ids
     %end # if apps and not i
 %end # for i, display
+</div>
 
 <div id="tables">
 

@@ -89,7 +89,7 @@ var initAppsFilter = function(base_url, text_now, ids_now, selectors) {
  * @param   events     list of keyboard events, as [{dt, data: [{x, y, count, key}]}]
  * @param   selectors  map of {heatmap,replay_start,replay_stop,interval,step,progress,status,
  *                             statustext,toggle_heatmap,toggle_keyboard,keyboard: query selector},
- *                     defaults to {heatmap: "#heatmap", replay_start: "#replay_start",
+ *                     defaults to {heatmap: ".heatmap-container .heatmap", replay_start: "#replay_start",
  *                       replay_stop: "#replay_stop", interval: "#replay_interval",
  *                       step: "#replay_step", progress: "#progressbar", status: "#status",
  *                       statustext: "#statustext", toggle_heatmap: "#show_heatmap",
@@ -98,7 +98,7 @@ var initAppsFilter = function(base_url, text_now, ids_now, selectors) {
 var initKeyboardHeatmap = function(positions, events, selectors) {
 
   var RADIUS    = 20;
-  var SELECTORS = {heatmap: "#heatmap", replay_start: "#replay_start",
+  var SELECTORS = {heatmap: ".heatmap-container .heatmap", replay_start: "#replay_start",
                    replay_stop: "#replay_stop", interval: "#replay_interval",
                    step: "#replay_step", progress: "#progressbar", status: "#status",
                    statustext: "#statustext", toggle_heatmap: "#show_heatmap",

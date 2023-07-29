@@ -3,7 +3,7 @@
  *
  * @author      Erki Suurjaak
  * @created     07.04.2015
- * @modified    25.07.2023
+ * @modified    29.07.2023
  */
 :root {
   font-size: 6.25%; /** Root font size to 1px @ default font size 16px */
@@ -126,6 +126,7 @@ body {
   min-height: 1.2em;
 }
 #daysection select {
+  background: white;
   color: black;
   font-size: 1em;
   text-align: center;
@@ -320,7 +321,7 @@ body.session.input td.periods a.day {
   margin-left: 0;
 }
 #overlay {
-  display: none;
+  display: flex;
   align-items: center;
   bottom: 0;
   justify-content: center;
@@ -329,9 +330,6 @@ body.session.input td.periods a.day {
   right: 0;
   top: 0;
   z-index: 10000;
-}
-#overlay.visible {
-  display: flex;
 }
 #overlay #overshadow {
   background: black;
@@ -430,7 +428,7 @@ body.index table .flex-row > :first-child {
 #apps_form {
   display: block;
   position: relative;
-  top: -14px;
+  margin-top: -14px;
 }
 #apps_form .items {
   font-size: 0.9em;
