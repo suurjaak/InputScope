@@ -23,7 +23,7 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    29.07.2023
+@modified    30.07.2023
 %"""
 %import json, os, re
 %import bottle
@@ -141,22 +141,28 @@ Template arguments:
 
 <div id="tables">
 
-  <table id="stats" class="{{ input }} outlined">
+  <div class="data">
+    <a title="Toggle table" class="toggle">&ndash;</a>
+    <table id="stats" class="{{ input }}">
 %for key, val in stats_texts:
-    <tr><td>{{ key }}</td><td>{{ val }}</td></tr>
+      <tr><td>{{ key }}</td><td>{{ val }}</td></tr>
 %end # for key, val
 %if count > conf.MaxEventsForStats:
-    <tr><td colspan="2">Statistics and heatmap limited to a maximum of {{ "{:,}".format(conf.MaxEventsForStats) }} events.</td></tr>
+      <tr><td colspan="2">Statistics and heatmap limited to a maximum of {{ "{:,}".format(conf.MaxEventsForStats) }} events.</td></tr>
 %end # if count > conf.MaxEventsForStats
-  </table>
+    </table>
+  </div>
 
 %if "keyboard" == input:
-  <table id="counts" class="outlined">
-    <tr><th>Key</th><th>Count</th></tr>
+  <div class="data">
+    <a title="Toggle table" class="toggle">&ndash;</a>
+    <table id="counts">
+      <tr><th>Key</th><th>Count</th></tr>
     %for item in key_stats:
-    <tr><td>{{ item["key"] }}</td><td>{{ item["count"] }}</td></tr>
+      <tr><td>{{ item["key"] }}</td><td>{{ item["count"] }}</td></tr>
     %end # for item
-  </table>
+    </table>
+  </div>
 %end # if "keyboard"
 
 %if len([x for x in app_stats.values() if x["total"]]) > 1:
@@ -164,23 +170,26 @@ Template arguments:
 %    for label in (l for x in app_stats.values() for l in x.get("cols", [])):
 %        labels.append(label) if label not in labels else label
 %    end # for label
-  <table id="app_stats" class="{{ input }} outlined">
-    <tr><th>Application</th>
+  <div class="data" id="app_stats">
+    <a title="Toggle table" class="toggle">&ndash;</a>
+    <table class="{{ input }}">
+      <tr><th>Application</th>
 %    for label in labels:
-    <th>{{ label }}</th>
+      <th>{{ label }}</th>
 %    end # for label
-    <th>Total</th></tr>
+      <th>Total</th></tr>
 %    for item in (x for x in app_stats.values() if x.get("cols")):
-    <tr>
-      <td title="{{ item["path"] }}">{{ os.path.split(item["path"] or "")[-1] or "(unknown)" }}</td>
+      <tr>
+        <td title="{{ item["path"] }}">{{ os.path.split(item["path"] or "")[-1] or "(unknown)" }}</td>
 %        for label in labels:
 %            v = item["cols"].get(label, "")
-      <td>{{ "{:,}".format(v) if isinstance(v, int) else ", ".join(v) if isinstance(v, (list, tuple)) else v }}</td>
+        <td>{{ "{:,}".format(v) if isinstance(v, int) else ", ".join(v) if isinstance(v, (list, tuple)) else v }}</td>
 %        end # for label
-      <td>{{ "{:,}".format(item["total"]) }}</td>
-    </tr>
+        <td>{{ "{:,}".format(item["total"]) }}</td>
+      </tr>
 %    end # for item
-  </table>
+    </table>
+  </div>
 %end # if len(..)
 
 </div>
@@ -208,5 +217,6 @@ appidstr = "" if app_search else ",".join(map(str, app_ids or []))
   window.addEventListener("load", function() {
     {{ "initMouseHeatmaps" if "mouse" == input else "initKeyboardHeatmap" }}(positions, events);
     initAppsFilter("{{ make_url(appids=None, appnames=None) }}", "{{ app_search or "" }}", "{{ appidstr }}");
+    initToggles("a.toggle", "collapsed");
   });
 </script>

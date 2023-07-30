@@ -1,9 +1,9 @@
 /**
- * Shared JavaScript.
+ * Site JavaScript.
  *
  * @author      Erki Suurjaak
  * @created     26.07.2023
- * @modified    29.07.2023
+ * @modified    30.07.2023
  */
 
 
@@ -305,6 +305,25 @@ var initMouseHeatmaps = function(positions, events, selectors) {
     }
   };
 
+};
+
+
+/**
+ * Initializes elements to toggle element parent style on click.
+ *
+ * @param   selector  element selector like "a.toggle"
+ * @param   style     CSS class to toggle on parent, like "collapsed"
+ * @param   labels    content to swap on element, defaults to {true: "+", false: "&ndash;"}
+ */
+var initToggles = function(selector, style, labels) {
+  var LABELS = {true: "+", false: "&ndash;"};
+  Object.keys(labels || {}).forEach(function(k) { LABELS[k] = labels[k] || LABELS[k]; });
+  document.querySelectorAll(selector).forEach(function(elm) {
+    elm.addEventListener("click", function() {
+      this.parentNode.classList.toggle(style);
+      this.innerHTML = LABELS[this.parentNode.classList.contains(style)];
+    });
+  });
 };
 
 

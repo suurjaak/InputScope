@@ -3,7 +3,7 @@
  *
  * @author      Erki Suurjaak
  * @created     07.04.2015
- * @modified    29.07.2023
+ * @modified    30.07.2023
  */
 :root {
   font-size: 6.25%; /** Root font size to 1px @ default font size 16px */
@@ -205,7 +205,7 @@ body {
   flex-wrap: wrap;
   justify-content: space-between;
 }
-#tables > table:last-child {
+#tables > .data:last-child {
   margin-right: auto;
 }
 a {
@@ -223,6 +223,24 @@ table.outlined tbody {
   margin-bottom: 20px;
   margin-top: 20px;
   padding: 5rem;
+}
+#tables .data {
+  border: 1px dashed #1abc9c;
+  height: fit-content;
+  margin-bottom: 20px;
+  margin-top: 20px;
+  padding: 5rem;
+  position: relative;
+}
+.data .toggle {
+  font-size: 0.8em;
+  right: 1px;
+  top: -3px;
+}
+.data.collapsed > table {
+  display: block;
+  height: 1.5em;
+  overflow: hidden;
 }
 input[type="button"] {
   color: black;
@@ -261,6 +279,7 @@ label.range_label {
   width: 100%;
 }
 a.toggle {
+  cursor: pointer;
   position: absolute;
   right: 0px;
 }
@@ -282,7 +301,8 @@ table.totals td.periods.collapsed .count {
   white-space: nowrap;
 }
 table.totals td.periods.collapsed .periods {
-  display: none;
+  height: 0;
+  overflow: hidden;
 }
 table.totals td.periods .periods a.day {
   margin-left: 10px;
@@ -381,8 +401,8 @@ table.outlined td {
   padding-right: 10px;
   white-space: nowrap;
 }
-#app_stats.mouse th:not(:first-child),
-#app_stats.mouse td:not(:first-child) {
+#app_stats table.mouse th:not(:first-child),
+#app_stats table.mouse td:not(:first-child) {
   text-align: right;
 }
 #app_stats td:first-child {

@@ -1,9 +1,10 @@
 CHANGELOG
 =========
 
-1.9, 2023-07-26
+1.9, 2023-07-30
 ---------------
-- add applications filter
+- add applications filter (issue #26)
+- add toggles to data tables on heatmap pages
 - improve compatibility between Py3 minor versions
 
 
