@@ -25,8 +25,9 @@ Template arguments:
 @created     21.05.2015
 @modified    30.07.2023
 %"""
-%import json, os, re
+%import json, os
 %import bottle
+%from inputscope import conf
 %from inputscope.util import format_weekday
 %WEBROOT = get_url("/")
 %HEATMAP_SIZE = conf.MouseHeatmapSize if "mouse" == input else conf.KeyboardHeatmapSize
@@ -165,7 +166,7 @@ Template arguments:
   </div>
 %end # if "keyboard"
 
-%if len([x for x in app_stats.values() if x["total"]]) > 1:
+%if len([x for x in app_stats.values() if x.get("cols")]) > 1:
 %    labels = []
 %    for label in (l for x in app_stats.values() for l in x.get("cols", [])):
 %        labels.append(label) if label not in labels else label
@@ -216,7 +217,9 @@ appidstr = "" if app_search else ",".join(map(str, app_ids or []))
   var events = {{! json.dumps(events) }};
   window.addEventListener("load", function() {
     {{ "initMouseHeatmaps" if "mouse" == input else "initKeyboardHeatmap" }}(positions, events);
+%if conf.ProgramsEnabled:
     initAppsFilter("{{ make_url(appids=None, appnames=None) }}", "{{ app_search or "" }}", "{{ appidstr }}");
+%end # if conf.ProgramsEnabled
     initToggles("a.toggle", "collapsed");
   });
 </script>

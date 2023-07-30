@@ -6,7 +6,7 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    29.07.2023
+@modified    30.07.2023
 """
 import collections
 import datetime
@@ -121,12 +121,13 @@ def inputdetail(input, table, period=None, session=None, appids=None, appnames=N
         if session: url, kws = ("/sessions/<session>" + url, dict(kws, session=session))
         return bottle.redirect(request.app.get_url(url, **kws))
 
-    apps, app_ids, app_search = db.fetch("programs", order="LOWER(path)"), None, appnames
-    if appids:
+    apps = db.fetch("programs", order="LOWER(path)") if conf.ProgramsEnabled else []
+    app_ids, app_search = None, appnames
+    if conf.ProgramsEnabled and appids:
         appids = [int(x) for x in (x.strip() for x in appids.split(",")) if x.isdigit()]
         app_ids = [x["id"] for x in apps if x["id"] in appids]
         appnames = app_search = ""
-    elif appnames:
+    elif conf.ProgramsEnabled and appnames:
         appnames = [a or b for a, b in re.findall(r'"([^"]+)"|(\S+)', appnames.lower())]
         app_ids = [x["id"] for x in apps if any(y in x["path"].lower() for y in appnames)]
     if app_ids is not None:
