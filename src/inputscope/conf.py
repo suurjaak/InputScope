@@ -20,7 +20,7 @@ the declared ones in source code. File is deleted if all values are at default.
 
 @author      Erki Suurjaak
 @created     26.03.2015
-@modified    18.07.2023
+@modified    30.07.2022
 ------------------------------------------------------------------------------
 """
 import ast
@@ -36,8 +36,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.8"
-VersionDate = "18.07.2023"
+Version = "1.9.dev11"
+VersionDate = "30.07.2022"
 
 """TCP port of the web user interface."""
 WebHost = "localhost"
@@ -407,7 +407,8 @@ def init(filename=ConfigPath, create=True):
         try: txt = txt.decode()
         except Exception: pass
         if not re.search("\\[\\w+\\]", txt): txt = "[DEFAULT]\n" + txt
-        parser.readfp(io.StringIO(txt), filename)
+        reader = getattr(parser, "read_file", getattr(parser, "readfp", None))  # Py3/Py2
+        reader(io.StringIO(txt), filename)
         for k, v in parser.items(section): vardict[k] = parse_value(v)
     except Exception:
         logging.warn("Error reading config from %s.", filename, exc_info=True)

@@ -7,7 +7,7 @@ Pyinstaller-provided names and variables: Analysis, EXE, PYZ, SPEC, TOC.
 
 @author    Erki Suurjaak
 @created   13.04.2015
-@modified  28.02.2022
+@modified  29.07.2023
 """
 import os
 import struct
@@ -28,8 +28,8 @@ from inputscope import conf
 
 APP_INCLUDES = [("static", "icon.ico"),       ("static", "site.css"),
                 ("static", "heatmap.min.js"), ("static", "keyboard.svg"),
-                ("views",  "index.tpl"),      ("views",  "heatmap_keyboard.tpl"),
-                ("views",  "input.tpl"),      ("views",  "heatmap_mouse.tpl"),
+                ("views",  "index.tpl"),      ("static", "site.js"),
+                ("views",  "input.tpl"),      ("views",  "heatmap.tpl"),
                 ("views",  "base.tpl"),       ("views",  "session.tpl")]
 DATA_EXCLUDES = ["Include\\pyconfig.h"] # PyInstaller 2.1 bug: warning about existing pyconfig.h
 MODULE_EXCLUDES = ["_gtkagg", "_tkagg", "_tkinter", "backports", "bsddb", "bz2",

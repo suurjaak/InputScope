@@ -1,6 +1,15 @@
 CHANGELOG
 =========
 
+1.9, 2023-07-30
+---------------
+- add applications filter (issue #26)
+- add toggles to data tables on heatmap pages
+- upgrade heatmap library from 2.0.0 to 2.0.5
+- optimize heatmap replay, clear browser console warning
+- improve compatibility between Py3 minor versions
+
+
 1.8, 2023-07-17
 ---------------
 - add fullscreen view to mouse heatmaps

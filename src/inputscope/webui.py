@@ -6,7 +6,7 @@ Web frontend interface, displays statistics from a database.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    12.07.2023
+@modified    30.07.2023
 """
 import collections
 import datetime
@@ -94,10 +94,18 @@ def inputsessionindex(session, input):
 
 
 @route("/<input>/<table>")
+@route("/<input>/<table>/app/<appnames:path>")
+@route("/<input>/<table>/app/id\:<appids>") # Colon in URL needs escaping for Bottle
 @route("/<input>/<table>/<period>")
+@route("/<input>/<table>/<period>/app/<appnames:path>")
+@route("/<input>/<table>/<period>/app/id\:<appids>")
 @route("/sessions/<session>/<input>/<table>")
+@route("/sessions/<session>/<input>/<table>/app/<appnames:path>")
+@route("/sessions/<session>/<input>/<table>/app/id\:<appids>")
 @route("/sessions/<session>/<input>/<table>/<period>")
-def inputdetail(input, table, period=None, session=None):
+@route("/sessions/<session>/<input>/<table>/<period>/app/<appnames:path>")
+@route("/sessions/<session>/<input>/<table>/<period>/app/id\:<appids>")
+def inputdetail(input, table, period=None, session=None, appids=None, appnames=None):
     """Handler for showing mouse/keyboard statistics page."""
     sess = db.fetchone("sessions", id=session) if session else None
     if session and not sess:
@@ -112,6 +120,19 @@ def inputdetail(input, table, period=None, session=None):
         url, kws = "/<input>", dict(input=input)
         if session: url, kws = ("/sessions/<session>" + url, dict(kws, session=session))
         return bottle.redirect(request.app.get_url(url, **kws))
+
+    apps = db.fetch("programs", order="LOWER(path)") if conf.ProgramsEnabled else []
+    app_ids, app_search = None, appnames
+    if conf.ProgramsEnabled and appids:
+        appids = [int(x) for x in (x.strip() for x in appids.split(",")) if x.isdigit()]
+        app_ids = [x["id"] for x in apps if x["id"] in appids]
+        appnames = app_search = ""
+    elif conf.ProgramsEnabled and appnames:
+        appnames = [a or b for a, b in re.findall(r'"([^"]+)"|(\S+)', appnames.lower())]
+        app_ids = [x["id"] for x in apps if any(y in x["path"].lower() for y in appnames)]
+    if app_ids is not None:
+        app_ids.sort()
+        where += [("fk_program", ("IN", app_ids))]
 
     if sess:
         where += [("stamp", (">=", sess["start"]))]
@@ -137,21 +158,28 @@ def inputdetail(input, table, period=None, session=None):
         where += [("day", ("IN", mydays))]
     elif period:
         where += [("day", period)]
-    if "keyboard" == input:
-        cols, group = "realkey AS key, COUNT(*) AS count", "realkey"
-        counts_display = counts = db.fetch(table, cols, where, group, "count DESC")
-        if "combos" == table:
-            counts_display = db.fetch(table, "key, COUNT(*) AS count", where,
-                                      "key", "count DESC")
 
+    if app_ids is not None:
+        count = db.fetchone(table, "COUNT(*) AS count", where=where)["count"]
     events = db.select(table, where=where, order="stamp", limit=conf.MaxEventsForStats)
     if "mouse" == input:
-        stats, app_stats, positions, events = stats_mouse(events, table, count)
+        stats_texts, app_stats, heatmap_stats, events = stats_mouse(events, table, count)
     else:
-        stats, app_stats, events = stats_keyboard(events, table, count)
+        stats_texts, app_stats, events = stats_keyboard(events, table, count)
+        heatmap_stats = db.fetch(table, "realkey AS key, COUNT(*) AS count", where, "realkey", "count DESC")
+        key_stats = heatmap_stats if "keys" == table else \
+                    db.fetch(table, "key, COUNT(*) AS count", where, "key", "count DESC")
+
+    if app_ids is not None and len(apps) - len(app_stats): # Populate totals for apps outside filter
+        appmap = {x["id"]: x for x in apps}
+        where2 = [(k, v) for k, v in where if k != "fk_program"]
+        where2 += [("fk_program", ("NOT IN", app_stats))]
+        for row in db.fetch(table, "fk_program, COUNT(*) AS count", where=where2, group="fk_program"):
+            app_stats[row["fk_program"]] = {"path": appmap.get(row["fk_program"], {}).get("path"),
+                                            "total": row["count"]}
+
     dbinfo, session = stats_db(conf.DbPath), sess
-    template = "heatmap_mouse.tpl" if "mouse" == input else "heatmap_keyboard.tpl"
-    return bottle.template(template, locals(), conf=conf)
+    return bottle.template("heatmap.tpl", locals(), conf=conf)
 
 
 @route("/<input>")
@@ -195,7 +223,7 @@ def stats_keyboard(events, table, count):
     """Return (statistics, app statistics, collated and max-limited events) for keyboard events."""
     KEYNAME = "realkey" if "keys" == table else "key"
     appmap = {x["id"]: x["path"] for x in db.select("programs")} if conf.ProgramsEnabled else {}
-    app_stats = {}  # {path: Counter(key: count)}
+    app_stats = {}  # {id: Counter(key: count)}
     deltas, first, last = [], None, None
     tsessions, tsession = [], None
     UNBROKEN_DELTA = datetime.timedelta(seconds=conf.KeyboardSessionMaxDelta)
@@ -206,8 +234,9 @@ def stats_keyboard(events, table, count):
         e.pop("id") # Decrease memory overhead
         e["dt"] = datetime.datetime.fromtimestamp(e.pop("stamp"))
         if not first: first = e
-        app = appmap.get(e.pop("fk_program"))
-        if appmap: app_stats.setdefault(app, collections.Counter()).update([e[KEYNAME]])
+        app_id = e.pop("fk_program")
+        if not app_id or app_id in appmap:
+            app_stats.setdefault(app_id, collections.Counter()).update([e[KEYNAME]])
         if last:
             if last["dt"].timetuple()[:6] != e["dt"].timetuple()[:6]: # Ignore usecs
                 collated.append(blank.copy())
@@ -251,9 +280,11 @@ def stats_keyboard(events, table, count):
     stats += [("Total unique %s" % table, len(uniques))]
     if deltas:
         stats += [("Total time interval", format_timedelta(last["dt"] - first["dt"]))]
-    app_results = [{"path": k, "top": [a for a, _ in v.most_common(conf.MaxTopKeysForPrograms)],
-                    "total": sum(v.values())} for k, v in app_stats.items()]
-    app_results.sort(key=lambda x: x["total"], reverse=True)
+    app_items = [{"id": k, "cols": {"top": [a for a, _ in v.most_common(conf.MaxTopKeysForPrograms)]},
+                  "path": appmap.get(k), "total": sum(v.values())} for k, v in app_stats.items()]
+    app_results = collections.OrderedDict(
+        (x["id"], x) for x in sorted(app_items, key=lambda x: x["total"], reverse=True)
+    )
     return stats, app_results, collated[:conf.MaxEventsForReplay]
 
 
@@ -263,7 +294,7 @@ def stats_mouse(events, table, count):
     SCROLL_NAMES = collections.OrderedDict([("dy", "down"), ("-dy", "up"),
                                             ("-dx", "left"), ("dx", "right")])
     appmap = {x["id"]: x["path"] for x in db.select("programs")} if conf.ProgramsEnabled else {}
-    app_stats = {}  # {path: Counter(button: count)}
+    app_stats = {}  # {id: Counter(button: count)}
     first, last, totaldelta = None, None, datetime.timedelta()
     all_events = []
     HS = conf.MouseHeatmapSize
@@ -271,8 +302,8 @@ def stats_mouse(events, table, count):
     SZ.update({"dt": datetime.datetime.min, 0: 0, 1: 0}) # {0,1,2,3: x,y,w,h}
     displayxymap  = collections.defaultdict(lambda: collections.defaultdict(int))
     counts, distances = collections.Counter(), collections.defaultdict(float)
-    app_deltas = collections.defaultdict(datetime.timedelta)
-    app_distances = collections.defaultdict(float)
+    app_deltas = collections.defaultdict(datetime.timedelta) # {id: time in app}
+    app_distances = collections.defaultdict(float) # {id: pixels}
     SIZES = {} # Scale by desktop size at event time; {display: [{size}, ]}
     for row in db.fetch("screen_sizes", order="dt"):
         row.update({0: row["x"], 2: row["w"] / float(HS[0]),
@@ -282,14 +313,14 @@ def stats_mouse(events, table, count):
     for e in events:
         e["dt"] = datetime.datetime.fromtimestamp(e.pop("stamp"))
         if not first: first = e
-        app = appmap.get(e["fk_program"])
-        if appmap: app_stats.setdefault(app, collections.Counter())
+        app_id = e["fk_program"]
+        if not app_id or app_id in appmap: app_stats.setdefault(app_id, collections.Counter())
         if last and last["display"] == e["display"]:
             totaldelta += e["dt"] - last["dt"]
             distances[e["display"]] += math.sqrt(sum(abs(e[k] - last[k])**2 for k in "xy"))
             if appmap and last["fk_program"] == e["fk_program"]:
-                app_deltas[app] += e["dt"] - last["dt"]
-                app_distances[app] += math.sqrt(sum(abs(e[k] - last[k])**2 for k in "xy"))
+                app_deltas[app_id] += e["dt"] - last["dt"]
+                app_distances[app_id] += math.sqrt(sum(abs(e[k] - last[k])**2 for k in "xy"))
         last = dict(e) # Copy, as we modify coordinates for heatmap
 
         sz, sizes = cursizes.get(e["display"]), SIZES.get(e["display"], [SZ])
@@ -304,15 +335,15 @@ def stats_mouse(events, table, count):
         e["x"], e["y"] = [max(0, min(e["xy"[k]], HS[k])) for k in [0, 1]]
         displayxymap[e["display"]][(e["x"], e["y"])] += 1
         if "moves" == table:
-            if appmap: app_stats[app].update([table])
+            if appmap: app_stats[app_id].update([table])
         elif "clicks" == table:
             counts.update(str(e["button"]))
-            if appmap: app_stats[app].update([str(e["button"])])
+            if appmap: app_stats[app_id].update([str(e["button"])])
         elif "scrolls" == table:
             for k in ("dx", "dy"):
                 key, value = "%s%s" % ("-" if e[k] < 0 else "", k), abs(e[k])
                 counts[key] += value
-                if appmap: app_stats[app][key] += value
+                if appmap: app_stats[app_id][key] += value
         if len(all_events) < conf.MaxEventsForReplay:
             for k in ("id", "day", "button", "dx", "dy", "fk_program"): e.pop(k, None)
             all_events.append(e)
@@ -320,7 +351,7 @@ def stats_mouse(events, table, count):
     positions = {i: [dict(x=x, y=y, count=v) for (x, y), v in displayxymap[i].items()]
                  for i in sorted(displayxymap)}
     stats, distance = [], sum(distances.values())
-    app_results = []
+    app_items = []
     if "moves" == table and count:
         px = re.sub(r"(\d)(?=(\d{3})+(?!\d))", r"\1,", "%d" % math.ceil(distance))
         seconds = timedelta_seconds(last["dt"] - first["dt"])
@@ -330,22 +361,22 @@ def stats_mouse(events, table, count):
                  ("Average speed", "%.1f pixels per second" % (distance / (seconds or 1))),
                  ("", "%.4f meters per second" %
                   (distance * conf.PixelLength / (seconds or 1))), ]
-        app_results = [{"path": k, "total": sum(v.values()),
-                        "cols": collections.OrderedDict([
-                            ("pixels", re.sub(r"(\d)(?=(\d{3})+(?!\d))", r"\1,", "%d px" % d)),
-                            ("meters", re.sub(r"(\d)(?=(\d{3})+(?!\d))", r"\1,", "%.1f m" %
-                                       (d * conf.PixelLength))),
-                            ("time", format_timedelta(app_deltas[k])),
-                       ])} for k, v in app_stats.items() for d in [math.ceil(app_distances[k])]]
+        app_items = [{"id": k, "path": appmap.get(k), "total": sum(v.values()),
+                      "cols": collections.OrderedDict([
+                          ("pixels", re.sub(r"(\d)(?=(\d{3})+(?!\d))", r"\1,", "%d px" % d)),
+                          ("meters", re.sub(r"(\d)(?=(\d{3})+(?!\d))", r"\1,", "%.1f m" %
+                                     (d * conf.PixelLength))),
+                          ("time", format_timedelta(app_deltas[k])),
+                     ])} for k, v in app_stats.items() for d in [math.ceil(app_distances[k])]]
     elif "scrolls" == table and count:
         stats = list(filter(bool, [("Scrolls per hour", 
                   int(count / (timedelta_seconds(last["dt"] - first["dt"]) / 3600 or 1))),
                  ("Average interval", format_timedelta(totaldelta / (count or 1))),
                  ] + [("Scrolls %s" % SCROLL_NAMES[k], counts[k])
                       for k in SCROLL_NAMES if "dy" in k or counts[k]]))
-        app_results = [{"path": k, "total": sum(v.values()),
-                        "cols": collections.OrderedDict((b, v[a]) for a, b in SCROLL_NAMES.items()
-                                                        if v.get(a))}
+        app_items = [{"id": k, "path": appmap.get(k), "total": sum(v.values()),
+                      "cols": collections.OrderedDict((b, v[a]) for a, b in SCROLL_NAMES.items()
+                                                      if v.get(a))}
                        for k, v in app_stats.items()]
     elif "clicks" == table and count:
         stats = [("Clicks per hour", 
@@ -355,13 +386,15 @@ def stats_mouse(events, table, count):
                   "%.1f pixels" % (distance / (count or 1))), ]
         for k, v in sorted(counts.items()):
             stats += [("%s button clicks" % BUTTON_NAMES.get(k, "%s." % k), v)]
-        app_results = [{"path": k, "total": sum(v.values()),
-                        "cols": collections.OrderedDict((b, v[a]) for a, b in BUTTON_NAMES.items()
-                                                        if v.get(a))}
+        app_items = [{"id": k, "path": appmap.get(k), "total": sum(v.values()),
+                      "cols": collections.OrderedDict((b, v[a]) for a, b in BUTTON_NAMES.items()
+                                                      if v.get(a))}
                        for k, v in app_stats.items()]
     if count:
         stats += [("Total time interval", format_timedelta(last["dt"] - first["dt"]))]
-    app_results.sort(key=lambda x: x["total"], reverse=True)
+    app_results = collections.OrderedDict(
+        (x["id"], x) for x in sorted(app_items, key=lambda x: x["total"], reverse=True)
+    )
     return stats, app_results, positions, all_events
 
 
@@ -407,6 +440,31 @@ def stats_db(filename):
     return result
 
 
+def make_url(**kwargs):
+    """Returns new URL from current URL, modified with added or cleared keyword arguments."""
+    ARGORDER = collections.OrderedDict([
+        ("session",  "/sessions/<session>"),  ("input",  "/<input>"),
+        ("table",    "/<table>"),             ("period", "/<period>"),
+        ("appnames", "/app/<appnames:path>"), ("appids", "/app/id\:<appids>"),
+    ])
+    rule, ruleargs = request.route.rule, dict(request.url_args)
+    for k, v in ((k, kwargs[k]) for k in ARGORDER if k in kwargs):
+        if v is None: # Remove arg from route
+            rule = rule.replace(ARGORDER[k], "")
+            ruleargs.pop(k, None)
+        elif k not in ruleargs: # Add arg to route
+            pos, prev = 0, None
+            for arg in ARGORDER:
+                if arg == k:
+                    if prev: pos = rule.index(prev) + len(prev)
+                    break # for arg
+                elif arg in ruleargs: prev = ARGORDER[arg]
+            rule = rule[:pos] + ARGORDER[k] + rule[pos:]
+            ruleargs[k] = v
+        else: ruleargs[k] = v
+    return app.get_url(rule, **ruleargs)
+
+
 def init():
     """Initialize configuration and web application."""
     global app
@@ -417,7 +475,7 @@ def init():
 
     bottle.TEMPLATE_PATH.insert(0, conf.TemplatePath)
     app = bottle.default_app()
-    bottle.BaseTemplate.defaults.update(get_url=app.get_url)
+    bottle.BaseTemplate.defaults.update(get_url=app.get_url, make_url=make_url)
     return app
 
 

@@ -14,15 +14,11 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    16.07.2022
+@modified    29.07.2022
 %"""
 %from inputscope.util import format_session
 %WEBROOT = get_url("/")
-%INPUTURL, URLARGS = ("/<input>", dict(input=input)) if get("input") else ("/", {})
 %period, days, session = get("period", None), get("days", []), get("session", None)
-%if session:
-%    INPUTURL, URLARGS = "/sessions/<session>" + INPUTURL, dict(URLARGS, session=session["id"])
-%end # if session
 %bodycls = " ".join(set(filter(bool, get("page", "").split() + ["session" if session else ""])))
 <!DOCTYPE html>
 <html>
@@ -33,6 +29,7 @@ Template arguments:
   <link rel="icon" type="image/x-icon" href="{{ WEBROOT }}static/icon.ico" />
   <link rel="stylesheet" href="{{ WEBROOT }}static/site.css" />
   <script src="{{ WEBROOT }}static/heatmap.min.js"></script>
+  <script src="{{ WEBROOT }}static/site.js"></script>
 </head>
 <body{{! ' class="%s"' % bodycls if bodycls else "" }}>
 <div id="header" class="flex-row">
@@ -80,7 +77,7 @@ Template arguments:
     %end # if period and len(period) < 8
 
     %if prevperiod:
-  <a href="{{ get_url("%s/<table>/<period>" % INPUTURL, table=table, period=prevperiod, **URLARGS) }}">&lt; {{ prevperiod }}</a>
+  <a href="{{ make_url(period=prevperiod) }}">&lt; {{ prevperiod }}</a>
     %else:
   <a></a>
     %end # if prevperiod
@@ -100,7 +97,7 @@ Template arguments:
   </select>
 
     %if nextperiod:
-  <a href="{{ get_url("%s/<table>/<period>" % INPUTURL, table=table, period=nextperiod, **URLARGS) }}">{{ nextperiod }} &gt;</a>
+  <a href="{{ make_url(period=nextperiod) }}">{{ nextperiod }} &gt;</a>
     %else:
   <a></a>
     %end # if nextperiod
@@ -117,10 +114,10 @@ Template arguments:
 {{! base }}
 </div>
 
-<div id="overlay">
+<div id="overlay" class="hidden">
   <div id="overshadow"></div>
   <div id="overcontent">
-    <table>
+    <table class="outlined">
 %for k, v in dbinfo:
       <tr><td>{{ k }}:</td><td>{{ v }}</td></tr>
 %end # for k, v
@@ -140,20 +137,20 @@ window.addEventListener("load", function() {
   document.location.hash = "";
   var elm_overlay = document.getElementById("overlay");
   var toggleOverlay = function(evt) {
-    elm_overlay.classList.toggle("visible");
+    elm_overlay.classList.toggle("hidden");
     evt && evt.preventDefault();
   };
 
-  document.getElementById("overlaylink").addEventListener("click", toggleOverlay);
+  document.getElementById("overlaylink") .addEventListener("click", toggleOverlay);
   document.getElementById("overlayclose").addEventListener("click", toggleOverlay);
-  document.getElementById("overshadow").addEventListener("click", toggleOverlay);
+  document.getElementById("overshadow")  .addEventListener("click", toggleOverlay);
   document.body.addEventListener("keydown", function(evt) {
-    if (evt.keyCode == 27 && elm_overlay.classList.contains("visible")) toggleOverlay();
+    if (evt.keyCode == 27 && !elm_overlay.classList.contains("hidden")) toggleOverlay();
   });
 
 %if days:
   document.getElementById("dayselector").addEventListener("change", function() {
-    window.location.href = "{{ get_url("%s/<table>" % INPUTURL, table=table, **URLARGS) }}/" + this.value;
+    window.location.href = "{{ make_url(period="\\t\\n\\t") }}/".replace("\t\n\t", this.value);
   });
 %end # if days
 });
