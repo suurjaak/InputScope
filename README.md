@@ -120,7 +120,7 @@ Attribution
 
 Heatmaps are drawn with heatmap.js,
 released under the MIT License,
-(c) 2014 Patrick Wied, http://www.patrick-wied.at/static/heatmapjs/.
+(c) 2014 Patrick Wied, https://github.com/pa7/heatmap.js.
 
 Icon from Paomedia small-n-flat iconset,
 released under Creative Commons (Attribution 3.0 Unported),

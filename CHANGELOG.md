@@ -5,6 +5,7 @@ CHANGELOG
 ---------------
 - add applications filter (issue #26)
 - add toggles to data tables on heatmap pages
+- upgrade heatmap library from 2.0.0 to 2.0.5
 - improve compatibility between Py3 minor versions
 
 
