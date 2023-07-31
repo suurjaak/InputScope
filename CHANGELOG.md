@@ -1,6 +1,11 @@
 CHANGELOG
 =========
 
+1.10, 2023-07-31
+----------------
+- tweak escaping special characters for regex in heatmap page application search
+
+
 1.9, 2023-07-30
 ---------------
 - add applications filter (issue #26)
