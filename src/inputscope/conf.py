@@ -20,7 +20,7 @@ the declared ones in source code. File is deleted if all values are at default.
 
 @author      Erki Suurjaak
 @created     26.03.2015
-@modified    31.07.2023
+@modified    19.10.2023
 ------------------------------------------------------------------------------
 """
 import ast
@@ -36,8 +36,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.10.dev0"
-VersionDate = "31.07.2023"
+Version = "1.10.dev1"
+VersionDate = "19.10.2023"
 
 """TCP port of the web user interface."""
 WebHost = "localhost"

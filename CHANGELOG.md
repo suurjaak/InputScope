@@ -1,8 +1,9 @@
 CHANGELOG
 =========
 
-1.10, 2023-07-31
+1.10, 2023-10-19
 ----------------
+- print reason when exiting program due to another instance already running (issue #27)
 - tweak escaping special characters for regex in heatmap page application search
 
 

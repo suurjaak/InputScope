@@ -5,7 +5,7 @@ command-line echoer otherwise. Launches the event listener and web UI server.
 
 @author      Erki Suurjaak
 @created     05.05.2015
-@modified    24.07.2022
+@modified    19.10.2023
 """
 import calendar
 import datetime
@@ -561,9 +561,12 @@ def main():
     if wx:
         name = re.sub(r"\W", "__", "-".join([conf.Title, conf.DbPath]))
         singlechecker = wx.SingleInstanceChecker(name)
-        if singlechecker.IsAnotherRunning(): sys.exit()
+        try:
+            if singlechecker.IsAnotherRunning():
+                sys.exit("Another instance of %s seems to be running: exiting." % conf.Title)
 
-        MainApp(redirect=True).MainLoop() # stdout/stderr directed to wx popup
+            MainApp(redirect=True).MainLoop() # stdout/stderr directed to wx popup
+        finally: del singlechecker
     else:
         model = Model()
         if tk:
