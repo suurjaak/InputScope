@@ -12,8 +12,8 @@ and provides a local web page for viewing statistics and heatmaps by day or mont
 [![Keyboard combos heatmap](https://raw.githubusercontent.com/suurjaak/InputScope/media/th_combos.png)](https://raw.githubusercontent.com/suurjaak/InputScope/media/combos.png)
 
 
-Details
--------
+Overview
+--------
 
 Logs mouse clicks and scrolls and movement, and keyboard key presses and key 
 combinations; event categories can be toggled off from tray menu.
@@ -73,6 +73,8 @@ e.g.
 # Ignore mouse events from center of all screens
 MouseRegionsOfDisinterest = [[0.49, 0.49, 0.02, 0.02]]
 ```
+
+For more on configuration settings, see [DETAIL.md](DETAIL.md).
 
 
 Installation
