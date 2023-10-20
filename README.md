@@ -104,12 +104,12 @@ and `inputscope-webui` to path.
 Dependencies
 ------------
 
-* Python 2.7 or Python 3.5+
-* bottle
-* psutil
-* pynput
-* pywin32 (optional, for toggling "Start with Windows")
-* wxPython (optional)
+* Python 2.7 or Python 3.5+ (https://www.python.org)
+* bottle (https://pypi.org/project/bottle)
+* psutil (https://pypi.org/project/psutil)
+* pynput (https://pypi.org/project/pynput)
+* pywin32 (optional, for toggling "Start with Windows") (https://pypi.org/project/pywin32)
+* wxPython (optional) (https://wxpython.org)
 
 If wxPython is not available, InputScope will not have its tray program,
 and will not recognize multi-monitor setups in mouse statistics.
