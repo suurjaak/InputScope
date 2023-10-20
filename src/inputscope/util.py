@@ -4,13 +4,19 @@ Utilities.
 
 @author      Erki Suurjaak
 @created     17.10.2021
-@modified    24.07.2022
+@modified    20.10.2023
 """
 import datetime
 import errno
+try: import fcntl
+except ImportError: fcntl = None
 import math
+import os
 try: import Queue as queue        # Py2
 except ImportError: import queue  # Py3
+import re
+import stat
+import sys
 import threading
 import time
 
@@ -123,3 +129,93 @@ class QueueLine(object):
             self.output.flush()
         except IOError as e:
             if e.errno != errno.EINVAL: raise # Invalid argument, probably stale pipe
+
+
+class SingleInstanceChecker(object):
+    """
+    Allows checking that only a single instance of a program is running, per user login.
+
+    Uses wx.SingleInstanceChecker in Windows, and a custom lockfile otherwise,
+    as wx.SingleInstanceChecker in Linux can fail.
+    """
+
+    def __init__(self, name=None, path=None, appname=None):
+        """
+        Creates new SingleInstanceChecker, acquiring exclusive lock on name.
+
+        @param   name     unique ID for application, by default constructed from app name + user ID;
+                          best if contains alphanumerics and other basic printables only
+        @param   path     directory of lockfile, ignored in Windows, defaults to user data folder
+        @param   appname  used for lockfile subdirectory under path if present, ignored in Windows
+        """
+        self._name     = name.strip() if name else None
+        self._lockdir  = path
+        self._appname  = appname.strip() if appname else None
+        self._checker  = None # wx.SingleInstanceChecker instance in Windows if wx available
+        self._lockpath = None # Path for lockfile in non-Windows
+        self._lockfd   = None # File descriptor for lockfile
+        self._hasother = None # True: another is running, False: only this running, None: unknown
+        if "win32" != sys.platform: self._Lock()
+        else: self._checker = wx.SingleInstanceChecker(*[name] if name else [])
+
+
+    def IsAnotherRunning(self):
+        """Returns whether another copy of this program is already running, or None if unknown."""
+        return self._checker.IsAnotherRunning() if self._checker else self._hasother
+
+
+    def GetAnotherPid(self):
+        """Returns the process ID of the other running instance, or None."""
+        return self._otherpid
+
+
+    def __del__(self):
+        """Unlocks current lock, if any."""
+        if self._checker: del self._checker
+        else: self._Unlock()
+        self._checker = None
+
+
+    def _Lock(self):
+        """Tries to create lockfile and acquire lock, sets instance status."""
+        if self._lockfd or not fcntl: return
+
+        name = self._name
+        if not name:
+            name = os.getenv("USER", os.getenv("USERNAME"))
+            if sys.argv: name = "%s-%s" % (os.path.basename(sys.argv[0]), name)
+            name = re.sub(r"\W", "__", name)
+        lockdir = self._lockdir or os.path.join(os.path.expanduser("~"), ".local", "share")
+        if self._appname: lockdir = os.path.join(lockdir, self._appname.lower())
+        self._lockpath = os.path.join(lockdir, "%s.lock" % name)
+
+        try:
+            try: os.makedirs(lockdir)
+            except Exception: pass
+
+            flags, mode = os.O_WRONLY | os.O_CREAT, stat.S_IRUSR | stat.S_IWUSR
+            umask0 = os.umask(0) # Override default umask
+            try: self._lockfd = os.open(self._lockpath, flags, mode)
+            finally: os.umask(umask0) # Restore default umask
+
+            try: fcntl.lockf(self._lockfd, fcntl.LOCK_EX | fcntl.LOCK_NB) # Exclusive non-blocking
+            except (IOError, OSError):
+                try: os.close(self._lockfd)
+                except Exception: pass
+                self._hasother, self._lockfd = True, None
+            else: self._hasother = False
+
+            try: os.write(self._lockfd, b"%d" % os.getpid()), os.fsync(self._lockfd)
+            except Exception: pass
+        except Exception: self._lockfd = None
+
+
+    def _Unlock(self):
+        """Unlocks and closes and deletes lockfile, if any."""
+        if not self._lockfd: return
+        funcs  = (fcntl.lockf,                   os.close,       os.unlink)
+        argses = ([self._lockfd, fcntl.LOCK_UN], [self._lockfd], [self._lockpath])
+        for func, args in zip(funcs, argses):
+            try: func(*args)
+            except Exception: pass
+        self._lockfd = None
