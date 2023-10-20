@@ -36,7 +36,7 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.10.dev3"
+Version = "1.10.dev4"
 VersionDate = "20.10.2023"
 
 """TCP port of the web user interface."""
@@ -321,6 +321,9 @@ TemplatePath = os.path.join(RootPath, "views")
 
 """Path for application icon file."""
 IconPath = os.path.join(StaticPath, "icon.ico")
+
+"""Path for licences of bundled open-source software."""
+LicensePath = os.path.join(StaticPath, "3rd-party licenses.txt") if Frozen else None
 
 """SQL template for trigger to update day counts."""
 TriggerTemplate = """

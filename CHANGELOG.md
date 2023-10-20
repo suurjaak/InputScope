@@ -6,6 +6,7 @@ CHANGELOG
 - use a custom lockfile implementation for single instance check in Linux (issue #27)
 - print reason when exiting program due to another instance already running (issue #27)
 - tweak escaping special characters for regex in heatmap page application search
+- bundle licenses for included third-party software in released binaries
 
 
 1.9, 2023-07-30
