@@ -1,2 +1,2 @@
-recursive-include src *.py *.tpl *.db *.ini *.css *.ico *.js *.svg
+recursive-include src *.py *.tpl *.ini *.css *.ico *.js *.svg
 include CHANGELOG.md LICENSE.md README.md requirements.txt
