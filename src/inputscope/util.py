@@ -4,7 +4,7 @@ Utilities.
 
 @author      Erki Suurjaak
 @created     17.10.2021
-@modified    20.10.2023
+@modified    21.10.2023
 """
 import datetime
 import errno
@@ -143,7 +143,7 @@ class SingleInstanceChecker(object):
         """
         Creates new SingleInstanceChecker, acquiring exclusive lock on name.
 
-        @param   name     unique ID for application, by default constructed from app name + user ID;
+        @param   name     unique ID for application, by default constructed from app name + username;
                           best if contains alphanumerics and other basic printables only
         @param   path     directory of lockfile, ignored in Windows, defaults to user data folder
         @param   appname  used for lockfile subdirectory under path if present, ignored in Windows
@@ -155,59 +155,79 @@ class SingleInstanceChecker(object):
         self._lockpath = None # Path for lockfile in non-Windows
         self._lockfd   = None # File descriptor for lockfile
         self._hasother = None # True: another is running, False: only this running, None: unknown
-        if "win32" != sys.platform: self._Lock()
+        self._otherpid = None # Process ID of the other detected instance
+        if "win32" != sys.platform: self._PopulatePath(), self._Lock()
         else: self._checker = wx.SingleInstanceChecker(*[name] if name else [])
 
 
     def IsAnotherRunning(self):
         """Returns whether another copy of this program is already running, or None if unknown."""
-        return self._checker.IsAnotherRunning() if self._checker else self._hasother
+        if self._checker is not None: return self._checker.IsAnotherRunning()
+        if self._hasother: self._Lock() # Try locking again, maybe the other has exited
+        else: # Check if lockfile handle is still valid
+            try: deleted = not os.fstat(self._lockfd).st_nlink # Number of hard links
+            except Exception: deleted = None
+            if deleted:
+                try: os.close(self._lockfd)
+                except Exception: pass
+                self._lockfd = None
+                self._Lock()
+        return self._hasother
 
 
-    def GetAnotherPid(self):
-        """Returns the process ID of the other running instance, or None."""
+    def GetOtherPid(self):
+        """Returns the process ID of the other running instance, or None if unknown or Windows."""
         return self._otherpid
 
 
     def __del__(self):
         """Unlocks current lock, if any."""
-        if self._checker: del self._checker
+        if self._checker is not None: del self._checker
         else: self._Unlock()
         self._checker = None
+
+
+    def _PopulatePath(self):
+        """Populates lockfile path."""
+        name = self._name
+        if not name:
+            name = os.getenv("USER", os.getenv("USERNAME"))
+            procname = sys.executable or (sys.argv[0] if sys.argv else "")
+            name = re.sub(r"\W", "__", "__".join(filter(bool, (procname, name)))) or "__"
+        lockdir = self._lockdir or os.path.join(os.path.expanduser("~"), ".local", "share")
+        if self._appname: lockdir = os.path.join(lockdir, self._appname.lower())
+        self._lockpath = os.path.join(lockdir, "%s.lock" % name)
 
 
     def _Lock(self):
         """Tries to create lockfile and acquire lock, sets instance status."""
         if self._lockfd or not fcntl: return
 
-        name = self._name
-        if not name:
-            name = os.getenv("USER", os.getenv("USERNAME"))
-            if sys.argv: name = "%s-%s" % (os.path.basename(sys.argv[0]), name)
-            name = re.sub(r"\W", "__", name)
-        lockdir = self._lockdir or os.path.join(os.path.expanduser("~"), ".local", "share")
-        if self._appname: lockdir = os.path.join(lockdir, self._appname.lower())
-        self._lockpath = os.path.join(lockdir, "%s.lock" % name)
-
+        self._hasother = self._otherpid = None
         try:
-            try: os.makedirs(lockdir)
+            try: os.makedirs(os.path.dirname(self._lockpath))
             except Exception: pass
 
-            flags, mode = os.O_WRONLY | os.O_CREAT, stat.S_IRUSR | stat.S_IWUSR
+            flags, mode = os.O_RDWR | os.O_CREAT, stat.S_IRUSR | stat.S_IWUSR
             umask0 = os.umask(0) # Override default umask
             try: self._lockfd = os.open(self._lockpath, flags, mode)
             finally: os.umask(umask0) # Restore default umask
 
             try: fcntl.lockf(self._lockfd, fcntl.LOCK_EX | fcntl.LOCK_NB) # Exclusive non-blocking
             except (IOError, OSError):
+                try: self._otherpid = int(os.read(self._lockfd, 1024))
+                except Exception: pass
                 try: os.close(self._lockfd)
                 except Exception: pass
                 self._hasother, self._lockfd = True, None
-            else: self._hasother = False
-
-            try: os.write(self._lockfd, b"%d" % os.getpid()), os.fsync(self._lockfd)
+            else:
+                self._hasother = False
+                try: os.write(self._lockfd, b"%d" % os.getpid()), os.fsync(self._lockfd)
+                except Exception: pass
+        except Exception:
+            try: os.close(self._lockfd)
             except Exception: pass
-        except Exception: self._lockfd = None
+            self._lockfd = None
 
 
     def _Unlock(self):
