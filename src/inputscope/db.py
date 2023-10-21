@@ -16,7 +16,7 @@ db.execute("DROP TABLE test")
 
 @author      Erki Suurjaak
 @created     05.03.2014
-@modified    18.10.2021
+@modified    21.10.2023
 """
 import os
 import re
@@ -81,14 +81,13 @@ def make_cursor(path, init_statements=(), _connectioncache={}):
     """Returns a cursor to the database, making new connection if not cached."""
     connection = _connectioncache.get(path)
     if not connection:
-        is_new = not os.path.exists(path) or not os.path.getsize(path)
-        try: is_new and os.makedirs(os.path.dirname(path))
-        except OSError: pass
+        try: not os.path.exists(path) and os.makedirs(os.path.dirname(path))
+        except Exception: pass
+        try: os.path.exists(path) and os.chmod(path, 0o644)
+        except Exception: pass
         connection = sqlite3.connect(path, isolation_level=None,
             check_same_thread=False, detect_types=sqlite3.PARSE_DECLTYPES)
         for x in init_statements or (): connection.execute(x)
-        try: is_new and ":memory:" not in path.lower() and os.chmod(path, 0o707)
-        except OSError: pass
         connection.row_factory = lambda cur, row: dict(sqlite3.Row(cur, row))
         _connectioncache[path] = connection
     return connection.cursor()
