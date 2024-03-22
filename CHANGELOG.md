@@ -1,10 +1,11 @@
 CHANGELOG
 =========
 
-1.10, 2023-10-21
+1.10, 2024-03-22
 ----------------
 - use a custom lockfile implementation for single instance check in Linux (issue #27)
 - print reason when exiting program due to another instance already running (issue #27)
+- fix setting program to run at startup in newer Windows (issue #28)
 - tweak escaping special characters for regex in heatmap page application search
 - create new database file with default ownership permissions in Linux
 - bundle licenses for included third-party software in released binaries
