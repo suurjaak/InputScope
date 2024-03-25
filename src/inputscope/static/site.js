@@ -3,7 +3,7 @@
  *
  * @author      Erki Suurjaak
  * @created     26.07.2023
- * @modified    30.07.2023
+ * @modified    31.07.2023
  */
 
 
@@ -382,5 +382,5 @@ var filterItems = function(elem, selector, text, style, inclusive, textselector)
 
 /** Escapes special characters in a string for RegExp. */
 var escapeRegExp = function(string) {
-  return string.replace(/[-[\]{}()*+!<=:?.\/\^\\$|#\s,]/g, "\\$&");
+  return string.replace(/[\\^$.|?*+()[{]/g, "\\$&");
 };

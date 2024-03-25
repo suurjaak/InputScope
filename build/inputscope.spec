@@ -7,7 +7,7 @@ Pyinstaller-provided names and variables: Analysis, EXE, PYZ, SPEC, TOC.
 
 @author    Erki Suurjaak
 @created   13.04.2015
-@modified  29.07.2023
+@modified  20.10.2023
 """
 import os
 import struct
@@ -18,7 +18,7 @@ DO_DEBUGVER = False
 DO_64BIT    = (struct.calcsize("P") * 8 == 64)
 
 BUILDPATH = os.path.dirname(os.path.abspath(SPEC))
-ROOTPATH  = BUILDPATH
+ROOTPATH  = os.path.dirname(BUILDPATH)
 APPPATH   = os.path.join(ROOTPATH, "src")
 os.chdir(ROOTPATH)
 sys.path.insert(0, APPPATH)
@@ -31,6 +31,7 @@ APP_INCLUDES = [("static", "icon.ico"),       ("static", "site.css"),
                 ("views",  "index.tpl"),      ("static", "site.js"),
                 ("views",  "input.tpl"),      ("views",  "heatmap.tpl"),
                 ("views",  "base.tpl"),       ("views",  "session.tpl")]
+RELOCATE_INCLUDES = {("build", "3rd-party licenses.txt"): ("static", "3rd-party licenses.txt")}
 DATA_EXCLUDES = ["Include\\pyconfig.h"] # PyInstaller 2.1 bug: warning about existing pyconfig.h
 MODULE_EXCLUDES = ["_gtkagg", "_tkagg", "_tkinter", "backports", "bsddb", "bz2",
                    "cherrypy", "colorama", "curses", "distutils", "doctest",
@@ -66,6 +67,7 @@ a = Analysis(
 a.datas -= [(n, None, "DATA") for n in DATA_EXCLUDES] # entry=(name, path, typecode)
 a.datas += [(os.path.join(*x), os.path.join(APPPATH, NAME, *x), "DATA")
             for x in APP_INCLUDES]
+a.datas += [(os.path.join(*b), os.path.join(ROOTPATH, *a), "DATA") for a, b in RELOCATE_INCLUDES.items()]
 a.binaries -= [(n, None, None) for n in BINARY_EXCLUDES]
 a.pure = TOC([(n, p, c) for (n, p, c) in a.pure if not any(
               n.startswith(k) and n not in vv for k, vv in PURE_RETAINS.items())])

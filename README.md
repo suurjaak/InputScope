@@ -12,8 +12,8 @@ and provides a local web page for viewing statistics and heatmaps by day or mont
 [![Keyboard combos heatmap](https://raw.githubusercontent.com/suurjaak/InputScope/media/th_combos.png)](https://raw.githubusercontent.com/suurjaak/InputScope/media/combos.png)
 
 
-Details
--------
+Overview
+--------
 
 Logs mouse clicks and scrolls and movement, and keyboard key presses and key 
 combinations; event categories can be toggled off from tray menu.
@@ -74,6 +74,8 @@ e.g.
 MouseRegionsOfDisinterest = [[0.49, 0.49, 0.02, 0.02]]
 ```
 
+For more on configuration settings, see [DETAIL.md](DETAIL.md).
+
 
 Installation
 ------------
@@ -102,12 +104,12 @@ and `inputscope-webui` to path.
 Dependencies
 ------------
 
-* Python 2.7 or Python 3.5+
-* bottle
-* psutil
-* pynput
-* pywin32 (optional, for toggling "Start with Windows")
-* wxPython (optional)
+* Python 2.7 or Python 3.5+ (https://www.python.org)
+* bottle (https://pypi.org/project/bottle)
+* psutil (https://pypi.org/project/psutil)
+* pynput (https://pypi.org/project/pynput)
+* pywin32 (optional, for toggling "Start with Windows") (https://pypi.org/project/pywin32)
+* wxPython (optional) (https://wxpython.org)
 
 If wxPython is not available, InputScope will not have its tray program,
 and will not recognize multi-monitor setups in mouse statistics.

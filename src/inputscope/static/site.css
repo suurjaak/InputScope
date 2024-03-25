@@ -3,7 +3,7 @@
  *
  * @author      Erki Suurjaak
  * @created     07.04.2015
- * @modified    30.07.2023
+ * @modified    20.10.2023
  */
 :root {
   font-size: 6.25%; /** Root font size to 1px @ default font size 16px */
@@ -381,6 +381,10 @@ body.session.input td.periods a.day {
 }
 #overlay #overcontent td:first-child {
   font-weight: bold;
+}
+#overlay #overcontent > div {
+  font-size: 0.9em;
+  margin: -10px 0 10px 0;
 }
 th {
   font-weight: bold;

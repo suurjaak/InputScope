@@ -5,7 +5,7 @@ command-line echoer otherwise. Launches the event listener and web UI server.
 
 @author      Erki Suurjaak
 @created     05.05.2015
-@modified    24.07.2022
+@modified    22.03.2024
 """
 import calendar
 import datetime
@@ -33,7 +33,7 @@ from . import conf
 from . import db
 from . import listener
 from . import webui
-from . util import QueueLine, format_session, run_later
+from . util import QueueLine, SingleInstanceChecker, format_session, run_later
 
 
 try: # Py2
@@ -490,6 +490,9 @@ class StartupService(object):
     supports only Windows systems.
     """
 
+    def __init__(self):
+        self._shell = win32com.client.Dispatch("WScript.Shell") if self.can_start() else None
+
     def can_start(self):
         """Whether startup can be set on this system at all."""
         return win32com and ("win32" == sys.platform)
@@ -511,23 +514,21 @@ class StartupService(object):
         except Exception: pass
 
     def get_shortcut_path(self):
-        path = "~\\Start Menu\\Programs\\Startup\\%s.lnk" % conf.Title
-        return os.path.expanduser(path)
+        return os.path.join(self._shell.SpecialFolders("Startup"), "%s.lnk" % conf.Title)
 
     def create_shortcut(self, path, target="", workdir="", icon=""):
         if "url" == path[-3:].lower():
             with open(path, "w") as shortcut:
                 shortcut.write("[InternetShortcut]\nURL=%s" % target)
         else:
-            shell = win32com.client.Dispatch("WScript.Shell")
-            shortcut = shell.CreateShortCut(path)
+            shortcut = self._shell.CreateShortcut(path)
             if target.lower().endswith(("py", "pyw")):
                 # pythonw leaves no DOS window open
                 python = sys.executable.replace("python.exe", "pythonw.exe")
-                shortcut.Targetpath = '"%s"' % python
+                shortcut.TargetPath = '"%s"' % python
                 shortcut.Arguments  = '"%s"' % target
             else:
-                shortcut.Targetpath = target
+                shortcut.TargetPath = target
             shortcut.WorkingDirectory = workdir
             if icon:
                 shortcut.IconLocation = icon
@@ -560,10 +561,12 @@ def main():
 
     if wx:
         name = re.sub(r"\W", "__", "-".join([conf.Title, conf.DbPath]))
-        singlechecker = wx.SingleInstanceChecker(name)
-        if singlechecker.IsAnotherRunning(): sys.exit()
-
-        MainApp(redirect=True).MainLoop() # stdout/stderr directed to wx popup
+        singlechecker = SingleInstanceChecker(name, appname=conf.Title)
+        if singlechecker.IsAnotherRunning():
+            info = " (PID %s)" % singlechecker.GetOtherPid() if singlechecker.GetOtherPid() else ""
+            sys.exit("Another instance of %s seems to be running%s: exiting." % (conf.Title, info))
+        try: MainApp(redirect=True).MainLoop() # stdout/stderr directed to wx popup
+        finally: del singlechecker
     else:
         model = Model()
         if tk:

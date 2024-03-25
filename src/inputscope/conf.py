@@ -20,7 +20,7 @@ the declared ones in source code. File is deleted if all values are at default.
 
 @author      Erki Suurjaak
 @created     26.03.2015
-@modified    30.07.2022
+@modified    22.03.2024
 ------------------------------------------------------------------------------
 """
 import ast
@@ -36,8 +36,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.9"
-VersionDate = "30.07.2022"
+Version = "1.10.dev9"
+VersionDate = "22.03.2024"
 
 """TCP port of the web user interface."""
 WebHost = "localhost"
@@ -321,6 +321,9 @@ TemplatePath = os.path.join(RootPath, "views")
 
 """Path for application icon file."""
 IconPath = os.path.join(StaticPath, "icon.ico")
+
+"""Path for licences of bundled open-source software."""
+LicensePath = os.path.join(StaticPath, "3rd-party licenses.txt") if Frozen else None
 
 """SQL template for trigger to update day counts."""
 TriggerTemplate = """

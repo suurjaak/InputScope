@@ -14,8 +14,9 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    29.07.2022
+@modified    20.10.2023
 %"""
+%import os, bottle
 %from inputscope.util import format_session
 %WEBROOT = get_url("/")
 %period, days, session = get("period", None), get("days", []), get("session", None)
@@ -122,12 +123,19 @@ Template arguments:
       <tr><td>{{ k }}:</td><td>{{ v }}</td></tr>
 %end # for k, v
     </table>
+%if conf.LicensePath:
+    <div>Licensing for bundled software:
+      <a href="{{ WEBROOT }}static/{{ bottle.urlquote(os.path.basename(conf.LicensePath)) }}" target="_blank">
+        {{ os.path.basename(conf.LicensePath) }}
+      </a>
+    </div>
+%end # if conf.LicensePath
     <input type="button" id="overlayclose" value="OK" />
   </div>
 </div>
 
 <div id="footer" class="flex-row">
-  <a href="#" id="overlaylink">database info</a>
+  <a href="#" id="overlaylink">information</a>
   <span>Mouse and keyboard input visualizer.</span>
   <a href="{{ conf.HomepageUrl }}" target="_blank">github</a>
 </div>

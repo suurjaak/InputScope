@@ -23,10 +23,9 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    30.07.2023
+@modified    20.10.2023
 %"""
 %import json, os
-%import bottle
 %from inputscope import conf
 %from inputscope.util import format_weekday
 %WEBROOT = get_url("/")
