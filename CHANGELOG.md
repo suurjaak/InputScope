@@ -1,7 +1,7 @@
 CHANGELOG
 =========
 
-1.10, 2024-03-22
+1.10, 2024-03-25
 ----------------
 - use a custom lockfile implementation for single instance check in Linux (issue #27)
 - print reason when exiting program due to another instance already running (issue #27)
