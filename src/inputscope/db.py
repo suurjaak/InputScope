@@ -16,11 +16,13 @@ db.execute("DROP TABLE test")
 
 @author      Erki Suurjaak
 @created     05.03.2014
-@modified    21.10.2023
+@modified    10.04.2024
 """
+import datetime
 import os
 import re
 import sqlite3
+import sys
 
 
 def fetch(table, cols="*", where=(), group="", order=(), limit=(), **kwargs):
@@ -160,9 +162,23 @@ def get_config(config={}): return config
 
 
 def init(path, init_statements=None):
+    if sys.version_info >= (3, 12): # Default adapters deprecated from v3.12, removed from v3.14
+        register_adapter(lambda v: v.isoformat(), [datetime.datetime, datetime.date])
     config = get_config()
     config.update(path=path, statements=init_statements)
     make_cursor(config["path"], config["statements"])
+
+
+def register_adapter(transformer, typeclasses):
+    """Registers function to auto-adapt given Python types to database types in query parameters."""
+    if not isinstance(typeclasses, (list, set, tuple)): typeclasses = [typeclasses]
+    for cls in typeclasses: sqlite3.register_adapter(cls, transformer)
+
+
+def register_converter(transformer, typenames):
+    """Registers function to auto-convert given database types to Python types in query results."""
+    if not isinstance(typenames, (list, set, tuple)): typenames = [typenames]
+    for typename in typenames: sqlite3.register_converter(typename, transformer)
 
 
 def close():

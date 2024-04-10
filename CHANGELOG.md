@@ -4,6 +4,8 @@ CHANGELOG
 1.11, 2024-04-10
 ----------------
 - fix logging Numpad operator keys in Linux (issue #30)
+- fix SQLite-related warnings in Python 3.12+ (issue #30)
+
 
 1.10, 2024-03-22
 ----------------
