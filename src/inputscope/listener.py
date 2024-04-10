@@ -24,7 +24,7 @@ session delete ID
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    12.07.2022
+@modified    10.04.2024
 """
 from __future__ import print_function
 from collections import defaultdict
@@ -523,7 +523,7 @@ class KeyHandler(object):
             name = realname = self.RENAMES.get(name, name)
             if vk and (name, self._is_extended) in self.NUMPAD_SPECIALS:
                 name = realname = "Numpad-" + name
-        elif ord("A") <= vk <= ord("Z") or ord("0") <= vk <= ord("9"):
+        elif vk and (ord("A") <= vk <= ord("Z") or ord("0") <= vk <= ord("9")):
             # Common A..Z 0..9 keys, whatever the chars
             name, realname = char.upper() if char else chr(vk), chr(vk)
 
