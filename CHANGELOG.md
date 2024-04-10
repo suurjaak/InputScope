@@ -3,6 +3,7 @@ CHANGELOG
 
 1.11, 2024-04-10
 ----------------
+- make keyboard heatmap image path configurable
 - fix logging Numpad operator keys in Linux (issue #30)
 - fix SQLite-related warnings in Python 3.12+ (issue #30)
 

@@ -23,9 +23,9 @@ Template arguments:
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    20.10.2023
+@modified    10.04.2024
 %"""
-%import json, os
+%import base64, json, os
 %from inputscope import conf
 %from inputscope.util import format_weekday
 %WEBROOT = get_url("/")
@@ -83,7 +83,15 @@ Template arguments:
 %for _ in (heatmap_stats if heatmap_stats and "mouse" == input else [0]):
   <div class="heatmap {{ input }}" style="width: {{ HEATMAP_SIZE[0] }}px; height: {{ HEATMAP_SIZE[1] }}px;">
     %if "keyboard" == input:
-    <img id="keyboard" src="{{ WEBROOT }}static/keyboard.svg" width="{{ HEATMAP_SIZE[0] }}" height="{{ HEATMAP_SIZE[1] }}" alt="" />
+    %    if os.path.abspath(conf.KeyboardHeatmapPath).startswith(conf.StaticPath):
+    %        img_src = WEBROOT + "static/keyboard.svg"
+    %    else:
+    %        with open(conf.KeyboardHeatmapPath, "rb") as f:
+    %            svg_raw = f.read()
+    %        end # with open
+    %        img_src = "data:image/svg+xml;base64," + base64.b64encode(svg_raw).decode()
+    %    end # if os.path.abspath
+    <img id="keyboard" src="{{ img_src }}" width="{{ HEATMAP_SIZE[0] }}" height="{{ HEATMAP_SIZE[1] }}" alt="" />
     %end # if "keyboard"
   </div>
   <div class="heatmap_helpers">

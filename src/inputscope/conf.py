@@ -36,7 +36,7 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.11.dev1"
+Version = "1.11.dev2"
 VersionDate = "10.04.2024"
 
 """TCP port of the web user interface."""
@@ -321,6 +321,9 @@ TemplatePath = os.path.join(RootPath, "views")
 
 """Path for application icon file."""
 IconPath = os.path.join(StaticPath, "icon.ico")
+
+"""Path for keyboard heatmap image file."""
+KeyboardHeatmapPath = os.path.join(StaticPath, "keyboard.svg")
 
 """Path for licences of bundled open-source software."""
 LicensePath = os.path.join(StaticPath, "3rd-party licenses.txt") if Frozen else None
