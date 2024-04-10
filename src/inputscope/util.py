@@ -2,9 +2,14 @@
 """
 Utilities.
 
+------------------------------------------------------------------------------
+This file is part of InputScope - mouse and keyboard input visualizer.
+Released under the MIT License.
+
 @author      Erki Suurjaak
 @created     17.10.2021
-@modified    21.10.2023
+@modified    10.04.2024
+------------------------------------------------------------------------------
 """
 import datetime
 import errno

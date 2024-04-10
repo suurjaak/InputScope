@@ -3,9 +3,14 @@
 InputScope main entrance, runs a tray application if wx available, a simple
 command-line echoer otherwise. Launches the event listener and web UI server.
 
+------------------------------------------------------------------------------
+This file is part of InputScope - mouse and keyboard input visualizer.
+Released under the MIT License.
+
 @author      Erki Suurjaak
 @created     05.05.2015
-@modified    22.03.2024
+@modified    10.04.2024
+------------------------------------------------------------------------------
 """
 import calendar
 import datetime

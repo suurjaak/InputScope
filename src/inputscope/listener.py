@@ -22,9 +22,14 @@ session clear  CATEGORY ID
 session delete ID
 
 
+------------------------------------------------------------------------------
+This file is part of InputScope - mouse and keyboard input visualizer.
+Released under the MIT License.
+
 @author      Erki Suurjaak
 @created     06.04.2015
 @modified    10.04.2024
+------------------------------------------------------------------------------
 """
 from __future__ import print_function
 from collections import defaultdict

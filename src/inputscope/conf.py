@@ -18,6 +18,10 @@ ServerIP = 0.0.0.0
 save() retains only the DEFAULT section, and writes only values diverging from
 the declared ones in source code. File is deleted if all values are at default.
 
+------------------------------------------------------------------------------
+This file is part of InputScope - mouse and keyboard input visualizer.
+Released under the MIT License.
+
 @author      Erki Suurjaak
 @created     26.03.2015
 @modified    10.04.2024

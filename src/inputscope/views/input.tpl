@@ -7,9 +7,14 @@ Template arguments:
   sessions   sessions statistics, as [{name, start, end, ..category counts}]
   input      "mouse"|"keyboard"
 
+------------------------------------------------------------------------------
+This file is part of InputScope - mouse and keyboard input visualizer.
+Released under the MIT License.
+
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    30.07.2022
+@modified    10.04.2024
+------------------------------------------------------------------------------
 %"""
 %from inputscope import conf
 %from inputscope.util import format_stamp, format_weekday

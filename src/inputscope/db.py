@@ -14,9 +14,14 @@ db.fetch("test", id=("IN", [1, 2, 3]))
 db.delete("test", val="something")
 db.execute("DROP TABLE test")
 
+------------------------------------------------------------------------------
+This file is part of InputScope - mouse and keyboard input visualizer.
+Released under the MIT License.
+
 @author      Erki Suurjaak
 @created     05.03.2014
 @modified    10.04.2024
+------------------------------------------------------------------------------
 """
 import datetime
 import os

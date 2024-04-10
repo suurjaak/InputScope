@@ -5,9 +5,14 @@ Template arguments:
   session   session data, as {name, start, end}
   data      session stats, as {category: {count, first, last}}
 
+------------------------------------------------------------------------------
+This file is part of InputScope - mouse and keyboard input visualizer.
+Released under the MIT License.
+
 @author      Erki Suurjaak
 @created     15.10.2021
-@modified    26.07.2022
+@modified    10.04.2024
+------------------------------------------------------------------------------
 %"""
 %from inputscope import conf
 %from inputscope.util import format_weekday

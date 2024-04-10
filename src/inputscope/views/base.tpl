@@ -12,9 +12,14 @@ Template arguments:
   session    session data, if any
   dbinfo     [(database info label, value)]
 
+------------------------------------------------------------------------------
+This file is part of InputScope - mouse and keyboard input visualizer.
+Released under the MIT License.
+
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    20.10.2023
+@modified    10.04.2024
+------------------------------------------------------------------------------
 %"""
 %import os, bottle
 %from inputscope.util import format_session

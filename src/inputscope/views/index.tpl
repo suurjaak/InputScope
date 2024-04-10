@@ -5,9 +5,14 @@ Template arguments:
   stats      data statistics as {input: {count, first, last}}
   sessions   sessions statistics, as [{name, start, end, ..category counts}]
 
+------------------------------------------------------------------------------
+This file is part of InputScope - mouse and keyboard input visualizer.
+Released under the MIT License.
+
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    26.07.2022
+@modified    10.04.2024
+------------------------------------------------------------------------------
 %"""
 %import datetime
 %from inputscope import conf

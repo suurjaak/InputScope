@@ -21,9 +21,14 @@ Template arguments:
   app_stats       per-application statistics, as OrderedDict({id: {path, total, ?cols: {label: count}}})
   tabledays       set of tables that have events for specified day
 
+------------------------------------------------------------------------------
+This file is part of InputScope - mouse and keyboard input visualizer.
+Released under the MIT License.
+
 @author      Erki Suurjaak
 @created     21.05.2015
 @modified    10.04.2024
+------------------------------------------------------------------------------
 %"""
 %import base64, json, os
 %from inputscope import conf
