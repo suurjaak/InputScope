@@ -105,12 +105,11 @@ Released under the MIT License.
     %if apps:
     <a id="apps_form_show" title="Select applications">applications</a>
     %end # if apps
-    %if "mouse" == input:
     <a class="fullscreen" title="Expand heatmap to full screen">full screen</a>
-    %else:
+    %if "keyboard" == input:
     <label for="show_heatmap" class="check_label"><input type="checkbox" id="show_heatmap" checked="checked" />Show heatmap</label>
     <label for="show_keyboard" class="check_label"><input type="checkbox" id="show_keyboard" checked="checked" />Show keyboard</label>
-    %end # if "mouse"
+    %end # if "keyboard"
   </div>
 %end # for display
 

@@ -3,7 +3,7 @@
  *
  * @author      Erki Suurjaak
  * @created     26.07.2023
- * @modified    31.07.2023
+ * @modified    11.04.2024
  */
 
 
@@ -88,12 +88,13 @@ var initAppsFilter = function(base_url, text_now, ids_now, selectors) {
  * @param   positions  list of heatmap positions, as [{x, y, value, label}]
  * @param   events     list of keyboard events, as [{dt, data: [{x, y, count, key}]}]
  * @param   selectors  map of {heatmap,replay_start,replay_stop,interval,step,progress,status,
- *                             statustext,toggle_heatmap,toggle_keyboard,keyboard: query selector},
+ *                             statustext,fullscreen,toggle_heatmap,toggle_keyboard,keyboard: query selector},
  *                     defaults to {heatmap: ".heatmap-container .heatmap", replay_start: "#replay_start",
  *                       replay_stop: "#replay_stop", interval: "#replay_interval",
  *                       step: "#replay_step", progress: "#progressbar", status: "#status",
- *                       statustext: "#statustext", toggle_heatmap: "#show_heatmap",
- *                       toggle_keyboard: "#show_keyboard", keyboard: "#keyboard"}
+ *                       statustext: "#statustext", fullscreen: ".heatmap-container .fullscreen",
+ *                       toggle_heatmap: "#show_heatmap", toggle_keyboard: "#show_keyboard",
+ *                       keyboard: "#keyboard"}
  */
 var initKeyboardHeatmap = function(positions, events, selectors) {
 
@@ -101,8 +102,9 @@ var initKeyboardHeatmap = function(positions, events, selectors) {
   var SELECTORS = {heatmap: ".heatmap-container .heatmap", replay_start: "#replay_start",
                    replay_stop: "#replay_stop", interval: "#replay_interval",
                    step: "#replay_step", progress: "#progressbar", status: "#status",
-                   statustext: "#statustext", toggle_heatmap: "#show_heatmap",
-                   toggle_keyboard: "#show_keyboard", keyboard: "#keyboard"};
+                   statustext: "#statustext", fullscreen: ".heatmap-container .fullscreen",
+                   toggle_heatmap: "#show_heatmap", toggle_keyboard: "#show_keyboard",
+                   keyboard: "#keyboard"};
   Object.keys(selectors || {}).forEach(function(k) { SELECTORS[k] = selectors[k] || SELECTORS[k]; });
 
   var elm_heatmap   = document.querySelector(SELECTORS.heatmap),
@@ -128,6 +130,11 @@ var initKeyboardHeatmap = function(positions, events, selectors) {
 
   elm_show_hm && elm_show_hm.addEventListener("click", function() {
     elm_heatmap.querySelector("canvas").classList[this.checked ? "remove" : "add"]("hidden");
+  });
+
+  var on_fullscreen = function() { this.parentNode.previousElementSibling.requestFullscreen(); return false; };
+  document.querySelectorAll(SELECTORS.fullscreen).forEach(function(elm) {
+    elm.addEventListener("click", on_fullscreen);
   });
 
   positions.length && elm_start && elm_start.addEventListener("click", function() {
