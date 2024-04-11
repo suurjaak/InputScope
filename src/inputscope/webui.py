@@ -10,7 +10,7 @@ Released under the MIT License.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    10.04.2024
+@modified    11.04.2024
 ------------------------------------------------------------------------------
 """
 import collections
@@ -168,7 +168,7 @@ def inputdetail(input, table, period=None, session=None, appids=None, appnames=N
         count = db.fetchone(table, "COUNT(*) AS count", where=where)["count"]
     events = db.select(table, where=where, order="stamp", limit=conf.MaxEventsForStats)
     if "mouse" == input:
-        stats_texts, app_stats, heatmap_stats, events = stats_mouse(events, table, count)
+        stats_texts, app_stats, heatmap_sizes, heatmap_stats, events = stats_mouse(events, table, count)
     else:
         stats_texts, app_stats, events = stats_keyboard(events, table, count)
         heatmap_stats = db.fetch(table, "realkey AS key, COUNT(*) AS count", where, "realkey", "count DESC")
@@ -303,18 +303,20 @@ def stats_mouse(events, table, count):
     first, last, totaldelta = None, None, datetime.timedelta()
     all_events = []
     HS = conf.MouseHeatmapSize
-    SZ = dict((k + 2, conf.DefaultScreenSize[k] / float(HS[k])) for k in [0, 1])
-    SZ.update({"dt": datetime.datetime.min, 0: 0, 1: 0}) # {0,1,2,3: x,y,w,h}
+    SZ = {0: 0, 1: 0, "dt": datetime.datetime.min} # {0,1,2,3,dt: xmin,ymin,w,h,startdt}
+    SZ.update((k + 2, conf.DefaultScreenSize[k]) for k in [0, 1])
     displayxymap  = collections.defaultdict(lambda: collections.defaultdict(int))
     counts, distances = collections.Counter(), collections.defaultdict(float)
     app_deltas = collections.defaultdict(datetime.timedelta) # {id: time in app}
     app_distances = collections.defaultdict(float) # {id: pixels}
-    SIZES = {} # Scale by desktop size at event time; {display: [{size}, ]}
+    SIZES = {} # Desktop sizes for event times, as {display: [{0,1,2,3,dt}, ]}
+    vals = lambda d, kk="xywh": [d[k] for k in kk]
     for row in db.fetch("screen_sizes", order="dt"):
-        row.update({0: row["x"], 2: row["w"] / float(HS[0]),
-                    1: row["y"], 3: row["h"] / float(HS[1])})
-        SIZES.setdefault(row["display"], []).append(row)
-    cursizes = {k: None for k in SIZES}
+        row.update({0: row["x"], 1: row["y"], 2: row["w"], 3: row["h"]})
+        if row["display"] not in SIZES or vals(SIZES[row["display"]][-1]) != vals(row):
+            SIZES.setdefault(row["display"], []).append(row)
+    cursizes = {k: None for k in SIZES} # {display: {0,1,2,3,dt}}
+    heatmap_sizes = {} # {display: (w, h)} scaled to screen size of first event
     for e in events:
         e["dt"] = datetime.datetime.fromtimestamp(e.pop("stamp"))
         if not first: first = e
@@ -333,11 +335,14 @@ def stats_mouse(events, table, count):
             # Find latest size from before event, fallback to first size recorded
             sz = next((s for s in sizes[::-1] if e["dt"] >= s["dt"]), sizes[0])
             cursizes[e["display"]] = sz
+        if e["display"] not in heatmap_sizes: # Make heatmap scaled to screen height
+            heatmap_sizes[e["display"]] = (HS[0], HS[0] * sz["h"] / sz["w"])
+        hs = heatmap_sizes[e["display"]]
 
         # Make heatmap coordinates, scaling event to screen size at event time
-        e["x"], e["y"] = [int((e["xy"[k]] - sz[k]) / sz[k + 2]) for k in [0, 1]]
-        # Constraint within heatmap, events at edges can have off-screen coordinates
-        e["x"], e["y"] = [max(0, min(e["xy"[k]], HS[k])) for k in [0, 1]]
+        e["x"], e["y"] = [int(float(e["xy"[k]] - sz[k]) * hs[k] / sz[k + 2]) for k in [0, 1]]
+        # Constrain within heatmap, events at edges can have off-screen coordinates
+        e["x"], e["y"] = [max(0, min(e["xy"[k]], hs[k])) for k in [0, 1]]
         displayxymap[e["display"]][(e["x"], e["y"])] += 1
         if "moves" == table:
             if appmap: app_stats[app_id].update([table])
@@ -400,7 +405,7 @@ def stats_mouse(events, table, count):
     app_results = collections.OrderedDict(
         (x["id"], x) for x in sorted(app_items, key=lambda x: x["total"], reverse=True)
     )
-    return stats, app_results, positions, all_events
+    return stats, app_results, heatmap_sizes, positions, all_events
 
 
 def stats_sessions(input=None):

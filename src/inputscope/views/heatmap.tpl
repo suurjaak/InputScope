@@ -7,6 +7,7 @@ Template arguments:
   period          period for events, if any (day like "2020-02-20" or month like "2020-02")
   days            list of available days
   count           count of all events
+  heatmap_sizes   mouse heatmap sizes scaled to screen height at first event, as {display: [w, h]}
   heatmap_stats   heatmap position counts, as {display: [{x, y, count}, ]} for mouse
                   or [{x, y, count}] for keyboard
   events          list of replayable events, as [{x, y, display, dt}] for mouse
@@ -27,14 +28,15 @@ Released under the MIT License.
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    10.04.2024
+@modified    11.04.2024
 ------------------------------------------------------------------------------
 %"""
 %import base64, json, os
 %from inputscope import conf
 %from inputscope.util import format_weekday
 %WEBROOT = get_url("/")
-%HEATMAP_SIZE = conf.MouseHeatmapSize if "mouse" == input else conf.KeyboardHeatmapSize
+%heatmap_sizes = heatmap_sizes if "mouse" == input else {0: conf.KeyboardHeatmapSize}
+%heatmap_sizes = heatmap_sizes or {0: conf.MouseHeatmapSize}
 %title = "%s %s" % (input.capitalize(), table)
 %rebase("base.tpl", **locals())
 
@@ -84,9 +86,9 @@ Released under the MIT License.
   <a href="javascript:;" title="Stop replay and reset heatmap" id="replay_stop">x</a>
 </div>
 
-<div class="heatmap-container" style="margin: 0 calc(-10rem + {{ (700 - HEATMAP_SIZE[0]) // 2 }}px - 2px);">
-%for _ in (heatmap_stats if heatmap_stats and "mouse" == input else [0]):
-  <div class="heatmap {{ input }}" style="width: {{ HEATMAP_SIZE[0] }}px; height: {{ HEATMAP_SIZE[1] }}px;">
+<div class="heatmap-container" style="margin: 0 calc(-10rem + {{ (700 - max(s[0] for s in heatmap_sizes.values())) // 2 }}px - 2px);">
+%for display in (heatmap_stats if heatmap_stats and "mouse" == input else [0]):
+  <div class="heatmap {{ input }}" style="width: {{ heatmap_sizes[display][0] }}px; height: {{ heatmap_sizes[display][1] }}px;">
     %if "keyboard" == input:
     %    if os.path.abspath(conf.KeyboardHeatmapPath).startswith(conf.StaticPath):
     %        img_src = WEBROOT + "static/keyboard.svg"
@@ -96,7 +98,7 @@ Released under the MIT License.
     %        end # with open
     %        img_src = "data:image/svg+xml;base64," + base64.b64encode(svg_raw).decode()
     %    end # if os.path.abspath
-    <img id="keyboard" src="{{ img_src }}" width="{{ HEATMAP_SIZE[0] }}" height="{{ HEATMAP_SIZE[1] }}" alt="" />
+    <img id="keyboard" src="{{ img_src }}" width="{{ heatmap_sizes[display][0] }}" height="{{ heatmap_sizes[display][1] }}" alt="" />
     %end # if "keyboard"
   </div>
   <div class="heatmap_helpers">
@@ -110,7 +112,7 @@ Released under the MIT License.
     <label for="show_keyboard" class="check_label"><input type="checkbox" id="show_keyboard" checked="checked" />Show keyboard</label>
     %end # if "mouse"
   </div>
-%end # for _
+%end # for display
 
 %if apps:
   <form id="apps_form" class="hidden">
