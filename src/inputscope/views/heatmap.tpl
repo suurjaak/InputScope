@@ -119,7 +119,7 @@ Released under the MIT License.
   <input type="search" value="{{ app_search or "" }}" 
          placeholder="Filter applications" title="Enter words or phrases to filter applications by" />
     <div class="items"><table>
-    %for item in apps:
+    %for item in (x for x in apps if x["id"] in app_stats):
         %is_active = app_ids and item["id"] in app_ids
         %is_hidden = app_search and not is_active
         %cls = "active" if is_active else "hidden" if is_hidden else None

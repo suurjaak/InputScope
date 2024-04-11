@@ -4,6 +4,7 @@ CHANGELOG
 1.11, 2024-04-11
 ----------------
 - scale mouse heatmap to screen height
+- omit programs with no events from applications list on heatmap page
 - make keyboard heatmap image path configurable
 - fix logging Numpad operator keys in Linux (issue #30)
 - fix SQLite-related warnings in Python 3.12+ (issue #30)
