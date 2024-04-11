@@ -156,17 +156,19 @@ Released under the MIT License.
 
 <div id="tables">
 
+%if stats_texts:
   <div class="data">
     <a title="Toggle table" class="toggle">&ndash;</a>
     <table id="stats" class="{{ input }}">
-%for key, val in stats_texts:
+    %for key, val in stats_texts:
       <tr><td>{{ key }}</td><td>{{ val }}</td></tr>
-%end # for key, val
-%if count > conf.MaxEventsForStats:
+    %end # for key, val
+    %if count > conf.MaxEventsForStats:
       <tr><td colspan="2">Statistics and heatmap limited to a maximum of {{ "{:,}".format(conf.MaxEventsForStats) }} events.</td></tr>
-%end # if count > conf.MaxEventsForStats
+    %end # if count > conf.MaxEventsForStats
     </table>
   </div>
+%end # if stats_texts
 
 %if "keyboard" == input:
   <div class="data">
