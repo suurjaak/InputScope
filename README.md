@@ -82,6 +82,14 @@ MouseRegionsOfDisinterest = [[0.49, 0.49, 0.02, 0.02]]
 For more on configuration settings, see [DETAIL.md](DETAIL.md).
 
 
+Known issues
+------------
+
+- In Linux, Numpad navigation keys like PageUp are logged as ordinary PageUp when NumLock off
+
+- keyboard combinations can include unexpected combos
+
+
 Installation
 ------------
 
