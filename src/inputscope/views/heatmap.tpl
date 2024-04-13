@@ -217,7 +217,7 @@ if "mouse" == input:
                  for display, pp in heatmap_stats.items()}
     events = [{"x": e["x"], "y": e["y"], "display": e["display"], "dt": str(e["dt"])} for e in events]
 else:
-    KP = conf.KeyPositions
+    KP = dict(conf.KeyPositions, **conf.CustomKeyPositions)
     split_keys = lambda kk: (k for k in (kk.split("-") if "combos" == table else [kk]) if k in KP)
     positions = [{"x": KP[k][0], "y": KP[k][1], "value": p["count"], "label": k}
                  for p in heatmap_stats for k in split_keys(p["key"])]

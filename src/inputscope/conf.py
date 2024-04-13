@@ -40,7 +40,7 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.11.dev15"
+Version = "1.11.dev16"
 VersionDate = "13.04.2024"
 
 """TCP port of the web user interface."""
@@ -89,6 +89,9 @@ InputFlags = {
 
 """Extra configured keys, as {virtual keycode: "key name"}."""
 CustomKeys = {}
+
+"""Extra configured key positions in keyboard heatmap, as {key name: [x, y]}."""
+CustomKeyPositions = {}
 
 """
 Heatmap library display settings, as {setting: value, input or event type: {..}}.
@@ -397,13 +400,14 @@ DbUpdateStatements = [
 ]
 
 """List of attribute names that are always saved to ConfigFile."""
-FileDirectives = ["CustomKeys", "DefaultScreenSize", "EventsWriteInterval", "HeatmapDisplayOptions",
-    "MaxEventsForStats", "MaxEventsForReplay", "KeyboardEnabled", "KeyboardKeysEnabled",
-    "KeyboardCombosEnabled", "KeyboardSessionMaxDelta", "KeyboardStickyEnabled",
-    "MaxTopKeysForPrograms", "MouseEnabled", "MouseMovesEnabled", "MouseClicksEnabled",
-    "MouseScrollsEnabled", "MouseHeatmapSize", "MouseMoveJoinInterval", "MouseMoveJoinRadius",
-    "MouseScrollJoinInterval", "MouseRegionsOfInterest", "MouseRegionsOfDisinterest", "PixelLength",
-    "ProgramBlacklist", "ProgramWhitelist", "ProgramsEnabled", "ScreenSizeInterval", "WebPort",
+FileDirectives = ["CustomKeys", "CustomKeyPositions", "DefaultScreenSize", "EventsWriteInterval",
+    "HeatmapDisplayOptions", "MaxEventsForStats", "MaxEventsForReplay", "KeyboardEnabled",
+    "KeyboardKeysEnabled", "KeyboardCombosEnabled", "KeyboardSessionMaxDelta",
+    "KeyboardStickyEnabled", "MaxTopKeysForPrograms", "MouseEnabled", "MouseMovesEnabled",
+    "MouseClicksEnabled", "MouseScrollsEnabled", "MouseHeatmapSize", "MouseMoveJoinInterval",
+    "MouseMoveJoinRadius", "MouseScrollJoinInterval", "MouseRegionsOfInterest",
+    "MouseRegionsOfDisinterest", "PixelLength", "ProgramBlacklist", "ProgramWhitelist",
+    "ProgramsEnabled", "ScreenSizeInterval", "WebPort",
 ]
 
 try: text_types = (str, unicode)       # Py2
@@ -474,6 +478,12 @@ def validate():
                 try: CustomKeys[int(k, 16)] = v
                 except Exception: pass
     except Exception: CustomKeys = defaults()["CustomKeys"]
+    try:
+        poses, _ = CustomKeyPositions.copy(), CustomKeyPositions.clear()
+        for k, v in poses.items():
+            try: CustomKeyPositions[k] = tuple(map(int, v))[:2]
+            except Exception: pass
+    except Exception: CustomKeyPositions = defaults()["CustomKeyPositions"]
 
 
 def defaults(values={}):

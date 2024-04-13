@@ -8,6 +8,7 @@ CHANGELOG
 - add replay controls to fullscreen heatmaps
 - omit programs with no events from applications list on heatmap page
 - make keyboard heatmap image path configurable
+- make keyboard key positions in heatmap configurable
 - retain heatmap replay close-button after completion
 - add program configuration path to database info box in statistics
 - add journaling file size to database file size in statistics info box

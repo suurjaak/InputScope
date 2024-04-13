@@ -13,6 +13,9 @@ all of them can be changed manually in the configuration file.
 # Example: {21: "IME Han/Yeong", 25: "IME Hanja"}
 CustomKeys                = {}
 
+# Extra configured key positions in keyboard heatmap, as {key name: [x, y]}.
+CustomKeyPositions        = {}
+
 # Default desktop screen size if not available from system,
 # for scaling mouse events to heatmap, in pixels, as [width, height]
 DefaultScreenSize         = [1920, 1080]
