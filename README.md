@@ -33,6 +33,11 @@ port can be changed in configuration file.
 
 ### Configuration
 
+Heatmap display settings can be set for all inputs or individually:
+```python
+HeatmapDisplayOptions = {"radius": 30, "keyboard": {"radius": 10}, "moves": {"radius": 10}}
+```
+
 Specific applications to monitor can be blacklisted
 or whitelisted in configuration file, as:
 ```python

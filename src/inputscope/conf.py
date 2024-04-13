@@ -40,7 +40,7 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.11.dev12"
+Version = "1.11.dev13"
 VersionDate = "13.04.2024"
 
 """TCP port of the web user interface."""
@@ -89,6 +89,18 @@ InputFlags = {
 
 """Extra configured keys, as {virtual keycode: "key name"}."""
 CustomKeys = {}
+
+"""
+Heatmap library display settings, as {setting: value, input or event type: {..}}.
+
+backgroundColor
+blur, default 0.85
+gradient, default {0.25: "blue", 0.55: "green", 0.85: "yellow", 1.0: "red"}
+logScale, default false, true for keyboard
+radius, default 20
+opacity, default 0.6 (also minOpacity default 0, and maxOpacity default 1)
+"""
+HeatmapDisplayOptions = {"moves": {"radius": 10}, "clicks": {"radius": 15}}
 
 """Maximum keypress interval to count as one typing session, in seconds."""
 KeyboardSessionMaxDelta = 3
@@ -385,12 +397,13 @@ DbUpdateStatements = [
 ]
 
 """List of attribute names that are always saved to ConfigFile."""
-FileDirectives = ["CustomKeys", "DefaultScreenSize", "EventsWriteInterval", "MaxEventsForStats",
-    "MaxEventsForReplay", "KeyboardEnabled", "KeyboardKeysEnabled", "KeyboardCombosEnabled",
-    "KeyboardStickyEnabled", "MouseEnabled", "MouseMovesEnabled", "MouseClicksEnabled",
-    "MouseScrollsEnabled", "MouseHeatmapSize", "MouseMoveJoinInterval", "MouseMoveJoinRadius",
-    "MouseScrollJoinInterval", "MouseRegionsOfInterest", "MouseRegionsOfDisinterest", "PixelLength",
-    "ProgramBlacklist", "ProgramWhitelist", "ProgramsEnabled", "ScreenSizeInterval", "WebPort",
+FileDirectives = ["CustomKeys", "DefaultScreenSize", "EventsWriteInterval", "HeatmapDisplayOptions",
+    "MaxEventsForStats", "MaxEventsForReplay", "KeyboardEnabled", "KeyboardKeysEnabled",
+    "KeyboardCombosEnabled", "KeyboardStickyEnabled", "MouseEnabled", "MouseMovesEnabled",
+    "MouseClicksEnabled", "MouseScrollsEnabled", "MouseHeatmapSize", "MouseMoveJoinInterval",
+    "MouseMoveJoinRadius", "MouseScrollJoinInterval", "MouseRegionsOfInterest",
+    "MouseRegionsOfDisinterest", "PixelLength", "ProgramBlacklist", "ProgramWhitelist",
+    "ProgramsEnabled", "ScreenSizeInterval", "WebPort",
 ]
 
 try: text_types = (str, unicode)       # Py2

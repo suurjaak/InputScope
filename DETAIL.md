@@ -20,6 +20,16 @@ DefaultScreenSize         = [1920, 1080]
 # Interval between logging input events to database, in seconds
 EventsWriteInterval       = 5
 
+# Heatmap library display settings, as {setting: value, input or event type: {..}}.
+#
+# "backgroundColor", default is transparent
+# "blur", default 0.85
+# "gradient", default {0.25: "blue", 0.55: "green", 0.85: "yellow", 1.0: "red"}
+# "logScale", default false, true for keyboard
+# "radius", default 20
+# "opacity", default 0.6 (also "minOpacity" default 0, and "maxOpacity" default 1)
+HeatmapDisplayOptions     = {"moves": {"radius": 10}, "clicks": {"radius": 15}}
+
 # Maximum number of events to use for statistics page
 MaxEventsForStats         = 1000000
 

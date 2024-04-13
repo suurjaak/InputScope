@@ -28,7 +28,7 @@ Released under the MIT License.
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    12.04.2024
+@modified    13.04.2024
 ------------------------------------------------------------------------------
 %"""
 %import base64, json, os
@@ -226,12 +226,18 @@ else:
                 for kk, c in e["keys"].items() for k in split_keys(kk)
               ]} for e in events]
 end # if "mouse"
+config = dict(conf.HeatmapDisplayOptions,
+              **dict(conf.HeatmapDisplayOptions.get(input, {}), **conf.HeatmapDisplayOptions.get(table, {})))
+for name in conf.InputFlags: config.pop(name, None)
+end # for name
 appidstr = "" if app_search else ",".join(map(str, app_ids or []))
+
 %>
   var positions = {{! json.dumps(positions) }};
   var events = {{! json.dumps(events) }};
+  var config = {{! json.dumps(config) }};
   window.addEventListener("load", function() {
-    {{ "initMouseHeatmaps" if "mouse" == input else "initKeyboardHeatmap" }}(positions, events);
+    {{ "initMouseHeatmaps" if "mouse" == input else "initKeyboardHeatmap" }}(positions, events, config);
     initFullscreenControls();
 %if conf.ProgramsEnabled:
     initAppsFilter("{{ make_url(appids=None, appnames=None) }}", "{{ app_search or "" }}", "{{ appidstr }}");

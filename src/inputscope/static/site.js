@@ -142,6 +142,7 @@ var initFullscreenControls = function(selectors) {
  *
  * @param   positions  list of heatmap positions, as [{x, y, value, label}]
  * @param   events     list of keyboard events, as [{dt, data: [{x, y, count, key}]}]
+ * @param   config     config dictionary for heatmap library component
  * @param   selectors  map of {heatmap,replay_start,replay_stop,interval,step,progress,status,
  *                             statustext,toggle_heatmap,toggle_keyboard,keyboard: query selector},
  *                     defaults to {heatmap: ".heatmap-container .heatmap", replay_start: "#replay_start",
@@ -150,10 +151,9 @@ var initFullscreenControls = function(selectors) {
  *                       statustext: "#statustext", toggle_heatmap: "#show_heatmap",
  *                       toggle_keyboard: "#show_keyboard", keyboard: "#keyboard"}
  */
-var initKeyboardHeatmap = function(positions, events, selectors) {
+var initKeyboardHeatmap = function(positions, events, config, selectors) {
 
   var RADIUS    = 20;
-  var BLUR      = 0.85;
   var LOGSCALE  = true;
   var SELECTORS = {heatmap: ".heatmap-container .heatmap", replay_start: "#replay_start",
                    replay_stop: "#replay_stop", interval: "#replay_interval",
@@ -161,6 +161,7 @@ var initKeyboardHeatmap = function(positions, events, selectors) {
                    statustext: "#statustext", toggle_heatmap: "#show_heatmap",
                    toggle_keyboard: "#show_keyboard", keyboard: "#keyboard"};
   Object.keys(selectors || {}).forEach(function(k) { SELECTORS[k] = selectors[k] || SELECTORS[k]; });
+  config = merge({logScale: LOGSCALE, radius: RADIUS}, config);
 
   var elm_heatmap   = document.querySelector(SELECTORS.heatmap),
       elm_start     = document.querySelector(SELECTORS.replay_start),
@@ -176,7 +177,7 @@ var initKeyboardHeatmap = function(positions, events, selectors) {
   if (!elm_heatmap) return;
 
   var resumeFunc = null;
-  var myHeatmap = h337.create({container: elm_heatmap, radius: RADIUS, blur: BLUR, logScale: LOGSCALE});
+  var myHeatmap = h337.create(merge(config, {container: elm_heatmap}));
   if (positions.length) myHeatmap.setData({data: positions, max: positions[0].value});
 
   elm_show_kb && elm_show_kb.addEventListener("click", function() {
@@ -257,6 +258,7 @@ var initKeyboardHeatmap = function(positions, events, selectors) {
  *
  * @param   positions  heatmap positions, as {display index: [{x, y, value, label}], }
  * @param   events     list of mouse events, as [{x, y, display, dt}]
+ * @param   config     config dictionary for heatmap library component
  * @param   selectors  map of {heatmap,replay_start,replay_stop,interval,step,progress,status,
  *                             statustext: query selector},
  *                     defaults to {heatmap: "heatmap-container .heatmap", replay_start: "#replay_start",
@@ -264,13 +266,14 @@ var initKeyboardHeatmap = function(positions, events, selectors) {
  *                       step: "#replay_step", progress: "#progressbar", status: "#status",
  *                       statustext: "#statustext"}
  */
-var initMouseHeatmaps = function(positions, events, selectors) {
+var initMouseHeatmaps = function(positions, events, config, selectors) {
 
-  var RADIUS    = 10;
+  var RADIUS    = 20;
   var SELECTORS = {heatmap: ".heatmap-container .heatmap", replay_start: "#replay_start",
                    replay_stop: "#replay_stop", interval: "#replay_interval", step: "#replay_step",
                    progress: "#progressbar", status: "#status", statustext: "#statustext"};
   Object.keys(selectors || {}).forEach(function(k) { SELECTORS[k] = selectors[k] || SELECTORS[k]; });
+  config = merge({radius: RADIUS}, config);
 
   var elm_start     = document.querySelector(SELECTORS.replay_start),
       elm_stop      = document.querySelector(SELECTORS.replay_stop),
@@ -283,7 +286,7 @@ var initMouseHeatmaps = function(positions, events, selectors) {
   var replayevents = {};
   var resumeFunc = null;
   var myHeatmaps = Array.prototype.map.call(document.querySelectorAll(SELECTORS.heatmap), function(elm, display) {
-    return h337.create({container: elm, radius: RADIUS});
+    return h337.create(merge(config, {container: elm}));
   });
 
   Object.keys(positions).forEach(function(display) {
@@ -448,4 +451,17 @@ var makeElementRestorer = function(elm) {
       next   = elm.nextElementSibling,
       parent = elm.parentNode;
   return function() { prev ? prev.after(elm) : next ? next.before(elm) : parent.append(elm); };
+};
+
+
+/** Merges two or more objects into a new object. */
+var merge = function(a, b/*, c, .. */) {
+  var objkeys = function(x) { // Objects can have defined properties
+    var kk = Object.keys(x);
+    return (kk.length ? kk : Object.keys(Object.getPrototypeOf(x)));
+  };
+  var o0 = objkeys(a || {}).reduce(function(o, k) { o[k] = a[k]; return o; }, {});
+  return Array.apply(null, arguments).slice(1).reduce(function(a, b) {
+    return objkeys(b || {}).reduce(function(o, k) { o[k] = b[k]; return o; }, a);
+  }, o0);
 };
