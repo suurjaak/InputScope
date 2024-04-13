@@ -55,7 +55,7 @@ KeyboardSessionMaxDelta = 3
 KeyboardStickyEnabled     = true
 
 # Maxinum number of most common keys/combos for applications on statistics page.
-MaxTopKeysForPrograms = 5
+KeyboardTopForPrograms = 5
 
 # Whether mouse logging is enabled
 MouseEnabled              = true

@@ -285,7 +285,7 @@ def stats_keyboard(events, table, count):
     stats += [("Total unique %s" % table, len(uniques))]
     if deltas:
         stats += [("Total time interval", format_timedelta(last["dt"] - first["dt"]))]
-    app_items = [{"id": k, "cols": {"top": [a for a, _ in v.most_common(conf.MaxTopKeysForPrograms)]},
+    app_items = [{"id": k, "cols": {"top": [a for a, _ in v.most_common(conf.KeyboardTopForPrograms)]},
                   "path": appmap.get(k), "total": sum(v.values())} for k, v in app_stats.items()]
     app_results = collections.OrderedDict(
         (x["id"], x) for x in sorted(app_items, key=lambda x: x["total"], reverse=True)

@@ -40,7 +40,7 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.11.dev16"
+Version = "1.11.dev17"
 VersionDate = "13.04.2024"
 
 """TCP port of the web user interface."""
@@ -139,7 +139,7 @@ MaxEventsForQueue = 1000
 MaxSessionsInMenu = 20
 
 """Maxinum number of most common keys/combos for applications on statistics page."""
-MaxTopKeysForPrograms = 5
+KeyboardTopForPrograms = 5
 
 """
 List of screen areas to monitor for mouse events if not all,
@@ -403,7 +403,7 @@ DbUpdateStatements = [
 FileDirectives = ["CustomKeys", "CustomKeyPositions", "DefaultScreenSize", "EventsWriteInterval",
     "HeatmapDisplayOptions", "MaxEventsForStats", "MaxEventsForReplay", "KeyboardEnabled",
     "KeyboardKeysEnabled", "KeyboardCombosEnabled", "KeyboardSessionMaxDelta",
-    "KeyboardStickyEnabled", "MaxTopKeysForPrograms", "MouseEnabled", "MouseMovesEnabled",
+    "KeyboardStickyEnabled", "KeyboardTopForPrograms", "MouseEnabled", "MouseMovesEnabled",
     "MouseClicksEnabled", "MouseScrollsEnabled", "MouseHeatmapSize", "MouseMoveJoinInterval",
     "MouseMoveJoinRadius", "MouseScrollJoinInterval", "MouseRegionsOfInterest",
     "MouseRegionsOfDisinterest", "PixelLength", "ProgramBlacklist", "ProgramWhitelist",
