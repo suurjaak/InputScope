@@ -537,3 +537,6 @@ body.index table .flex-row > :first-child {
 .hidden {
   display: none !important;
 }
+.invisible {
+  opacity: 0 !important;
+}

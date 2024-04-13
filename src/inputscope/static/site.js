@@ -50,7 +50,7 @@ var initAppsFilter = function(base_url, text_now, ids_now, selectors) {
 
     if (url == window.location.pathname) {
       elm_apps.classList.add("hidden");
-      elm_apps_toggle && elm_apps_toggle.classList.remove("hidden");
+      elm_apps_toggle && elm_apps_toggle.classList.remove("invisible");
     } else window.location.href = url;
     return false;
   });
@@ -61,13 +61,13 @@ var initAppsFilter = function(base_url, text_now, ids_now, selectors) {
     window.setTimeout(function() {
       filterApps();
       elm_apps.classList.add("hidden");
-      elm_apps_toggle && elm_apps_toggle.classList.remove("hidden");
+      elm_apps_toggle && elm_apps_toggle.classList.remove("invisible");
     }, 0);
   });
 
   elm_apps_toggle && elm_apps_toggle.addEventListener("click", function() {
     elm_apps.classList.remove("hidden");
-    elm_apps_toggle.classList.add("hidden");
+    elm_apps_toggle.classList.add("invisible");
     elm_apps_search.focus();
   });
 
