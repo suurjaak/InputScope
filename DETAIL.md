@@ -45,8 +45,14 @@ KeyboardKeysEnabled       = true
 # Whether keyboard key combination event logging is enabled
 KeyboardCombosEnabled     = true
 
+# Maximum keypress interval to count as one typing session, in seconds.
+KeyboardSessionMaxDelta = 3
+
 # Whether to ignore repeated keyboard events from long keypresses
 KeyboardStickyEnabled     = true
+
+# Maxinum number of most common keys/combos for applications on statistics page.
+MaxTopKeysForPrograms = 5
 
 # Whether mouse logging is enabled
 MouseEnabled              = true

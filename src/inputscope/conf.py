@@ -40,7 +40,7 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.11.dev14"
+Version = "1.11.dev15"
 VersionDate = "13.04.2024"
 
 """TCP port of the web user interface."""
@@ -399,11 +399,11 @@ DbUpdateStatements = [
 """List of attribute names that are always saved to ConfigFile."""
 FileDirectives = ["CustomKeys", "DefaultScreenSize", "EventsWriteInterval", "HeatmapDisplayOptions",
     "MaxEventsForStats", "MaxEventsForReplay", "KeyboardEnabled", "KeyboardKeysEnabled",
-    "KeyboardCombosEnabled", "KeyboardStickyEnabled", "MouseEnabled", "MouseMovesEnabled",
-    "MouseClicksEnabled", "MouseScrollsEnabled", "MouseHeatmapSize", "MouseMoveJoinInterval",
-    "MouseMoveJoinRadius", "MouseScrollJoinInterval", "MouseRegionsOfInterest",
-    "MouseRegionsOfDisinterest", "PixelLength", "ProgramBlacklist", "ProgramWhitelist",
-    "ProgramsEnabled", "ScreenSizeInterval", "WebPort",
+    "KeyboardCombosEnabled", "KeyboardSessionMaxDelta", "KeyboardStickyEnabled",
+    "MaxTopKeysForPrograms", "MouseEnabled", "MouseMovesEnabled", "MouseClicksEnabled",
+    "MouseScrollsEnabled", "MouseHeatmapSize", "MouseMoveJoinInterval", "MouseMoveJoinRadius",
+    "MouseScrollJoinInterval", "MouseRegionsOfInterest", "MouseRegionsOfDisinterest", "PixelLength",
+    "ProgramBlacklist", "ProgramWhitelist", "ProgramsEnabled", "ScreenSizeInterval", "WebPort",
 ]
 
 try: text_types = (str, unicode)       # Py2
