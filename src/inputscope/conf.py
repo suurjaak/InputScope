@@ -40,7 +40,7 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.11.dev13"
+Version = "1.11.dev14"
 VersionDate = "13.04.2024"
 
 """TCP port of the web user interface."""
@@ -357,11 +357,11 @@ DayIndexTemplate = "CREATE INDEX IF NOT EXISTS idx_{0}_day ON {0} (day)"
 
 """Statements to execute in database at startup, like CREATE TABLE."""
 DbStatements = (
-    "CREATE TABLE IF NOT EXISTS moves (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, x INTEGER, y INTEGER, display INTEGER DEFAULT 0)",
-    "CREATE TABLE IF NOT EXISTS clicks (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, x INTEGER, y INTEGER, button INTEGER, display INTEGER DEFAULT 0)",
-    "CREATE TABLE IF NOT EXISTS scrolls (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, x INTEGER, y INTEGER, dx INTEGER DEFAULT 0, dy INTEGER DEFAULT 0, display INTEGER DEFAULT 0)",
-    "CREATE TABLE IF NOT EXISTS keys (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, key TEXT, realkey TEXT)",
-    "CREATE TABLE IF NOT EXISTS combos (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, key TEXT, realkey TEXT)",
+    "CREATE TABLE IF NOT EXISTS moves (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, x INTEGER, y INTEGER, display INTEGER DEFAULT 0, fk_program INTEGER)",
+    "CREATE TABLE IF NOT EXISTS clicks (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, x INTEGER, y INTEGER, button INTEGER, display INTEGER DEFAULT 0, fk_program INTEGER)",
+    "CREATE TABLE IF NOT EXISTS scrolls (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, x INTEGER, y INTEGER, dx INTEGER DEFAULT 0, dy INTEGER DEFAULT 0, display INTEGER DEFAULT 0, fk_program INTEGER)",
+    "CREATE TABLE IF NOT EXISTS keys (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, key TEXT, realkey TEXT, fk_program INTEGER)",
+    "CREATE TABLE IF NOT EXISTS combos (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, key TEXT, realkey TEXT, fk_program INTEGER)",
     "CREATE TABLE IF NOT EXISTS app_events (id INTEGER NOT NULL PRIMARY KEY, dt TIMESTAMP DEFAULT (DATETIME('now', 'localtime')), type TEXT)",
     "CREATE TABLE IF NOT EXISTS screen_sizes (id INTEGER NOT NULL PRIMARY KEY, dt TIMESTAMP DEFAULT (DATETIME('now', 'localtime')), x INTEGER, y INTEGER, w INTEGER, h INTEGER, display INTEGER)",
     "CREATE TABLE IF NOT EXISTS counts (id INTEGER NOT NULL PRIMARY KEY, type TEXT, day DATETIME, count INTEGER, UNIQUE(type, day))",
