@@ -20,7 +20,7 @@ Released under the MIT License.
 
 @author      Erki Suurjaak
 @created     05.03.2014
-@modified    10.04.2024
+@modified    13.04.2024
 ------------------------------------------------------------------------------
 """
 import datetime
@@ -164,6 +164,18 @@ def makeSQL(action, table, cols="*", where=(), group="", order=(), limit=(), val
 
 
 def get_config(config={}): return config
+
+
+def get_size(path=None):
+    """Returns database file size, of first initialized if path not given."""
+    result = None
+    filepath = path or get_config().get("path")
+    if filepath:
+        result = os.path.getsize(filepath)
+        for extra in ("journal", "wal") if result else ():
+            path = "%s-%s" % (filepath, extra)
+            result += os.path.getsize(path) if os.path.isfile(path) else 0
+    return result
 
 
 def init(path, init_statements=None):

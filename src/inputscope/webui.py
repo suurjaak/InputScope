@@ -439,7 +439,7 @@ def stats_db(filename):
     result = [("Database", filename),
               ("Created", datetime.datetime.fromtimestamp(os.path.getctime(filename))),
               ("Last modified", datetime.datetime.fromtimestamp(os.path.getmtime(filename))),
-              ("Size", format_bytes(os.path.getsize(filename))), ]
+              ("Size", format_bytes(db.get_size(filename))), ]
     counts = db.fetch("counts", "type, SUM(count) AS count", group="type")
     cmap = dict((x["type"], x["count"]) for x in counts)
     for name, tables in conf.InputTables:
