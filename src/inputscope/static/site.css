@@ -227,7 +227,7 @@ body {
   float: right;
   display: none;
 }
-#status.playing #replay_stop {
+#status.progress #replay_stop {
   display: inline;
 }
 #progressbar {

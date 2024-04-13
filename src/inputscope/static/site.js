@@ -187,7 +187,7 @@ var initKeyboardHeatmap = function(positions, events, selectors) {
 
   positions.length && elm_start && elm_start.addEventListener("click", function() {
     if ("Replay" == elm_start.value) {
-      elm_statusdiv.classList.add("playing");
+      elm_statusdiv.classList.add("progress");
       myHeatmap.setData({data: [], max: 0});
       elm_start.value = "Pause";
       replay(0);
@@ -201,16 +201,17 @@ var initKeyboardHeatmap = function(positions, events, selectors) {
   });
 
   elm_stop && elm_stop.addEventListener("click", function() { // Restore replay form and reload heatmap
-    elm_start.value = "Replay";
     elm_status.innerHTML = "<br />";
     elm_progress.style.width = 0;
-    elm_statusdiv.classList.remove("playing");
+    elm_statusdiv.classList.remove("progress");
     resumeFunc = undefined;
+    if ("Replay" == elm_start.value) return;
+    elm_start.value = "Replay";
     myHeatmap.setData({data: positions, max: positions.length ? positions[0].value : 0});
   });
 
   var replay = function(index) { // Start populating heatmap incrementally
-    if (!elm_statusdiv.classList.contains("playing")) return;
+    if (!elm_statusdiv.classList.contains("progress")) return;
 
     if (index <= events.length - 1) {
       var step = parseInt(elm_step.value);
@@ -241,7 +242,6 @@ var initKeyboardHeatmap = function(positions, events, selectors) {
     } else {
       myHeatmap.setData({data: positions, max: positions.length ? positions[0].value : 0});
       elm_start.value = "Replay";
-      elm_statusdiv.classList.remove("playing");
     }
   };
 
@@ -290,7 +290,7 @@ var initMouseHeatmaps = function(positions, events, selectors) {
 
   Object.keys(positions).length && elm_start && elm_start.addEventListener("click", function() {
     if ("Replay" == elm_start.value) {
-      elm_statusdiv.classList.add("playing");
+      elm_statusdiv.classList.add("progress");
       replayevents = {};
       Object.keys(myHeatmaps).forEach(function(display) {
         myHeatmaps[display].setData({data: [], max: positions[display].length ? positions[display][0].value : 0});
@@ -307,19 +307,20 @@ var initMouseHeatmaps = function(positions, events, selectors) {
   });
 
   elm_stop && elm_stop.addEventListener("click", function() { // Restore replay form and reload heatmaps
-    elm_start.value = "Replay";
     elm_status.innerHTML = "<br />";
     elm_progress.style.width = 0;
-    elm_statusdiv.classList.remove("playing");
+    elm_statusdiv.classList.remove("progress");
     resumeFunc = undefined;
     replayevents = {};
+    if ("Replay" == elm_start.value) return;
+    elm_start.value = "Replay";
     Object.keys(myHeatmaps).forEach(function(display) {
       myHeatmaps[display].setData({data: positions[display], max: positions[display].length ? positions[display][0].value : 0});
     });
   });
 
   var replay = function(index) { // Start populating heatmaps incrementally
-    if (!elm_statusdiv.classList.contains("playing")) return;
+    if (!elm_statusdiv.classList.contains("progress")) return;
 
     if (index <= events.length - 1) {
       var step = parseInt(elm_step.value);
@@ -354,7 +355,6 @@ var initMouseHeatmaps = function(positions, events, selectors) {
 
     } else {
       elm_start.value = "Replay";
-      elm_statusdiv.classList.remove("playing");
       replayevents = {};
     }
   };

@@ -8,6 +8,7 @@ CHANGELOG
 - add replay controls to fullscreen heatmaps
 - omit programs with no events from applications list on heatmap page
 - make keyboard heatmap image path configurable
+- retain heatmap replay close-button after completion
 - fix logging Numpad operator keys in Linux (issue #30)
 - fix SQLite-related warnings in Python 3.12+ (issue #30)
 - work around heatmap.js bug of not rendering keyboard heatmap replay if step > 1
