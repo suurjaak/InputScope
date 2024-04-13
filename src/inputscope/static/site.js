@@ -153,6 +153,8 @@ var initFullscreenControls = function(selectors) {
 var initKeyboardHeatmap = function(positions, events, selectors) {
 
   var RADIUS    = 20;
+  var BLUR      = 0.85;
+  var LOGSCALE  = true;
   var SELECTORS = {heatmap: ".heatmap-container .heatmap", replay_start: "#replay_start",
                    replay_stop: "#replay_stop", interval: "#replay_interval",
                    step: "#replay_step", progress: "#progressbar", status: "#status",
@@ -174,7 +176,7 @@ var initKeyboardHeatmap = function(positions, events, selectors) {
   if (!elm_heatmap) return;
 
   var resumeFunc = null;
-  var myHeatmap = h337.create({container: elm_heatmap, radius: RADIUS});
+  var myHeatmap = h337.create({container: elm_heatmap, radius: RADIUS, blur: BLUR, logScale: LOGSCALE});
   if (positions.length) myHeatmap.setData({data: positions, max: positions[0].value});
 
   elm_show_kb && elm_show_kb.addEventListener("click", function() {

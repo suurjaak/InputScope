@@ -13,6 +13,7 @@ CHANGELOG
 - add journaling file size to database file size in statistics info box
 - fix logging Numpad operator keys in Linux (issue #30)
 - fix SQLite-related warnings in Python 3.12+ (issue #30)
+- use log scale in keyboard heatmaps to avoid superfrequent keys fading others (issue #32)
 - work around heatmap.js bug of not rendering keyboard heatmap replay if step > 1
 
 
