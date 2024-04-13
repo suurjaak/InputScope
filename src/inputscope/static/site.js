@@ -3,7 +3,7 @@
  *
  * @author      Erki Suurjaak
  * @created     26.07.2023
- * @modified    11.04.2024
+ * @modified    13.04.2024
  */
 
 
@@ -81,6 +81,61 @@ var initAppsFilter = function(base_url, text_now, ids_now, selectors) {
 
 
 /**
+ * Initializes heatmap fullscreen toggle and controls.
+ *
+ * @param   selectors  map of {heatmap,replay,status,fullscreen: query selector},
+ *                     defaults to {heatmap: ".heatmap-container .heatmap", replay: "#replaysection",
+ *                                  status: "#status", fullscreen: ".heatmap-container .fullscreen"}.
+ */
+var initFullscreenControls = function(selectors) {
+  var SELECTORS = {heatmap: ".heatmap-container .heatmap", replay: "#replaysection",
+                   status: "#status", fullscreen: ".heatmap-container .fullscreen"};
+  Object.keys(selectors || {}).forEach(function(k) { SELECTORS[k] = selectors[k] || SELECTORS[k]; });
+
+  var elm_replay  = document.querySelector(SELECTORS.replay),
+      elm_status  = document.querySelector(SELECTORS.status);
+  if (!elm_replay || !elm_status) return;
+
+  var restore_replay = makeElementRestorer(elm_replay);
+  var restore_status = makeElementRestorer(elm_status);
+
+  var on_fullscreen = function() {
+    var elm_ptr = this, elm_heatmap = null;
+    while (!elm_heatmap && elm_ptr) {
+      elm_ptr = elm_ptr.previousElementSibling || elm_ptr.parentNode;
+      elm_heatmap = elm_ptr.matches(SELECTORS.heatmap) ? elm_ptr : Array.prototype.find.call(
+        elm_ptr.getElementsByTagName("*"), function(elm) { elm.matches(SELECTORS.heatmap); }
+      );
+    };
+    elm_heatmap && elm_heatmap.requestFullscreen();
+    return false;
+  };
+  document.querySelectorAll(SELECTORS.fullscreen).forEach(function(elm) {
+    elm.addEventListener("click", on_fullscreen);
+  });
+
+  document.querySelectorAll(SELECTORS.heatmap).forEach(function(elm_heatmap) {
+    var elm_controls = document.createElement("div"),
+        elm_inner    = document.createElement("div");
+    elm_controls.className = "controls";
+    elm_inner.className = "inner";
+    elm_controls.appendChild(elm_inner);
+    elm_heatmap.appendChild(elm_controls);
+
+    elm_heatmap.addEventListener("fullscreenchange", function(event) {
+      if (document.fullscreenElement) {
+        elm_inner.append(elm_replay, elm_status);
+        elm_controls.classList.add("flash");
+      } else {
+        restore_replay();
+        restore_status();
+      };
+    });
+  });
+};
+
+
+/**
  * Initializes keyboard heatmap.
  *
  * Requires the "h337" heatmap library.
@@ -88,13 +143,12 @@ var initAppsFilter = function(base_url, text_now, ids_now, selectors) {
  * @param   positions  list of heatmap positions, as [{x, y, value, label}]
  * @param   events     list of keyboard events, as [{dt, data: [{x, y, count, key}]}]
  * @param   selectors  map of {heatmap,replay_start,replay_stop,interval,step,progress,status,
- *                             statustext,fullscreen,toggle_heatmap,toggle_keyboard,keyboard: query selector},
+ *                             statustext,toggle_heatmap,toggle_keyboard,keyboard: query selector},
  *                     defaults to {heatmap: ".heatmap-container .heatmap", replay_start: "#replay_start",
  *                       replay_stop: "#replay_stop", interval: "#replay_interval",
  *                       step: "#replay_step", progress: "#progressbar", status: "#status",
- *                       statustext: "#statustext", fullscreen: ".heatmap-container .fullscreen",
- *                       toggle_heatmap: "#show_heatmap", toggle_keyboard: "#show_keyboard",
- *                       keyboard: "#keyboard"}
+ *                       statustext: "#statustext", toggle_heatmap: "#show_heatmap",
+ *                       toggle_keyboard: "#show_keyboard", keyboard: "#keyboard"}
  */
 var initKeyboardHeatmap = function(positions, events, selectors) {
 
@@ -102,9 +156,8 @@ var initKeyboardHeatmap = function(positions, events, selectors) {
   var SELECTORS = {heatmap: ".heatmap-container .heatmap", replay_start: "#replay_start",
                    replay_stop: "#replay_stop", interval: "#replay_interval",
                    step: "#replay_step", progress: "#progressbar", status: "#status",
-                   statustext: "#statustext", fullscreen: ".heatmap-container .fullscreen",
-                   toggle_heatmap: "#show_heatmap", toggle_keyboard: "#show_keyboard",
-                   keyboard: "#keyboard"};
+                   statustext: "#statustext", toggle_heatmap: "#show_heatmap",
+                   toggle_keyboard: "#show_keyboard", keyboard: "#keyboard"};
   Object.keys(selectors || {}).forEach(function(k) { SELECTORS[k] = selectors[k] || SELECTORS[k]; });
 
   var elm_heatmap   = document.querySelector(SELECTORS.heatmap),
@@ -130,11 +183,6 @@ var initKeyboardHeatmap = function(positions, events, selectors) {
 
   elm_show_hm && elm_show_hm.addEventListener("click", function() {
     elm_heatmap.querySelector("canvas").classList[this.checked ? "remove" : "add"]("hidden");
-  });
-
-  var on_fullscreen = function() { this.parentNode.previousElementSibling.requestFullscreen(); return false; };
-  document.querySelectorAll(SELECTORS.fullscreen).forEach(function(elm) {
-    elm.addEventListener("click", on_fullscreen);
   });
 
   positions.length && elm_start && elm_start.addEventListener("click", function() {
@@ -203,19 +251,18 @@ var initKeyboardHeatmap = function(positions, events, selectors) {
  * @param   positions  heatmap positions, as {display index: [{x, y, value, label}], }
  * @param   events     list of mouse events, as [{x, y, display, dt}]
  * @param   selectors  map of {heatmap,replay_start,replay_stop,interval,step,progress,status,
- *                             statustext,fullscreen: query selector},
+ *                             statustext: query selector},
  *                     defaults to {heatmap: "heatmap-container .heatmap", replay_start: "#replay_start",
  *                       replay_stop: "#replay_stop", interval: "#replay_interval",
  *                       step: "#replay_step", progress: "#progressbar", status: "#status",
- *                       statustext: "#statustext", fullscreen: ".heatmap-container .fullscreen"}
+ *                       statustext: "#statustext"}
  */
 var initMouseHeatmaps = function(positions, events, selectors) {
 
   var RADIUS    = 10;
   var SELECTORS = {heatmap: ".heatmap-container .heatmap", replay_start: "#replay_start",
-                   replay_stop: "#replay_stop", interval: "#replay_interval",
-                   step: "#replay_step", progress: "#progressbar", status: "#status",
-                   statustext: "#statustext", fullscreen: ".heatmap-container .fullscreen"};
+                   replay_stop: "#replay_stop", interval: "#replay_interval", step: "#replay_step",
+                   progress: "#progressbar", status: "#status", statustext: "#statustext"};
   Object.keys(selectors || {}).forEach(function(k) { SELECTORS[k] = selectors[k] || SELECTORS[k]; });
 
   var elm_start     = document.querySelector(SELECTORS.replay_start),
@@ -234,11 +281,6 @@ var initMouseHeatmaps = function(positions, events, selectors) {
 
   Object.keys(positions).forEach(function(display) {
     myHeatmaps[display].setData({data: positions[display], max: positions[display].length ? positions[display][0].value : 0});
-  });
-
-  var on_fullscreen = function() { this.parentNode.previousElementSibling.requestFullscreen(); return false; };
-  document.querySelectorAll(SELECTORS.fullscreen).forEach(function(elm) {
-    elm.addEventListener("click", on_fullscreen);
   });
 
   Object.keys(positions).length && elm_start && elm_start.addEventListener("click", function() {
@@ -390,4 +432,13 @@ var filterItems = function(elem, selector, text, style, inclusive, textselector)
 /** Escapes special characters in a string for RegExp. */
 var escapeRegExp = function(string) {
   return string.replace(/[\\^$.|?*+()[{]/g, "\\$&");
+};
+
+
+/** Returns callback that restores element to its current position in DOM tree. */
+var makeElementRestorer = function(elm) {
+  var prev   = elm.previousElementSibling,
+      next   = elm.nextElementSibling,
+      parent = elm.parentNode;
+  return function() { prev ? prev.after(elm) : next ? next.before(elm) : parent.append(elm); };
 };

@@ -3,7 +3,7 @@
  *
  * @author      Erki Suurjaak
  * @created     07.04.2015
- * @modified    11.04.2024
+ * @modified    13.04.2024
  */
 :root {
   font-size: 6.25%; /** Root font size to 1px @ default font size 16px */
@@ -112,6 +112,9 @@ body {
 #replaysection {
   margin-left: auto;
 }
+#replaysection input[type="button"] {
+  min-width: 70px;
+}
 #replaysection #limit {
   font-size: 0.8em;
   opacity: 0.5;
@@ -161,17 +164,38 @@ body {
   height: 100%;
   width: 100%;
 }
-.heatmap.keyboard:fullscreen > * {
+.heatmap.keyboard:fullscreen img,
+.heatmap.keyboard:fullscreen canvas {
   position: absolute;
   top: 50% !important;
   transform: translateY(-50%);
+  width: 100%;
 }
 .heatmap.keyboard:fullscreen img {
   height: auto;
-  width: 100%;
 }
-.heatmap.keyboard:fullscreen canvas {
-  width: 100%;
+.heatmap:fullscreen .controls {
+  position: absolute;
+  top: 0;
+  left: calc(50% - 350px);
+  width: 700px;
+}
+.heatmap:fullscreen .controls .inner {
+  background-color: rgba(255,255,255,0.7);
+  border-radius: 0 0 5px 5px;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 5px 5px 5px;
+}
+.heatmap:fullscreen .controls:hover .inner {
+  opacity: 1;
+}
+.heatmap:fullscreen .controls:not(:hover) .inner {
+  opacity: 0;
+  transition: opacity 0.5s ease 3s;
+}
+.heatmap:fullscreen .controls #replaysection {
+  margin-right: auto;
 }
 .heatmap_helpers {
   display: flex;

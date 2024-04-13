@@ -1,10 +1,11 @@
 CHANGELOG
 =========
 
-1.11, 2024-04-11
+1.11, 2024-04-13
 ----------------
 - scale mouse heatmap to screen height
 - add fullscreen view to keyboard heatmaps
+- add replay controls to fullscreen heatmaps
 - omit programs with no events from applications list on heatmap page
 - make keyboard heatmap image path configurable
 - fix logging Numpad operator keys in Linux (issue #30)

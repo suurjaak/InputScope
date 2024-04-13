@@ -28,7 +28,7 @@ Released under the MIT License.
 
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    11.04.2024
+@modified    12.04.2024
 ------------------------------------------------------------------------------
 %"""
 %import base64, json, os
@@ -232,6 +232,7 @@ appidstr = "" if app_search else ",".join(map(str, app_ids or []))
   var events = {{! json.dumps(events) }};
   window.addEventListener("load", function() {
     {{ "initMouseHeatmaps" if "mouse" == input else "initKeyboardHeatmap" }}(positions, events);
+    initFullscreenControls();
 %if conf.ProgramsEnabled:
     initAppsFilter("{{ make_url(appids=None, appnames=None) }}", "{{ app_search or "" }}", "{{ appidstr }}");
 %end # if conf.ProgramsEnabled
