@@ -10,7 +10,7 @@ Released under the MIT License.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    11.04.2024
+@modified    13.04.2024
 ------------------------------------------------------------------------------
 """
 import collections
@@ -447,6 +447,7 @@ def stats_db(filename):
         result += [("%s events" % name.capitalize(), countstr)]
     result += [("Sessions", db.fetchone("sessions", "COUNT(*) AS count")["count"])]
     result += [("%s version" % conf.Title, "%s (%s)" % (conf.Version, conf.VersionDate))]
+    result += [("Configuration", conf.ConfigPath or "")]
     return result
 
 
