@@ -10,6 +10,7 @@ CHANGELOG
 - make keyboard heatmap image path configurable
 - fix logging Numpad operator keys in Linux (issue #30)
 - fix SQLite-related warnings in Python 3.12+ (issue #30)
+- work around heatmap.js bug of not rendering keyboard heatmap replay if step > 1
 
 
 1.10, 2024-03-22

@@ -216,9 +216,14 @@ var initKeyboardHeatmap = function(positions, events, selectors) {
       var step = parseInt(elm_step.value);
       if (step > 1) {
         index = Math.min(index + step - 1, events.length - 1);
-        myHeatmap.setData({data: events.slice(0, index + 1).reduce(function(o, v) {
+        var maxes = {}; // Work around heatmap.js bug of not updating max with setData
+        var datas = events.slice(0, index + 1).reduce(function(o, v) {
+          for (var i = 0; i < v.data.length; i++) {
+            maxes[v.data[i].key] = v.data[i].count + (maxes[v.data[i].key] || 0);
+          };
           o.push.apply(o, v.data); return o;
-        }, []), max: 0});
+        }, []);
+        myHeatmap.setData({data: datas, max: Math.max.apply(null, Object.values(maxes))});
       } else myHeatmap.addData(events[index].data);
 
       var percent = (100 * index / events.length).toFixed() + "%";
