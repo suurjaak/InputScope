@@ -387,6 +387,9 @@ body.session.input #header > #headerlinks {
 body.session.input td.periods a.day {
   margin-left: 0;
 }
+body.session table.totals td.periods {
+  padding-right: initial;
+}
 #overlay {
   display: flex;
   align-items: center;

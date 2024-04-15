@@ -11,7 +11,7 @@ Released under the MIT License.
 
 @author      Erki Suurjaak
 @created     15.10.2021
-@modified    10.04.2024
+@modified    15.04.2024
 ------------------------------------------------------------------------------
 %"""
 %from inputscope import conf
@@ -45,7 +45,8 @@ Released under the MIT License.
     <td id="{{ table }}_periods" class="periods">
     <div class="periods">
 %   for item in data["periods"]:
-      <a class="{{ item["class"] }}" href="{{ get_url("/sessions/<session>/<input>/<table>/<period>", session=session["id"], input=input, table=table, period=item["period"]) }}#{{ item["count"] }}">
+      <div class="flex-row">
+        <a class="{{ item["class"] }}" href="{{ get_url("/sessions/<session>/<input>/<table>/<period>", session=session["id"], input=input, table=table, period=item["period"]) }}#{{ item["count"] }}">
         {{ item["period"] }}
 %        if "day" == item["class"]:
 %            try:
@@ -53,8 +54,9 @@ Released under the MIT License.
 %            except Exception: pass
 %            end # try
 %        end # if "day"
-      </a>
-      <span>({{ "{:,}".format(item["count"])  }})</span><br />
+        </a>
+        <span>({{ "{:,}".format(item["count"])  }})</span><br />
+      </div>
 %    end # for item
     </div>
     </td>
