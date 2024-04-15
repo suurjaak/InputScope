@@ -11,6 +11,7 @@ CHANGELOG
 - make keyboard key positions in heatmap configurable
 - retain heatmap replay close-button after completion
 - add yearly statistics
+- add collapse-toggles to years and months in input index
 - add program configuration path to database info box in statistics
 - add journaling file size to database file size in statistics info box
 - make heatmap display settings configurable (issue #32)

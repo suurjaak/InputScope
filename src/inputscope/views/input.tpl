@@ -29,15 +29,25 @@ Released under the MIT License.
 %        continue # for table, data
 %    end # if not data["count"]
 %    input = "keyboard" if table in ("keys", "combos") else "mouse"
+%    nesting = [] # Helper for wrapping collapser divs around years and months
   <tbody>
   <tr><th colspan="2">{{ table }}</th></tr>
   <tr><td>Total:</td><td><a href="{{ make_url(table=table) }}#{{ data["count"] }}">{{ "{:,}".format(data["count"]) }}</a></td></tr>
   <tr><td>Days:</td>
     <td id="{{ table }}_periods" class="periods">
-      <a href="javascript:;" class="toggle" data-input="{{ table }}" title="Toggle days">&ndash;</a>
+      <a href="javascript:;" class="toggle" data-input="{{ table }}" title="Toggle entries">&ndash;</a>
       <div class="count">{{ len([v for v in data["periods"] if "day" == v["class"]]) }}</div>
       <div class="periods">
 %    for item in data["periods"]:
+%        if "day" != item["class"]:
+%            while nesting and nesting[-1] != item["period"][:len(nesting[-1])]:
+%                nesting.pop()
+        </div>
+%            end # while nesting
+%            nesting.append(item["period"])
+        <div class="grouper">
+          <a href="javascript:;" class="toggle" data-input="{{ table }}" title="Toggle {{ "%(class)s %(period)s" % item }}">&ndash;</a>
+%        end # if != "day"
         <div class="flex-row">
           <a class="{{ item["class"] }}" href="{{ make_url(table=table, period=item["period"]) }}#{{ item["count"] }}">
           {{ item["period"] }}
@@ -51,6 +61,9 @@ Released under the MIT License.
           <span>({{ "{:,}".format(item["count"])  }})</span>
         </div>
 %    end # for item
+%    while nesting and nesting.pop():
+        </div>
+%    end # while nesting
       </div>
     </td>
   </tr>

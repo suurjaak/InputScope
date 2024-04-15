@@ -101,6 +101,7 @@ body {
 }
 .flex-row > :first-child {
   margin-left: 0;
+  margin-right: 10rem;
 }
 .flex-row > :last-child {
   margin-right: 0;
@@ -334,16 +335,14 @@ table.totals td.periods {
 table.totals td.periods .periods > div {
   column-gap: 10rem;
 }
-table.totals td.periods .count {
-  display: none;
-}
-table.totals td.periods.collapsed .count {
-  display: block;
-  white-space: nowrap;
-}
 table.totals td.periods.collapsed .periods {
   height: 0;
   overflow: hidden;
+  visibility: hidden;
+}
+table.totals td.periods .collapsed div:not(:first-of-type),
+table.totals td.periods.collapsed * a.toggle {
+  display: none;
 }
 table.totals td.periods .periods a.year {
   font-size: 1.2em;
