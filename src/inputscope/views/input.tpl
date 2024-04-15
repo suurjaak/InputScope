@@ -1,5 +1,5 @@
 %"""
-Index page.
+Input index page.
 
 Template arguments:
   stats      data statistics as {"count": int, "periods": [{"period", "count", "class"}]}
@@ -13,7 +13,7 @@ Released under the MIT License.
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    10.04.2024
+@modified    15.04.2024
 ------------------------------------------------------------------------------
 %"""
 %from inputscope import conf

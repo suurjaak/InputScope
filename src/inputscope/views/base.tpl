@@ -18,7 +18,7 @@ Released under the MIT License.
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    10.04.2024
+@modified    15.04.2024
 ------------------------------------------------------------------------------
 %"""
 %import os, bottle
@@ -71,7 +71,10 @@ Released under the MIT License.
 %if days:
 <span id="daysection" class="flex-row">
     %prevperiod, nextperiod = None, None
-    %if period and len(period) < 8:
+    %if period and len(period) < 5:
+    %    prevperiod = next((x["day"][:4] for x in days[::-1] if x["day"][:4] < period), None)
+    %    nextperiod = next((x["day"][:4] for x in days       if x["day"][:4] > period), None)
+    %elif period and len(period) < 8:
     %    prevperiod = next((x["day"][:7] for x in days[::-1] if x["day"][:7] < period), None)
     %    nextperiod = next((x["day"][:7] for x in days       if x["day"][:7] > period), None)
     %else:
@@ -92,13 +95,16 @@ Released under the MIT License.
     %if not period or not events:
     <option>- period -</option>
     %end # if not period
-    %prevmonth = None
+    %prevmonth, prevyear = None, None
     %for d in days[::-1]:
+        %if prevyear != d["day"][:4] and not session:
+    <option{{! ' selected="selected"' if period == d["day"][:4] else "" }}>{{ d["day"][:4] }}</option>
+        %end # if prevyear != d["day"][:4]
         %if prevmonth != d["day"][:7] and not session:
-    <option{{! ' selected="selected"' if period == d["day"][:7] else "" }}>{{ d["day"][:7] }}</option>
+    <option{{! ' selected="selected"' if len(period or "") == 7 and period == d["day"][:7] else "" }}>{{ d["day"][:7] }}</option>
         %end # if prevmonth != d["day"][:7]
     <option{{! ' selected="selected"' if period == d["day"] else "" }}>{{ d["day"] }}</option>
-        %prevmonth = d["day"][:7]
+        %prevmonth, prevyear = d["day"][:7], d["day"][:4]
     %end # for d
   </select>
 

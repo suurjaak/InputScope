@@ -1,7 +1,7 @@
 CHANGELOG
 =========
 
-1.11, 2024-04-13
+1.11, 2024-04-15
 ----------------
 - scale mouse heatmap to screen height
 - add fullscreen view to keyboard heatmaps
@@ -10,6 +10,7 @@ CHANGELOG
 - make keyboard heatmap image path configurable
 - make keyboard key positions in heatmap configurable
 - retain heatmap replay close-button after completion
+- add yearly statistics
 - add program configuration path to database info box in statistics
 - add journaling file size to database file size in statistics info box
 - make heatmap display settings configurable (issue #32)

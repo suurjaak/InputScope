@@ -10,7 +10,7 @@ Released under the MIT License.
 
 @author      Erki Suurjaak
 @created     06.04.2015
-@modified    13.04.2024
+@modified    15.04.2024
 ------------------------------------------------------------------------------
 """
 import collections
@@ -158,8 +158,8 @@ def inputdetail(input, table, period=None, session=None, appids=None, appnames=N
             if mycount >= conf.MaxEventsForStats: break # for myday
         if len(mydays) != len(days):
             where += [("day", ("IN", mydays))]
-    elif period and len(period) < 8: # Month period, query by known month days
-        mydays = [v["day"] for v in days if v["day"][:7] == period]
+    elif period and len(period) < 8: # Month/year period, query by known period days
+        mydays = [v["day"] for v in days if v["day"][:len(period)] == period]
         where += [("day", ("IN", mydays))]
     elif period:
         where += [("day", period)]
@@ -196,13 +196,19 @@ def inputindex(input):
     countminmax = "SUM(count) AS count, MIN(day) AS first, MAX(day) AS last"
     for table in conf.InputEvents[input]:
         stats[table] = db.fetchone("counts", countminmax, type=table)
-        periods, month = [], None
+        periods, month, year, months = [], None, None, 0
         for data in db.fetch("counts", "day AS period, count, 'day' AS class", order="day DESC", type=table):
+            if not month or month["period"][:4] != data["period"][:4]:
+                year = {"class": "year", "period": data["period"][:4], "count": 0}
+                periods.append(year)
             if not month or month["period"][:7] != data["period"][:7]:
                 month = {"class": "month", "period": data["period"][:7], "count": 0}
                 periods.append(month)
+                months += 1
             month["count"] += data["count"]
+            year["count"] += data["count"]
             periods.append(data)
+        if months < 2: periods = [x for x in periods if "year" != x["class"]]
         stats[table]["periods"] = periods
     dbinfo, sessions = stats_db(conf.DbPath), stats_sessions(input=input)
     return bottle.template("input.tpl", locals(), conf=conf)

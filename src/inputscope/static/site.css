@@ -3,7 +3,7 @@
  *
  * @author      Erki Suurjaak
  * @created     07.04.2015
- * @modified    13.04.2024
+ * @modified    15.04.2024
  */
 :root {
   font-size: 6.25%; /** Root font size to 1px @ default font size 16px */
@@ -344,6 +344,12 @@ table.totals td.periods.collapsed .count {
 table.totals td.periods.collapsed .periods {
   height: 0;
   overflow: hidden;
+}
+table.totals td.periods .periods a.year {
+  font-size: 1.2em;
+}
+table.totals td.periods .periods div + div a.month {
+  margin-left: 5px;
 }
 table.totals td.periods .periods a.day {
   margin-left: 10px;

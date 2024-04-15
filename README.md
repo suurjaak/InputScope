@@ -4,7 +4,7 @@ InputScope
 Mouse and keyboard input heatmap visualizer and statistics.
 
 Runs a tray program that logs mouse and keyboard input events to a local database,
-and provides a local web page for viewing statistics and heatmaps by day or month.
+and provides a local web page for viewing statistics and heatmaps by day or month or year.
 
 [![Mouse clicks heatmap](https://raw.githubusercontent.com/suurjaak/InputScope/media/th_clicks.png)](https://raw.githubusercontent.com/suurjaak/InputScope/media/clicks.png)
 [![Mouse moves heatmap](https://raw.githubusercontent.com/suurjaak/InputScope/media/th_moves.png)](https://raw.githubusercontent.com/suurjaak/InputScope/media/moves.png)
@@ -80,14 +80,6 @@ MouseRegionsOfDisinterest = [[0.49, 0.49, 0.02, 0.02]]
 ```
 
 For more on configuration settings, see [DETAIL.md](DETAIL.md).
-
-
-Known issues
-------------
-
-- In Linux, Numpad navigation keys like PageUp are logged as ordinary PageUp when NumLock off
-
-- keyboard combinations can include unexpected combos
 
 
 Installation
