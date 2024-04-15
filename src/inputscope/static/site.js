@@ -3,7 +3,7 @@
  *
  * @author      Erki Suurjaak
  * @created     26.07.2023
- * @modified    13.04.2024
+ * @modified    15.04.2024
  */
 
 
@@ -290,7 +290,7 @@ var initMouseHeatmaps = function(positions, events, config, selectors) {
   });
 
   Object.keys(positions).forEach(function(display) {
-    myHeatmaps[display].setData({data: positions[display], max: positions[display].length ? positions[display][0].value : 0});
+    myHeatmaps[display].setData({data: positions[display]});
   });
 
   Object.keys(positions).length && elm_start && elm_start.addEventListener("click", function() {
@@ -298,7 +298,7 @@ var initMouseHeatmaps = function(positions, events, config, selectors) {
       elm_statusdiv.classList.add("progress");
       replayevents = {};
       Object.keys(myHeatmaps).forEach(function(display) {
-        myHeatmaps[display].setData({data: [], max: positions[display].length ? positions[display][0].value : 0});
+        myHeatmaps[display].setData({data: []});
       });
       elm_start.value = "Pause";
       replay(0);
@@ -320,7 +320,7 @@ var initMouseHeatmaps = function(positions, events, config, selectors) {
     if ("Replay" == elm_start.value) return;
     elm_start.value = "Replay";
     Object.keys(myHeatmaps).forEach(function(display) {
-      myHeatmaps[display].setData({data: positions[display], max: positions[display].length ? positions[display][0].value : 0});
+      myHeatmaps[display].setData({data: positions[display]});
     });
   });
 
@@ -339,7 +339,7 @@ var initMouseHeatmaps = function(positions, events, config, selectors) {
         };
         index = index2;
         Object.keys(changeds).forEach(function(display) {
-          myHeatmaps[display].setData({data: replayevents[display], max: 0});
+          myHeatmaps[display].setData({data: replayevents[display]});
         });
       } else {
         myHeatmaps[events[index].display].addData(events[index]);
