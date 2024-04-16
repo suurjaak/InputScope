@@ -24,7 +24,7 @@ Released under the MIT License.
 
 @author      Erki Suurjaak
 @created     26.03.2015
-@modified    15.04.2024
+@modified    16.04.2024
 ------------------------------------------------------------------------------
 """
 import ast
@@ -40,8 +40,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.11.dev21"
-VersionDate = "15.04.2024"
+Version = "1.11.dev22"
+VersionDate = "16.04.2024"
 
 """TCP port of the web user interface."""
 WebHost = "localhost"

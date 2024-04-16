@@ -3,7 +3,7 @@
  *
  * @author      Erki Suurjaak
  * @created     07.04.2015
- * @modified    15.04.2024
+ * @modified    16.04.2024
  */
 :root {
   font-size: 6.25%; /** Root font size to 1px @ default font size 16px */
@@ -447,7 +447,14 @@ table.outlined td {
   font-size: 0.9em;
 }
 #app_stats {
-  width: 100%;
+  width: calc(100% - 2 * (1px + 5rem));
+}
+#app_stats > table {
+  display: block;
+  overflow-x: auto;
+}
+#app_stats.collapsed > table {
+  overflow-x: hidden;
 }
 #app_stats th:not(:last-child),
 #app_stats td:not(:last-child) {
