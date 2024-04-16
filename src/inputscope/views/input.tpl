@@ -13,7 +13,7 @@ Released under the MIT License.
 
 @author      Erki Suurjaak
 @created     07.04.2015
-@modified    15.04.2024
+@modified    16.04.2024
 ------------------------------------------------------------------------------
 %"""
 %from inputscope import conf
@@ -23,19 +23,19 @@ Released under the MIT License.
 %rebase("base.tpl", **locals())
 
 <div>
-<table class="totals outlined">
 %for table, data in stats.items():
 %    if not data["count"]:
 %        continue # for table, data
 %    end # if not data["count"]
 %    input = "keyboard" if table in ("keys", "combos") else "mouse"
 %    nesting = [] # Helper for wrapping collapser divs around years and months
-  <tbody>
+<div class="data">
+  <a href="javascript:;" class="toggle" data-input="{{ table }}" title="Toggle days">&ndash;</a>
+  <table class="totals">
   <tr><th colspan="2">{{ table }}</th></tr>
   <tr><td>Total:</td><td><a href="{{ make_url(table=table) }}#{{ data["count"] }}">{{ "{:,}".format(data["count"]) }}</a></td></tr>
   <tr><td>Days:</td>
     <td id="{{ table }}_periods" class="periods">
-      <a href="javascript:;" class="toggle" data-input="{{ table }}" title="Toggle entries">&ndash;</a>
       <div class="count">{{ len([v for v in data["periods"] if "day" == v["class"]]) }}</div>
       <div class="periods">
 %    for item in data["periods"]:
@@ -67,9 +67,9 @@ Released under the MIT License.
       </div>
     </td>
   </tr>
-  </tbody>
+  </table>
+</div>
 %end # for table, data
-</table>
 
 %did_sessions = False
 %for sess in (s for s in sessions if s["count"]):
@@ -93,7 +93,5 @@ Released under the MIT License.
 
 
 <script type="text/javascript">
-  window.addEventListener("load", function() {
-    initToggles("a.toggle", "collapsed");
-  });
+  window.addEventListener("load", function() { initToggles("a.toggle", "collapsed"); });
 </script>

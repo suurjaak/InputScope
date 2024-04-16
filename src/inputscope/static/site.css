@@ -266,9 +266,10 @@ table.outlined tbody {
   margin-top: 20px;
   padding: 5rem;
 }
-#tables .data {
+.data {
   border: 1px dashed #1abc9c;
   height: fit-content;
+  width: fit-content;
   margin-bottom: 20px;
   margin-top: 20px;
   padding: 5rem;
@@ -356,6 +357,20 @@ table.totals td.periods .periods a.day {
 table.totals td.periods .periods span {
   margin-left: auto;
 }
+table.totals td.periods .count {
+  display: none;
+}
+.collapsed table.totals td.periods .count,
+table.totals td.periods.collapsed .count {
+  display: block;
+  white-space: nowrap;
+}
+.collapsed table.totals {
+  height: 4em;
+}
+.collapsed table.totals .toggle {
+  display: none;
+}
 .weekday {
   font-size: 0.7em;
   text-transform: uppercase;
@@ -383,8 +398,8 @@ body.session.index #header > #headerlinks,
 body.session.input #header > #headerlinks {
   margin-right: 60rem;
 }
-body.session.input td.periods a.day {
-  margin-left: 0;
+body.session .periods a.day {
+  margin-left: 0 !important;
 }
 body.session table.totals td.periods {
   padding-right: initial;
@@ -442,7 +457,7 @@ th {
   vertical-align: top;
   font-size: 0.8em;
 }
-table.outlined td {
+table.outlined td, .data td {
   vertical-align: top;
   font-size: 0.9em;
 }
@@ -493,6 +508,7 @@ table.totals td:not(:last-child) {
 table.totals th:first-child,
 #counts th:first-child {
   min-width: 80rem;
+  position: relative;
 }
 body.index table .flex-row {
   column-gap: 10px;

@@ -11,7 +11,7 @@ Released under the MIT License.
 
 @author      Erki Suurjaak
 @created     15.10.2021
-@modified    15.04.2024
+@modified    16.04.2024
 ------------------------------------------------------------------------------
 %"""
 %from inputscope import conf
@@ -32,17 +32,19 @@ Released under the MIT License.
 %end # for key
 </tr></table>
 
-<table class="totals outlined">
 %for input, table in ((k, t) for k, tt in conf.InputTables for t in tt):
 %    data = stats.get(table, {})
 %    if not data.get("count"):
 %        continue # for table
 %    end
-  <tbody>
+<div class="data">
+  <a href="javascript:;" class="toggle" data-input="{{ table }}" title="Toggle days">&ndash;</a>
+  <table class="totals">
   <tr><th>{{ table }}</th></tr>
   <tr><td>Total:</td><td><a href="{{ get_url("/sessions/<session>/<input>/<table>", session=session["id"], input=input, table=table) }}#{{ data["count"] }}">{{ "{:,}".format(data["count"]) }}</a></td></tr>
   <tr><td>Days:</td>
     <td id="{{ table }}_periods" class="periods">
+    <div class="count">{{ len([v for v in data["periods"] if "day" == v["class"]]) }}</div>
     <div class="periods">
 %   for item in data["periods"]:
       <div class="flex-row">
@@ -61,7 +63,11 @@ Released under the MIT License.
     </div>
     </td>
   </tr>
-  </tbody>
-%end # for table, data
-</table>
+  </table>
 </div>
+%end # for table, data
+</div>
+
+<script type="text/javascript">
+  window.addEventListener("load", function() { initToggles("a.toggle", "collapsed"); });
+</script>
