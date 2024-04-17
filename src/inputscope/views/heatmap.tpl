@@ -7,6 +7,7 @@ Template arguments:
   period          period for events, if any (day like "2020-02-20" or month like "2020-02")
   days            list of available days
   count           count of all events
+  heatmap_sizes   mouse heatmap sizes scaled to screen height at first event, as {display: [w, h]}
   heatmap_stats   heatmap position counts, as {display: [{x, y, count}, ]} for mouse
                   or [{x, y, count}] for keyboard
   events          list of replayable events, as [{x, y, display, dt}] for mouse
@@ -21,15 +22,21 @@ Template arguments:
   app_stats       per-application statistics, as OrderedDict({id: {path, total, ?cols: {label: count}}})
   tabledays       set of tables that have events for specified day
 
+------------------------------------------------------------------------------
+This file is part of InputScope - mouse and keyboard input visualizer.
+Released under the MIT License.
+
 @author      Erki Suurjaak
 @created     21.05.2015
-@modified    20.10.2023
+@modified    13.04.2024
+------------------------------------------------------------------------------
 %"""
-%import json, os
+%import base64, json, os
 %from inputscope import conf
 %from inputscope.util import format_weekday
 %WEBROOT = get_url("/")
-%HEATMAP_SIZE = conf.MouseHeatmapSize if "mouse" == input else conf.KeyboardHeatmapSize
+%heatmap_sizes = heatmap_sizes if "mouse" == input else {0: conf.KeyboardHeatmapSize}
+%heatmap_sizes = heatmap_sizes or {0: conf.MouseHeatmapSize}
 %title = "%s %s" % (input.capitalize(), table)
 %rebase("base.tpl", **locals())
 
@@ -79,32 +86,39 @@ Template arguments:
   <a href="javascript:;" title="Stop replay and reset heatmap" id="replay_stop">x</a>
 </div>
 
-<div class="heatmap-container" style="margin: 0 calc(-10rem + {{ (700 - HEATMAP_SIZE[0]) // 2 }}px - 2px);">
-%for _ in (heatmap_stats if heatmap_stats and "mouse" == input else [0]):
-  <div class="heatmap {{ input }}" style="width: {{ HEATMAP_SIZE[0] }}px; height: {{ HEATMAP_SIZE[1] }}px;">
+<div class="heatmap-container" style="margin: 0 calc(-10rem + {{ (700 - max(s[0] for s in heatmap_sizes.values())) // 2 }}px - 2px);">
+%for display in (heatmap_stats if heatmap_stats and "mouse" == input else [0]):
+  <div class="heatmap {{ input }}" style="width: {{ heatmap_sizes[display][0] }}px; height: {{ heatmap_sizes[display][1] }}px;">
     %if "keyboard" == input:
-    <img id="keyboard" src="{{ WEBROOT }}static/keyboard.svg" width="{{ HEATMAP_SIZE[0] }}" height="{{ HEATMAP_SIZE[1] }}" alt="" />
+    %    if os.path.abspath(conf.KeyboardHeatmapPath).startswith(conf.StaticPath):
+    %        img_src = WEBROOT + "static/keyboard.svg"
+    %    else:
+    %        with open(conf.KeyboardHeatmapPath, "rb") as f:
+    %            svg_raw = f.read()
+    %        end # with open
+    %        img_src = "data:image/svg+xml;base64," + base64.b64encode(svg_raw).decode()
+    %    end # if os.path.abspath
+    <img id="keyboard" src="{{ img_src }}" width="{{ heatmap_sizes[display][0] }}" height="{{ heatmap_sizes[display][1] }}" alt="" />
     %end # if "keyboard"
   </div>
   <div class="heatmap_helpers">
     %if apps:
     <a id="apps_form_show" title="Select applications">applications</a>
     %end # if apps
-    %if "mouse" == input:
     <a class="fullscreen" title="Expand heatmap to full screen">full screen</a>
-    %else:
+    %if "keyboard" == input:
     <label for="show_heatmap" class="check_label"><input type="checkbox" id="show_heatmap" checked="checked" />Show heatmap</label>
     <label for="show_keyboard" class="check_label"><input type="checkbox" id="show_keyboard" checked="checked" />Show keyboard</label>
-    %end # if "mouse"
+    %end # if "keyboard"
   </div>
-%end # for _
+%end # for display
 
 %if apps:
   <form id="apps_form" class="hidden">
   <input type="search" value="{{ app_search or "" }}" 
          placeholder="Filter applications" title="Enter words or phrases to filter applications by" />
     <div class="items"><table>
-    %for item in apps:
+    %for item in (x for x in apps if x["id"] in app_stats):
         %is_active = app_ids and item["id"] in app_ids
         %is_hidden = app_search and not is_active
         %cls = "active" if is_active else "hidden" if is_hidden else None
@@ -141,17 +155,19 @@ Template arguments:
 
 <div id="tables">
 
+%if stats_texts:
   <div class="data">
     <a title="Toggle table" class="toggle">&ndash;</a>
     <table id="stats" class="{{ input }}">
-%for key, val in stats_texts:
+    %for key, val in stats_texts:
       <tr><td>{{ key }}</td><td>{{ val }}</td></tr>
-%end # for key, val
-%if count > conf.MaxEventsForStats:
+    %end # for key, val
+    %if count > conf.MaxEventsForStats:
       <tr><td colspan="2">Statistics and heatmap limited to a maximum of {{ "{:,}".format(conf.MaxEventsForStats) }} events.</td></tr>
-%end # if count > conf.MaxEventsForStats
+    %end # if count > conf.MaxEventsForStats
     </table>
   </div>
+%end # if stats_texts
 
 %if "keyboard" == input:
   <div class="data">
@@ -201,7 +217,7 @@ if "mouse" == input:
                  for display, pp in heatmap_stats.items()}
     events = [{"x": e["x"], "y": e["y"], "display": e["display"], "dt": str(e["dt"])} for e in events]
 else:
-    KP = conf.KeyPositions
+    KP = dict(conf.KeyPositions, **conf.CustomKeyPositions)
     split_keys = lambda kk: (k for k in (kk.split("-") if "combos" == table else [kk]) if k in KP)
     positions = [{"x": KP[k][0], "y": KP[k][1], "value": p["count"], "label": k}
                  for p in heatmap_stats for k in split_keys(p["key"])]
@@ -210,12 +226,19 @@ else:
                 for kk, c in e["keys"].items() for k in split_keys(kk)
               ]} for e in events]
 end # if "mouse"
+config = dict(conf.HeatmapDisplayOptions,
+              **dict(conf.HeatmapDisplayOptions.get(input, {}), **conf.HeatmapDisplayOptions.get(table, {})))
+for name in conf.InputFlags: config.pop(name, None)
+end # for name
 appidstr = "" if app_search else ",".join(map(str, app_ids or []))
+
 %>
   var positions = {{! json.dumps(positions) }};
   var events = {{! json.dumps(events) }};
+  var config = {{! json.dumps(config) }};
   window.addEventListener("load", function() {
-    {{ "initMouseHeatmaps" if "mouse" == input else "initKeyboardHeatmap" }}(positions, events);
+    {{ "initMouseHeatmaps" if "mouse" == input else "initKeyboardHeatmap" }}(positions, events, config);
+    initFullscreenControls();
 %if conf.ProgramsEnabled:
     initAppsFilter("{{ make_url(appids=None, appnames=None) }}", "{{ app_search or "" }}", "{{ appidstr }}");
 %end # if conf.ProgramsEnabled

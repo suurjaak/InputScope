@@ -1,7 +1,29 @@
 CHANGELOG
 =========
 
-1.10, 2024-03-25
+1.11, 2024-04-15
+----------------
+- scale mouse heatmap to screen height
+- add fullscreen view to keyboard heatmaps
+- add replay controls to fullscreen heatmaps
+- omit programs with no events from applications list on heatmap page
+- make keyboard heatmap image path configurable
+- make keyboard key positions in heatmap configurable
+- retain heatmap replay close-button after completion
+- add yearly statistics
+- add collapse-toggles to years and months in input index
+- add program configuration path to database info box in statistics
+- add journaling file size to database file size in statistics info box
+- make heatmap display settings configurable (issue #32)
+- fix logging Numpad operator keys in Linux (issue #30)
+- fix SQLite-related warnings in Python 3.12+ (issue #30)
+- tweak mouse heatmap replay coloring
+- tweak session index layout
+- use log scale in keyboard heatmaps to avoid superfrequent keys fading others (issue #32)
+- work around heatmap.js bug of not rendering keyboard heatmap replay if step > 1
+
+
+1.10, 2024-03-22
 ----------------
 - use a custom lockfile implementation for single instance check in Linux (issue #27)
 - print reason when exiting program due to another instance already running (issue #27)

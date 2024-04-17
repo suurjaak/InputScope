@@ -14,13 +14,20 @@ db.fetch("test", id=("IN", [1, 2, 3]))
 db.delete("test", val="something")
 db.execute("DROP TABLE test")
 
+------------------------------------------------------------------------------
+This file is part of InputScope - mouse and keyboard input visualizer.
+Released under the MIT License.
+
 @author      Erki Suurjaak
 @created     05.03.2014
-@modified    21.10.2023
+@modified    13.04.2024
+------------------------------------------------------------------------------
 """
+import datetime
 import os
 import re
 import sqlite3
+import sys
 
 
 def fetch(table, cols="*", where=(), group="", order=(), limit=(), **kwargs):
@@ -159,10 +166,36 @@ def makeSQL(action, table, cols="*", where=(), group="", order=(), limit=(), val
 def get_config(config={}): return config
 
 
+def get_size(path=None):
+    """Returns database file size, of first initialized if path not given."""
+    result = None
+    filepath = path or get_config().get("path")
+    if filepath:
+        result = os.path.getsize(filepath)
+        for extra in ("journal", "wal") if result else ():
+            path = "%s-%s" % (filepath, extra)
+            result += os.path.getsize(path) if os.path.isfile(path) else 0
+    return result
+
+
 def init(path, init_statements=None):
+    if sys.version_info >= (3, 12): # Default adapters deprecated from v3.12, removed from v3.14
+        register_adapter(lambda v: v.isoformat(), [datetime.datetime, datetime.date])
     config = get_config()
     config.update(path=path, statements=init_statements)
     make_cursor(config["path"], config["statements"])
+
+
+def register_adapter(transformer, typeclasses):
+    """Registers function to auto-adapt given Python types to database types in query parameters."""
+    if not isinstance(typeclasses, (list, set, tuple)): typeclasses = [typeclasses]
+    for cls in typeclasses: sqlite3.register_adapter(cls, transformer)
+
+
+def register_converter(transformer, typenames):
+    """Registers function to auto-convert given database types to Python types in query results."""
+    if not isinstance(typenames, (list, set, tuple)): typenames = [typenames]
+    for typename in typenames: sqlite3.register_converter(typename, transformer)
 
 
 def close():

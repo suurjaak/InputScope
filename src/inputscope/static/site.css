@@ -3,7 +3,7 @@
  *
  * @author      Erki Suurjaak
  * @created     07.04.2015
- * @modified    20.10.2023
+ * @modified    16.04.2024
  */
 :root {
   font-size: 6.25%; /** Root font size to 1px @ default font size 16px */
@@ -101,6 +101,7 @@ body {
 }
 .flex-row > :first-child {
   margin-left: 0;
+  margin-right: 10rem;
 }
 .flex-row > :last-child {
   margin-right: 0;
@@ -111,6 +112,9 @@ body {
 }
 #replaysection {
   margin-left: auto;
+}
+#replaysection input[type="button"] {
+  min-width: 70px;
 }
 #replaysection #limit {
   font-size: 0.8em;
@@ -148,6 +152,9 @@ body {
   color: gray;
   font-weight: normal;
 }
+.heatmap {
+  background-color: white;
+}
 .heatmap.keyboard {
   margin-left: calc(-10rem + 10px - 1px);
 }
@@ -155,9 +162,41 @@ body {
   border: 1px solid #1abc9c;
 }
 .heatmap.mouse:fullscreen canvas {
-  background-color: white;
   height: 100%;
   width: 100%;
+}
+.heatmap.keyboard:fullscreen img,
+.heatmap.keyboard:fullscreen canvas {
+  position: absolute;
+  top: 50% !important;
+  transform: translateY(-50%);
+  width: 100%;
+}
+.heatmap.keyboard:fullscreen img {
+  height: auto;
+}
+.heatmap:fullscreen .controls {
+  position: absolute;
+  top: 0;
+  left: calc(50% - 350px);
+  width: 700px;
+}
+.heatmap:fullscreen .controls .inner {
+  background-color: rgba(255,255,255,0.7);
+  border-radius: 0 0 5px 5px;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 5px 5px 5px;
+}
+.heatmap:fullscreen .controls:hover .inner {
+  opacity: 1;
+}
+.heatmap:fullscreen .controls:not(:hover) .inner {
+  opacity: 0;
+  transition: opacity 0.5s ease 3s;
+}
+.heatmap:fullscreen .controls #replaysection {
+  margin-right: auto;
 }
 .heatmap_helpers {
   display: flex;
@@ -169,6 +208,9 @@ body {
   float: right;
   font-size: 0.8em;
   text-decoration: underline !important;
+}
+.heatmap_helpers a:nth-child(2) {
+  margin-left: auto;
 }
 .heatmap_helpers label:first-of-type,
 .heatmap_helpers :only-child {
@@ -186,7 +228,7 @@ body {
   float: right;
   display: none;
 }
-#status.playing #replay_stop {
+#status.progress #replay_stop {
   display: inline;
 }
 #progressbar {
@@ -224,9 +266,10 @@ table.outlined tbody {
   margin-top: 20px;
   padding: 5rem;
 }
-#tables .data {
+.data {
   border: 1px dashed #1abc9c;
   height: fit-content;
+  width: fit-content;
   margin-bottom: 20px;
   margin-top: 20px;
   padding: 5rem;
@@ -293,22 +336,40 @@ table.totals td.periods {
 table.totals td.periods .periods > div {
   column-gap: 10rem;
 }
-table.totals td.periods .count {
-  display: none;
-}
-table.totals td.periods.collapsed .count {
-  display: block;
-  white-space: nowrap;
-}
 table.totals td.periods.collapsed .periods {
   height: 0;
   overflow: hidden;
+  visibility: hidden;
+}
+table.totals td.periods .collapsed div:not(:first-of-type),
+table.totals td.periods.collapsed * a.toggle {
+  display: none;
+}
+table.totals td.periods .periods a.year {
+  font-size: 1.2em;
+}
+table.totals td.periods .periods div + div a.month {
+  margin-left: 5px;
 }
 table.totals td.periods .periods a.day {
   margin-left: 10px;
 }
 table.totals td.periods .periods span {
   margin-left: auto;
+}
+table.totals td.periods .count {
+  display: none;
+}
+.collapsed table.totals td.periods .count,
+table.totals td.periods.collapsed .count {
+  display: block;
+  white-space: nowrap;
+}
+.collapsed table.totals {
+  height: 4em;
+}
+.collapsed table.totals .toggle {
+  display: none;
 }
 .weekday {
   font-size: 0.7em;
@@ -337,8 +398,11 @@ body.session.index #header > #headerlinks,
 body.session.input #header > #headerlinks {
   margin-right: 60rem;
 }
-body.session.input td.periods a.day {
-  margin-left: 0;
+body.session .periods a.day {
+  margin-left: 0 !important;
+}
+body.session table.totals td.periods {
+  padding-right: initial;
 }
 #overlay {
   display: flex;
@@ -393,12 +457,19 @@ th {
   vertical-align: top;
   font-size: 0.8em;
 }
-table.outlined td {
+table.outlined td, .data td {
   vertical-align: top;
   font-size: 0.9em;
 }
 #app_stats {
-  width: 100%;
+  width: calc(100% - 2 * (1px + 5rem));
+}
+#app_stats > table {
+  display: block;
+  overflow-x: auto;
+}
+#app_stats.collapsed > table {
+  overflow-x: hidden;
 }
 #app_stats th:not(:last-child),
 #app_stats td:not(:last-child) {
@@ -437,6 +508,7 @@ table.totals td:not(:last-child) {
 table.totals th:first-child,
 #counts th:first-child {
   min-width: 80rem;
+  position: relative;
 }
 body.index table .flex-row {
   column-gap: 10px;
@@ -495,4 +567,7 @@ body.index table .flex-row > :first-child {
 }
 .hidden {
   display: none !important;
+}
+.invisible {
+  opacity: 0 !important;
 }

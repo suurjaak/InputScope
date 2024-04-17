@@ -13,12 +13,25 @@ all of them can be changed manually in the configuration file.
 # Example: {21: "IME Han/Yeong", 25: "IME Hanja"}
 CustomKeys                = {}
 
+# Extra configured key positions in keyboard heatmap, as {key name: [x, y]}.
+CustomKeyPositions        = {}
+
 # Default desktop screen size if not available from system,
 # for scaling mouse events to heatmap, in pixels, as [width, height]
 DefaultScreenSize         = [1920, 1080]
 
 # Interval between logging input events to database, in seconds
 EventsWriteInterval       = 5
+
+# Heatmap library display settings, as {setting: value, input or event type: {..}}.
+#
+# "backgroundColor", default is transparent
+# "blur", default 0.85
+# "gradient", default {0.25: "blue", 0.55: "green", 0.85: "yellow", 1.0: "red"}
+# "logScale", default false, true for keyboard
+# "radius", default 20
+# "opacity", default 0.6 (also "minOpacity" default 0, and "maxOpacity" default 1)
+HeatmapDisplayOptions     = {"moves": {"radius": 10}, "clicks": {"radius": 15}}
 
 # Maximum number of events to use for statistics page
 MaxEventsForStats         = 1000000
@@ -35,8 +48,14 @@ KeyboardKeysEnabled       = true
 # Whether keyboard key combination event logging is enabled
 KeyboardCombosEnabled     = true
 
+# Maximum keypress interval to count as one typing session, in seconds.
+KeyboardSessionMaxDelta = 3
+
 # Whether to ignore repeated keyboard events from long keypresses
 KeyboardStickyEnabled     = true
+
+# Maxinum number of most common keys/combos for applications on statistics page.
+KeyboardTopForPrograms = 5
 
 # Whether mouse logging is enabled
 MouseEnabled              = true

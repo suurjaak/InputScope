@@ -18,9 +18,13 @@ ServerIP = 0.0.0.0
 save() retains only the DEFAULT section, and writes only values diverging from
 the declared ones in source code. File is deleted if all values are at default.
 
+------------------------------------------------------------------------------
+This file is part of InputScope - mouse and keyboard input visualizer.
+Released under the MIT License.
+
 @author      Erki Suurjaak
 @created     26.03.2015
-@modified    25.03.2024
+@modified    16.04.2024
 ------------------------------------------------------------------------------
 """
 import ast
@@ -36,8 +40,8 @@ import sys
 
 """Program title, version number and version date."""
 Title = "InputScope"
-Version = "1.10"
-VersionDate = "25.03.2024"
+Version = "1.11.dev23"
+VersionDate = "16.04.2024"
 
 """TCP port of the web user interface."""
 WebHost = "localhost"
@@ -86,6 +90,21 @@ InputFlags = {
 """Extra configured keys, as {virtual keycode: "key name"}."""
 CustomKeys = {}
 
+"""Extra configured key positions in keyboard heatmap, as {key name: [x, y]}."""
+CustomKeyPositions = {}
+
+"""
+Heatmap library display settings, as {setting: value, input or event type: {..}}.
+
+backgroundColor
+blur, default 0.85
+gradient, default {0.25: "blue", 0.55: "green", 0.85: "yellow", 1.0: "red"}
+logScale, default false, true for keyboard
+radius, default 20
+opacity, default 0.6 (also minOpacity default 0, and maxOpacity default 1)
+"""
+HeatmapDisplayOptions = {"moves": {"radius": 10}, "clicks": {"radius": 15}}
+
 """Maximum keypress interval to count as one typing session, in seconds."""
 KeyboardSessionMaxDelta = 3
 
@@ -120,7 +139,7 @@ MaxEventsForQueue = 1000
 MaxSessionsInMenu = 20
 
 """Maxinum number of most common keys/combos for applications on statistics page."""
-MaxTopKeysForPrograms = 5
+KeyboardTopForPrograms = 5
 
 """
 List of screen areas to monitor for mouse events if not all,
@@ -322,6 +341,9 @@ TemplatePath = os.path.join(RootPath, "views")
 """Path for application icon file."""
 IconPath = os.path.join(StaticPath, "icon.ico")
 
+"""Path for keyboard heatmap image file."""
+KeyboardHeatmapPath = os.path.join(StaticPath, "keyboard.svg")
+
 """Path for licences of bundled open-source software."""
 LicensePath = os.path.join(StaticPath, "3rd-party licenses.txt") if Frozen else None
 
@@ -338,11 +360,11 @@ DayIndexTemplate = "CREATE INDEX IF NOT EXISTS idx_{0}_day ON {0} (day)"
 
 """Statements to execute in database at startup, like CREATE TABLE."""
 DbStatements = (
-    "CREATE TABLE IF NOT EXISTS moves (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, x INTEGER, y INTEGER, display INTEGER DEFAULT 0)",
-    "CREATE TABLE IF NOT EXISTS clicks (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, x INTEGER, y INTEGER, button INTEGER, display INTEGER DEFAULT 0)",
-    "CREATE TABLE IF NOT EXISTS scrolls (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, x INTEGER, y INTEGER, dx INTEGER DEFAULT 0, dy INTEGER DEFAULT 0, display INTEGER DEFAULT 0)",
-    "CREATE TABLE IF NOT EXISTS keys (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, key TEXT, realkey TEXT)",
-    "CREATE TABLE IF NOT EXISTS combos (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, key TEXT, realkey TEXT)",
+    "CREATE TABLE IF NOT EXISTS moves (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, x INTEGER, y INTEGER, display INTEGER DEFAULT 0, fk_program INTEGER)",
+    "CREATE TABLE IF NOT EXISTS clicks (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, x INTEGER, y INTEGER, button INTEGER, display INTEGER DEFAULT 0, fk_program INTEGER)",
+    "CREATE TABLE IF NOT EXISTS scrolls (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, x INTEGER, y INTEGER, dx INTEGER DEFAULT 0, dy INTEGER DEFAULT 0, display INTEGER DEFAULT 0, fk_program INTEGER)",
+    "CREATE TABLE IF NOT EXISTS keys (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, key TEXT, realkey TEXT, fk_program INTEGER)",
+    "CREATE TABLE IF NOT EXISTS combos (id INTEGER NOT NULL PRIMARY KEY, day DATE, stamp REAL, key TEXT, realkey TEXT, fk_program INTEGER)",
     "CREATE TABLE IF NOT EXISTS app_events (id INTEGER NOT NULL PRIMARY KEY, dt TIMESTAMP DEFAULT (DATETIME('now', 'localtime')), type TEXT)",
     "CREATE TABLE IF NOT EXISTS screen_sizes (id INTEGER NOT NULL PRIMARY KEY, dt TIMESTAMP DEFAULT (DATETIME('now', 'localtime')), x INTEGER, y INTEGER, w INTEGER, h INTEGER, display INTEGER)",
     "CREATE TABLE IF NOT EXISTS counts (id INTEGER NOT NULL PRIMARY KEY, type TEXT, day DATETIME, count INTEGER, UNIQUE(type, day))",
@@ -378,12 +400,14 @@ DbUpdateStatements = [
 ]
 
 """List of attribute names that are always saved to ConfigFile."""
-FileDirectives = ["CustomKeys", "DefaultScreenSize", "EventsWriteInterval", "MaxEventsForStats",
-    "MaxEventsForReplay", "KeyboardEnabled", "KeyboardKeysEnabled", "KeyboardCombosEnabled",
-    "KeyboardStickyEnabled", "MouseEnabled", "MouseMovesEnabled", "MouseClicksEnabled",
-    "MouseScrollsEnabled", "MouseHeatmapSize", "MouseMoveJoinInterval", "MouseMoveJoinRadius",
-    "MouseScrollJoinInterval", "MouseRegionsOfInterest", "MouseRegionsOfDisinterest", "PixelLength",
-    "ProgramBlacklist", "ProgramWhitelist", "ProgramsEnabled", "ScreenSizeInterval", "WebPort",
+FileDirectives = ["CustomKeys", "CustomKeyPositions", "DefaultScreenSize", "EventsWriteInterval",
+    "HeatmapDisplayOptions", "MaxEventsForStats", "MaxEventsForReplay", "KeyboardEnabled",
+    "KeyboardKeysEnabled", "KeyboardCombosEnabled", "KeyboardSessionMaxDelta",
+    "KeyboardStickyEnabled", "KeyboardTopForPrograms", "MouseEnabled", "MouseMovesEnabled",
+    "MouseClicksEnabled", "MouseScrollsEnabled", "MouseHeatmapSize", "MouseMoveJoinInterval",
+    "MouseMoveJoinRadius", "MouseScrollJoinInterval", "MouseRegionsOfInterest",
+    "MouseRegionsOfDisinterest", "PixelLength", "ProgramBlacklist", "ProgramWhitelist",
+    "ProgramsEnabled", "ScreenSizeInterval", "WebPort",
 ]
 
 try: text_types = (str, unicode)       # Py2
@@ -454,6 +478,12 @@ def validate():
                 try: CustomKeys[int(k, 16)] = v
                 except Exception: pass
     except Exception: CustomKeys = defaults()["CustomKeys"]
+    try:
+        poses, _ = CustomKeyPositions.copy(), CustomKeyPositions.clear()
+        for k, v in poses.items():
+            try: CustomKeyPositions[k] = tuple(map(int, v))[:2]
+            except Exception: pass
+    except Exception: CustomKeyPositions = defaults()["CustomKeyPositions"]
 
 
 def defaults(values={}):
