@@ -1,7 +1,7 @@
 CHANGELOG
 =========
 
-1.11, 2024-04-15
+1.11, 2024-04-17
 ----------------
 - scale mouse heatmap to screen height
 - add fullscreen view to keyboard heatmaps
